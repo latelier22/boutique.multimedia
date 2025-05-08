@@ -23,6 +23,7 @@
     ],
     "require": {
         "php": "^8.1",
+        "psr/http-factory": "*",
         "sylius/paypal-plugin": "^1.6",
         "sylius/state-machine-abstraction": "~1.13.0",
         "sylius/sylius": "~1.12.17",
@@ -61,6 +62,7 @@
         "symfony/debug-bundle": "^5.4 || ^6.4",
         "symfony/http-client": "^5.4 || ^6.4",
         "symfony/intl": "^5.4 || ^6.4",
+        "symfony/maker-bundle": "*",
         "symfony/web-profiler-bundle": "^5.4 || ^6.4"
     },
     "conflict": {
