@@ -28,7 +28,7 @@ jobs:
 
       - name: Install PHP dependencies
         run: |
-          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "cd /home/debian/boutique.multimedia && composer install --no-dev --optimize-autoloader"
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "cd /home/debian/boutique.multimedia && export APP_ENV=prod APP_DEBUG=0 && composer install --no-dev --optimize-autoloader"
 
       - name: Install Node dependencies and build assets
         run: |
