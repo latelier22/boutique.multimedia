@@ -62,7 +62,9 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
             cd /var/www/boutique.multimedia &&
-            php bin/console cache:clear --env=prod
+            php bin/console cache:clear --env=prod &&
+            chown -R www-data:www-data /var/www/boutique.multimedia/var &&
+            chmod -R 775 /var/www/boutique.multimedia/var
           "
 
       - name: Restart services
