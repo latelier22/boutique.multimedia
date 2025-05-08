@@ -1,0 +1,59 @@
+name: Deploy Sylius to VPS
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H vps.latelier22.fr >> ~/.ssh/known_hosts
+
+      - name: Rsync files to VPS (excluding vendor/, node_modules/, and media/)
+        run: |
+          rsync -avz --exclude 'vendor/' --exclude 'node_modules/' --exclude 'public/media/' --delete ./ debian@vps.latelier22.fr:/home/debian/boutique.multimedia/
+
+      - name: Install PHP dependencies
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "cd /home/debian/boutique.multimedia && composer install --no-dev --optimize-autoloader"
+
+      - name: Install Node dependencies and build assets
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "cd /home/debian/boutique.multimedia && pnpm install && pnpm build"
+
+      - name: Set permissions
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
+            sudo chown -R www-data:www-data /home/debian/boutique.multimedia &&
+            sudo chmod -R 775 /home/debian/boutique.multimedia &&
+            sudo chmod -R 777 /home/debian/boutique.multimedia/var/{cache,log} &&
+            sudo chown -R www-data:www-data /home/debian/boutique.multimedia/var/{cache,log} &&
+            sudo chown -R www-data:www-data /home/debian/boutique.multimedia/public/media
+          "
+
+      - name: Set .env to production
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "cp /home/debian/boutique.multimedia/.env.prod /home/debian/boutique.multimedia/.env"
+
+      - name: Restart PHP and Nginx
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
+            sudo systemctl restart php8.2-fpm &&
+            sudo systemctl restart nginx
+          "
+
+      - name: Done
+        run: echo "✅ Déploiement terminé sur le VPS dans /home/debian/boutique.multimedia"

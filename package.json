@@ -1,5 +1,14 @@
 {
   "license": "MIT",
+  "dependencies": {
+    "@babel/polyfill": "^7.0.0",
+    "chart.js": "^3.7.1",
+    "jquery": "^3.5.0",
+    "jquery.dirtyforms": "^2.0.0",
+    "lightbox2": "^2.9.0",
+    "semantic-ui-css": "^2.2.0",
+    "slick-carousel": "^1.8.1"
+  },
   "scripts": {
     "build": "encore dev",
     "build:prod": "encore production",
@@ -8,6 +17,10 @@
     "watch": "encore dev --watch"
   },
   "devDependencies": {
-    "@sylius-ui/frontend": "^1.0"
+    "@semantic-ui-react/css-patch": "^1.1.2",
+    "@sylius-ui/frontend": "^1.0",
+    "@symfony/webpack-encore": "^5.1.0",
+    "sass": "^1.87.0",
+    "sass-loader": "^16.0.5"
   }
 }
