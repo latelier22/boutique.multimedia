@@ -22,14 +22,21 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H vps.latelier22.fr >> ~/.ssh/known_hosts
 
+      - name: Clear Symfony cache before rsync
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
+            sudo rm -rf /var/www/boutique.multimedia/var/cache/*
+          "
+
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -avz --exclude 'vendor/' --exclude 'node_modules/'  --delete ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
+          rsync -avz --exclude 'vendor/' --exclude 'node_modules/' --delete ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
       - name: Install PHP dependencies (no dev)
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
-            cd /var/www/boutique.multimedia && export APP_ENV=prod && 
+            cd /var/www/boutique.multimedia &&
+            export APP_ENV=prod &&
             composer install --no-dev --optimize-autoloader
           "
 
