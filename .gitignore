@@ -18,10 +18,10 @@
 /docker/mysql/data/
 
 ###> symfony/framework-bundle ###
-/.env
-/.env.*.local
-/.env.local
-/.env.local.php
+.env
+.env.*.local
+.env.local
+.env.local.php
 /public/bundles
 /var/
 /vendor/
