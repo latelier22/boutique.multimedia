@@ -37,8 +37,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
             cd /var/www/boutique.multimedia &&
-            pnpm i &&
-            pnpm run build
+            sudo pnpm i &&
+            sudo pnpm run build
           "
 
       - name: Replace .env with .env.prod
