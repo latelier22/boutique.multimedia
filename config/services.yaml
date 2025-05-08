@@ -28,3 +28,8 @@ services:
     App\Controller\:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
+
+# define a service which will be used as the queue
+
+    redis_connection_factory:
+        class: Enqueue\Redis\RedisConnectionFactory
