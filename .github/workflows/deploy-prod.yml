@@ -29,7 +29,7 @@ jobs:
       - name: Install PHP dependencies (no dev)
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
-            cd /var/www/boutique.multimedia &&
+            cd /var/www/boutique.multimedia && export APP_ENV=prod && 
             composer install --no-dev --optimize-autoloader
           "
 
