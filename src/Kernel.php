@@ -40,10 +40,11 @@ final class Kernel extends BaseKernel
     {
         $contents = require $this->getProjectDir() . '/config/bundles.php';
         foreach ($contents as $class => $envs) {
-            if (isset($envs['all']) || isset($envs[$this->environment])) {
+            if ((isset($envs['all']) || isset($envs[$this->environment])) && class_exists($class)) {
                 yield new $class();
             }
         }
+        
     }
 
     protected function configureContainer(ContainerBuilder $container, LoaderInterface $loader): void
