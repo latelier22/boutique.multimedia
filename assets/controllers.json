@@ -1,1 +1,14 @@
-{ "controllers": {}, "entrypoints": [] }
+{
+    "controllers": {
+        "@symfony/ux-dropzone": {
+            "dropzone": {
+                "enabled": true,
+                "fetch": "eager",
+                "autoimport": {
+                    "@symfony/ux-dropzone/dist/style.min.css": true
+                }
+            }
+        }
+    },
+    "entrypoints": []
+}
