@@ -1,0 +1,19 @@
+{# templates/upload/form.html.twig #}
+<!DOCTYPE html>
+<html>
+    <head>
+      
+    </head>
+    <body>
+        {{ form_start(form) }}
+            {{ form_row(form.files) }}
+        {{ form_end(form) }}
+
+        {# bouton de secours si JavaScript est désactivé #}
+        <noscript>
+            <button type="submit">Envoyer</button>
+        </noscript>
+
+        {{ encore_entry_script_tags('app') }}
+    </body>
+</html>
