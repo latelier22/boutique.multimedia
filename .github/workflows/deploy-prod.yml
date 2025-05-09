@@ -27,6 +27,11 @@ jobs:
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
             sudo rm -rf /var/www/boutique.multimedia/var/cache/*
           "
+      - name: Clean public/build on VPS
+        run: |
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
+            sudo rm -rf /var/www/boutique.multimedia/public/build
+          "
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
