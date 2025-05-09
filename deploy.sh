@@ -8,7 +8,7 @@ LOCAL_PATH="$(pwd)"
 
 # === BUILD EN LOCAL ===
 echo "==> Compilation locale (composer + pnpm) en mode production..."
-APP_ENV=prod composer install --no-dev --optimize-autoloader
+export APP_ENV=prod APP_DEBUG=0 && composer install --no-dev --optimize-autoloader
 pnpm install
 pnpm run build
 
