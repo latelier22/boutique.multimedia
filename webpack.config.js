@@ -20,6 +20,7 @@ Encore
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning(Encore.isProduction())
+  .enableReactPreset()
   .enableSassLoader();
 
 const shopConfig = Encore.getWebpackConfig();
@@ -41,6 +42,7 @@ Encore
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning(Encore.isProduction())
+  .enableReactPreset()
   .enableSassLoader();
 
 const adminConfig = Encore.getWebpackConfig();
@@ -63,6 +65,7 @@ Encore
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning(Encore.isProduction())
+  .enableReactPreset()
   .enableSassLoader();
 
 const appShopConfig = Encore.getWebpackConfig();
@@ -85,6 +88,7 @@ Encore
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
   .enableVersioning(Encore.isProduction())
+  .enableReactPreset()
   .enableSassLoader();
 
 const appAdminConfig = Encore.getWebpackConfig();
