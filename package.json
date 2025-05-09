@@ -17,8 +17,11 @@
     "watch": "encore dev --watch"
   },
   "devDependencies": {
+    "@hotwired/stimulus": "^3.0.0",
     "@semantic-ui-react/css-patch": "^1.1.2",
     "@sylius-ui/frontend": "^1.0",
+    "@symfony/stimulus-bridge": "^3.2.0 || ^4.0.0",
+    "@symfony/ux-dropzone": "file:vendor/symfony/ux-dropzone/assets",
     "@symfony/webpack-encore": "^5.1.0",
     "sass": "^1.87.0",
     "sass-loader": "^16.0.5"

@@ -28,15 +28,24 @@ dependencies:
     version: 1.8.1(jquery@3.7.1)
 
 devDependencies:
+  '@hotwired/stimulus':
+    specifier: ^3.0.0
+    version: 3.2.2
   '@semantic-ui-react/css-patch':
     specifier: ^1.1.2
     version: 1.1.3
   '@sylius-ui/frontend':
     specifier: ^1.0
     version: 1.0.3(webpack@5.99.8)
+  '@symfony/stimulus-bridge':
+    specifier: ^3.2.0 || ^4.0.0
+    version: 4.0.1(@hotwired/stimulus@3.2.2)
+  '@symfony/ux-dropzone':
+    specifier: file:vendor/symfony/ux-dropzone/assets
+    version: file:vendor/symfony/ux-dropzone/assets(@hotwired/stimulus@3.2.2)
   '@symfony/webpack-encore':
     specifier: ^5.1.0
-    version: 5.1.0(@babel/core@7.27.1)(@babel/preset-env@7.27.2)(postcss@8.5.3)(sass-loader@16.0.5)(sass@1.87.0)(webpack-cli@5.1.4)(webpack@5.99.8)
+    version: 5.1.0(@babel/core@7.27.1)(@babel/preset-env@7.27.2)(@symfony/stimulus-bridge@4.0.1)(postcss@8.5.3)(sass-loader@16.0.5)(sass@1.87.0)(webpack-cli@5.1.4)(webpack@5.99.8)
   sass:
     specifier: ^1.87.0
     version: 1.87.0
@@ -1208,6 +1217,18 @@ packages:
       through2: 2.0.5
     dev: true
 
+  /@hotwired/stimulus-webpack-helpers@1.0.1(@hotwired/stimulus@3.2.2):
+    resolution: {integrity: sha512-wa/zupVG0eWxRYJjC1IiPBdt3Lruv0RqGN+/DTMmUWUyMAEB27KXmVY6a8YpUVTM7QwVuaLNGW4EqDgrS2upXQ==}
+    peerDependencies:
+      '@hotwired/stimulus': '>= 3.0'
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
+    dev: true
+
+  /@hotwired/stimulus@3.2.2:
+    resolution: {integrity: sha512-eGeIqNOQpXoPAIP7tC1+1Yc1yl1xnwYqg+3mzqxyrbE5pg5YFBZcA6YoTiByJB6DKAEsiWtl6tjTJS4IYtbB7A==}
+    dev: true
+
   /@humanwhocodes/config-array@0.13.0:
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
     engines: {node: '>=10.10.0'}
@@ -1632,6 +1653,19 @@ packages:
       - webpack-bundle-analyzer
     dev: true
 
+  /@symfony/stimulus-bridge@4.0.1(@hotwired/stimulus@3.2.2):
+    resolution: {integrity: sha512-+/kSQ4qFXMbZS+HjkhzOxwdN+60pMev7kzzDpQV/Tdm/iIWoxx5GDsVcdLaBb2783BVQHyrBP72JerF2SXTbTg==}
+    engines: {node: ^18.12.0 || ^20.0.0 || >=22.0}
+    peerDependencies:
+      '@hotwired/stimulus': ^3.0
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
+      '@hotwired/stimulus-webpack-helpers': 1.0.1(@hotwired/stimulus@3.2.2)
+      '@types/webpack-env': 1.18.8
+      loader-utils: 2.0.4
+      schema-utils: 4.3.2
+    dev: true
+
   /@symfony/webpack-encore@3.1.0:
     resolution: {integrity: sha512-9vM+8dnWoyrtKS23uFpB4sawYFwin8WQIHglXHFq1glT+Atv9KTv0+ZgoqaD0+D4k4D+9Z1cq4skBADtElgZeg==}
     engines: {node: '>=14.0.0'}
@@ -1680,7 +1714,7 @@ packages:
       - webpack-bundle-analyzer
     dev: true
 
-  /@symfony/webpack-encore@5.1.0(@babel/core@7.27.1)(@babel/preset-env@7.27.2)(postcss@8.5.3)(sass-loader@16.0.5)(sass@1.87.0)(webpack-cli@5.1.4)(webpack@5.99.8):
+  /@symfony/webpack-encore@5.1.0(@babel/core@7.27.1)(@babel/preset-env@7.27.2)(@symfony/stimulus-bridge@4.0.1)(postcss@8.5.3)(sass-loader@16.0.5)(sass@1.87.0)(webpack-cli@5.1.4)(webpack@5.99.8):
     resolution: {integrity: sha512-uSaRnssJj+ZHH9UcHRGI8kQzFb5hfCiPtBwP15vuKH5hTPGeJjQouDDo4UaPB3LuSYJXudKFiSDAnj/4d2z4aQ==}
     engines: {node: ^18.12.0 || ^20.0.0 || >=22.0}
     hasBin: true
@@ -1769,6 +1803,7 @@ packages:
       '@babel/core': 7.27.1
       '@babel/preset-env': 7.27.2(@babel/core@7.27.1)
       '@nuxt/friendly-errors-webpack-plugin': 2.6.0(webpack@5.99.8)
+      '@symfony/stimulus-bridge': 4.0.1(@hotwired/stimulus@3.2.2)
       babel-loader: 9.2.1(@babel/core@7.27.1)(webpack@5.99.8)
       css-loader: 7.1.2(webpack@5.99.8)
       css-minimizer-webpack-plugin: 7.0.2(webpack@5.99.8)
@@ -1984,6 +2019,10 @@ packages:
     resolution: {integrity: sha512-MK9V6NzAS1+Ud7JV9lJLFqW85VbC9dq3LmwZCuBe4wBDgKC0Kj/jd8Xl+nSviU+Qc3+m7umHHyHg//2KSa0a0Q==}
     dependencies:
       '@types/node': 22.15.16
+    dev: true
+
+  /@types/webpack-env@1.18.8:
+    resolution: {integrity: sha512-G9eAoJRMLjcvN4I08wB5I7YofOb/kaJNd5uoCMX+LbKXTPCF+ZIHuqTnFaK9Jz1rgs035f9JUPUhNFtqgucy/A==}
     dev: true
 
   /@types/ws@8.18.1:
@@ -10090,4 +10129,14 @@ packages:
   /yocto-queue@1.2.1:
     resolution: {integrity: sha512-AyeEbWOu/TAXdxlV9wmGcR0+yh2j3vYPGOECcIj2S7MkrLyC7ne+oye2BKTItt0ii2PHk4cDy+95+LshzbXnGg==}
     engines: {node: '>=12.20'}
+    dev: true
+
+  file:vendor/symfony/ux-dropzone/assets(@hotwired/stimulus@3.2.2):
+    resolution: {directory: vendor/symfony/ux-dropzone/assets, type: directory}
+    id: file:vendor/symfony/ux-dropzone/assets
+    name: '@symfony/ux-dropzone'
+    peerDependencies:
+      '@hotwired/stimulus': ^3.0.0
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
     dev: true
