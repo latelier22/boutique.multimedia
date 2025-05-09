@@ -5,6 +5,8 @@
         "node": "6"
       }
     }]
+    ,
+    "@babel/preset-react" // Ajout du preset React pour le JSX
   ],
   "plugins": [
     ["@babel/plugin-proposal-object-rest-spread", {
