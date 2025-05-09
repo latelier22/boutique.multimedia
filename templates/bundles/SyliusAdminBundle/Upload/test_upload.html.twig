@@ -1,0 +1,13 @@
+{# templates/admin/test_upload.html.twig #}
+{% extends '@SyliusAdmin/layout.html.twig' %}
+
+{% block content %}
+    <h1>Téléversement d’une image</h1>
+    <div class="ui segment">
+        <input
+            type="file"
+            data-controller="dropzone"
+            data-dropzone-url-value="{{ path('admin_test_upload_upload') }}"
+        />
+    </div>
+{% endblock %}

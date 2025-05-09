@@ -5,6 +5,9 @@ const syliusBundles = path.resolve(__dirname, 'vendor/sylius/sylius/src/Sylius/B
 const uiBundleScripts = path.resolve(syliusBundles, 'UiBundle/Resources/private/js/');
 const uiBundleResources = path.resolve(syliusBundles, 'UiBundle/Resources/private/');
 
+// Shared controllers.json path
+const controllersConfig = './assets/controllers.json';
+
 // Shop config
 Encore
   .setOutputPath('public/build/shop/')
@@ -12,6 +15,7 @@ Encore
   .addEntry('theme-multimedia-theme', './themes/MultimediaTheme/public/scss/theme.scss')
   .addEntry('theme-multimedia-style', './themes/MultimediaTheme/public/scss/style.scss')
   .addEntry('shop-entry', './vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/entry.js')
+  .enableStimulusBridge(controllersConfig)
   .disableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
@@ -32,6 +36,7 @@ Encore
   .setOutputPath('public/build/admin/')
   .setPublicPath('/build/admin')
   .addEntry('admin-entry', './vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/entry.js')
+  .enableStimulusBridge(controllersConfig)
   .disableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
   .enableSourceMaps(!Encore.isProduction())
@@ -50,14 +55,15 @@ Encore.reset();
 
 // App shop config
 Encore
-    .setOutputPath('public/build/app/shop')
-    .setPublicPath('/build/app/shop')
-    .addEntry('app-shop-entry', './assets/shop/entry.js')
-    .disableSingleRuntimeChunk()
-    .cleanupOutputBeforeBuild()
-    .enableSourceMaps(!Encore.isProduction())
-    .enableVersioning(Encore.isProduction())
-    .enableSassLoader();
+  .setOutputPath('public/build/app/shop')
+  .setPublicPath('/build/app/shop')
+  .addEntry('app-shop-entry', './assets/shop/entry.js')
+  .enableStimulusBridge(controllersConfig)
+  .disableSingleRuntimeChunk()
+  .cleanupOutputBeforeBuild()
+  .enableSourceMaps(!Encore.isProduction())
+  .enableVersioning(Encore.isProduction())
+  .enableSassLoader();
 
 const appShopConfig = Encore.getWebpackConfig();
 
@@ -71,14 +77,15 @@ Encore.reset();
 
 // App admin config
 Encore
-    .setOutputPath('public/build/app/admin')
-    .setPublicPath('/build/app/admin')
-    .addEntry('app-admin-entry', './assets/admin/entry.js')
-    .disableSingleRuntimeChunk()
-    .cleanupOutputBeforeBuild()
-    .enableSourceMaps(!Encore.isProduction())
-    .enableVersioning(Encore.isProduction())
-    .enableSassLoader();
+  .setOutputPath('public/build/app/admin')
+  .setPublicPath('/build/app/admin')
+  .addEntry('app-admin-entry', './assets/admin/entry.js')
+  .enableStimulusBridge(controllersConfig)
+  .disableSingleRuntimeChunk()
+  .cleanupOutputBeforeBuild()
+  .enableSourceMaps(!Encore.isProduction())
+  .enableVersioning(Encore.isProduction())
+  .enableSassLoader();
 
 const appAdminConfig = Encore.getWebpackConfig();
 
