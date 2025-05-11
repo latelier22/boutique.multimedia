@@ -133,6 +133,21 @@
     "fig/link-util": {
         "version": "1.1.1"
     },
+    "flux-se/payum-stripe-bundle": {
+        "version": "v2.0.1"
+    },
+    "flux-se/sylius-payum-stripe-plugin": {
+        "version": "2.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "2.0",
+            "ref": "04fbe1af8361502462ab7f8c1fd3152508f93f57"
+        },
+        "files": [
+            "config/packages/flux_se_sylius_payum_stripe.yaml"
+        ]
+    },
     "friends-of-behat/mink": {
         "version": "v1.8.0"
     },
@@ -505,9 +520,6 @@
             "version": "1.2",
             "ref": "6c1ceb662f8997085f739cd089bfbef67f245983"
         }
-    },
-    "stripe/stripe-php": {
-        "version": "v6.28.1"
     },
     "sylius-labs/association-hydrator": {
         "version": "v1.1.0"
