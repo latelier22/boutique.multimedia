@@ -1,48 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -------- Configuration --------
 REMOTE_USER=debian
-REMOTE_HOST=vps.latelier22.fr
+SSH_ALIAS=vps-latelier22
 REMOTE_PATH=/home/debian/sylius112
 
-# -------- Prepare a clean working copy --------
-# Use a temporary directory to avoid changing your local branch
-TMP_DIR=$(mktemp -d)
-echo "🔄 Cloning dev branch into $TMP_DIR"
-git clone --depth 1 --branch dev . "$TMP_DIR"
+ACTION=${1:-all}
+TMP_DIR=""
 
-# -------- Build inside the temporary directory --------
-cd "$TMP_DIR"
-echo "📦 Installing PHP dependencies..."
-export APP_ENV=prod
-composer install --no-dev --optimize-autoloader --no-interaction
+if [[ "$ACTION" =~ ^(all|build)$ ]]; then
+  TMP_DIR=$(mktemp -d)
+  echo "🔄 Cloning dev branch into $TMP_DIR"
+  git clone --depth 1 --branch dev . "$TMP_DIR"
+  cd "$TMP_DIR"
+  export APP_ENV=prod
+  echo "📦 Installing PHP dependencies..."
+  composer install --no-dev --optimize-autoloader --no-interaction
+  echo "🌐 Building frontend assets..."
+  pnpm install
+  pnpm run build
+fi
 
-echo "🌐 Building frontend assets..."
-pnpm install
-pnpm run build
+if [[ "$ACTION" =~ ^(all|rsync)$ ]]; then
+  echo "🚀 Prepare remote directory"
+  ssh -o IdentitiesOnly=yes "$SSH_ALIAS" \
+    "sudo mkdir -p ${REMOTE_PATH} && sudo chown -R ${REMOTE_USER}:www-data ${REMOTE_PATH}"
 
-# -------- Deploy to VPS --------
-echo "🚀 Syncing files to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}"
-rsync -avz --delete \
-  --exclude '.git/' \
-  --exclude 'node_modules/' \
-  --exclude 'vendor/' \
-  --exclude '.env.local' \
-  "$TMP_DIR/" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}"
+  echo "🚀 Syncing files to ${SSH_ALIAS}:${REMOTE_PATH}"
+  RSYNC_SSH="ssh -o IdentitiesOnly=yes"
+  rsync -avz -e "$RSYNC_SSH" --delete \
+    --exclude '.git/' \
+    --exclude 'node_modules/' \
+    --exclude 'vendor/' \
+    --exclude '.env.local' \
+    "${TMP_DIR:-.}/" "${SSH_ALIAS}:${REMOTE_PATH}"
 
-# -------- Remote post-deploy tasks --------
-echo "⚙️  Running migrations and clearing cache on server"
-ssh "${REMOTE_USER}@${REMOTE_HOST}" <<EOF
+  echo "⚙️  Running remote post-deploy tasks"
+  ssh -o IdentitiesOnly=yes "$SSH_ALIAS" <<EOF
 set -e
 cd ${REMOTE_PATH}
-php bin/console doctrine:migrations:migrate --no-interaction --env=prod
-php bin/console cache:clear --env=prod
+cp .env.prod .env
+php bin/console cache:clear
+sudo chown -R ${REMOTE_USER}:www-data ${REMOTE_PATH}
+sudo find ${REMOTE_PATH} -type d -exec chmod 755 {} +
+sudo find ${REMOTE_PATH} -type f -exec chmod 644 {} +
+sudo chmod -R 775 ${REMOTE_PATH}/var
+sudo chmod -R 775 ${REMOTE_PATH}/public/media
 sudo systemctl restart php8.2-fpm nginx
 EOF
+fi
 
-# -------- Cleanup local temporary copy --------
-echo "🧹 Cleaning up temporary files"
-rm -rf "$TMP_DIR"
+if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
+  echo "🧹 Cleaning up local temporary directory"
+  rm -rf "$TMP_DIR"
+fi
 
-echo "✅ Deployment completed successfully!"
+echo "✅ Deployment ($ACTION) completed successfully!"
