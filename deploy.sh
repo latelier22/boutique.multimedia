@@ -1,40 +1,48 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# === CONFIGURATION ===
-USER="debian"
-HOST="vps.latelier22.fr"
-REMOTE_PATH="/home/debian/boutique.multimedia"
-LOCAL_PATH="$(pwd)"
+# -------- Configuration --------
+REMOTE_USER=debian
+REMOTE_HOST=vps.latelier22.fr
+REMOTE_PATH=/home/debian/sylius112
 
-# === BUILD EN LOCAL ===
-echo "==> Compilation locale (composer + pnpm) en mode production..."
-export APP_ENV=prod APP_DEBUG=0 && composer install --no-dev --optimize-autoloader
+# -------- Prepare a clean working copy --------
+# Use a temporary directory to avoid changing your local branch
+TMP_DIR=$(mktemp -d)
+echo "🔄 Cloning dev branch into $TMP_DIR"
+git clone --depth 1 --branch dev . "$TMP_DIR"
+
+# -------- Build inside the temporary directory --------
+cd "$TMP_DIR"
+echo "📦 Installing PHP dependencies..."
+export APP_ENV=prod
+composer install --no-dev --optimize-autoloader --no-interaction
+
+echo "🌐 Building frontend assets..."
 pnpm install
 pnpm run build
 
-# === TRANSFERT COMPLET DU DOSSIER ===
-echo "==> Transfert vers $USER@$HOST:$REMOTE_PATH ..."
-rsync -avz \
-  --delete \
-  --exclude ".git" \
-  --exclude "node_modules" \
-  --exclude "var" \
-  "$LOCAL_PATH/" "$USER@$HOST:$REMOTE_PATH"
+# -------- Deploy to VPS --------
+echo "🚀 Syncing files to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}"
+rsync -avz --delete \
+  --exclude '.git/' \
+  --exclude 'node_modules/' \
+  --exclude 'vendor/' \
+  --exclude '.env.local' \
+  "$TMP_DIR/" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}"
 
-# === POST-DÉPLOIEMENT SUR LE SERVEUR ===
-echo "==> Post-déploiement distant..."
-
-ssh "$USER@$HOST" <<EOF
-  cd $REMOTE_PATH
-
-  echo "==> Préparation dossier var et permissions..."
-  mkdir -p var
-  chmod -R 775 var
-  chown -R www-data:www-data .
-
-  echo "==> Symfony : cache et migrations..."
-  APP_ENV=prod php bin/console cache:clear
-  APP_ENV=prod php bin/console cache:warmup
-
-  echo "✅ Déploiement terminé avec succès sur $HOST."
+# -------- Remote post-deploy tasks --------
+echo "⚙️  Running migrations and clearing cache on server"
+ssh "${REMOTE_USER}@${REMOTE_HOST}" <<EOF
+set -e
+cd ${REMOTE_PATH}
+php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+php bin/console cache:clear --env=prod
+sudo systemctl restart php8.2-fpm nginx
 EOF
+
+# -------- Cleanup local temporary copy --------
+echo "🧹 Cleaning up temporary files"
+rm -rf "$TMP_DIR"
+
+echo "✅ Deployment completed successfully!"

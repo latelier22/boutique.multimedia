@@ -1,0 +1,2 @@
+# Ce fichier permet à Git de conserver ce dossier même vide
+*.keep
