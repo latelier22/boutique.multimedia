@@ -23,6 +23,7 @@
     ],
     "require": {
         "php": "^8.1",
+        "flux-se/sylius-payum-stripe-plugin": "^2.0",
         "friendsofsylius/sylius-import-export-plugin": "^0.27.0",
         "portphp/csv": "^2.0",
         "portphp/spreadsheet": "^1.0",
@@ -61,7 +62,6 @@
         "phpunit/phpunit": "^8.5",
         "polishsymfonycommunity/symfony-mocker-container": "^1.0",
         "robertfausk/behat-panther-extension": "^1.1",
-        "stripe/stripe-php": "^6.43",
         "sylius-labs/coding-standard": "^4.0",
         "sylius/sylius-rector": "^2.0",
         "symfony/browser-kit": "^5.4 || ^6.4",

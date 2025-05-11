@@ -66,4 +66,6 @@ return [
     Symfony\UX\StimulusBundle\StimulusBundle::class => ['all' => true],
     Symfony\UX\Dropzone\DropzoneBundle::class => ['all' => true],
     Symfony\UX\React\ReactBundle::class => ['all' => true],
+    FluxSE\PayumStripeBundle\FluxSEPayumStripeBundle::class => ['all' => true],
+    FluxSE\SyliusPayumStripePlugin\FluxSESyliusPayumStripePlugin::class => ['all' => true],
 ];
