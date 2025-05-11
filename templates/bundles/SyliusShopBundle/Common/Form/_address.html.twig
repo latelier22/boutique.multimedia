@@ -1,0 +1,139 @@
+<style>
+  /* 1) On retire la bordure générale et on ne laisse que le soulignement */
+  .placeholder-dark {
+    border: none !important;
+    border-bottom: 1px solid rgba(16, 53, 89, 0.4) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* 2) On colore seulement le placeholder en gris foncé */
+  .placeholder-dark::-webkit-input-placeholder { color: #4a4a4a !important; }
+  .placeholder-dark::-moz-placeholder          { color: #4a4a4a !important; }
+  .placeholder-dark:-ms-input-placeholder      { color: #4a4a4a !important; }
+  .placeholder-dark::-ms-input-placeholder     { color: #4a4a4a !important; }
+  .placeholder-dark::placeholder               { color: #4a4a4a !important; }
+</style>
+
+{# 2) Votre logique Twig pour le formulaire #}
+{% if type is defined %}
+    {% set type = type ~ '-' %}
+{% else %}
+    {% set type = null %}
+{% endif %}
+
+<div class="two fields">
+    {# First Name #}
+    {% set ph = form.firstName.vars.label|trans ~ (form.firstName.vars.required ? ' *' : '') %}
+    {{ form_row(form.firstName, {
+        label: false,
+        attr: {
+            placeholder: ph,
+            class: 'placeholder-dark',
+        }
+    }) }}
+
+    {# Last Name #}
+    {% set ph = form.lastName.vars.label|trans ~ (form.lastName.vars.required ? ' *' : '') %}
+    {{ form_row(form.lastName, {
+        label: false,
+        attr: {
+            placeholder: ph,
+            class: 'placeholder-dark',
+        }
+    }) }}
+</div>
+
+<div style="display:none;">
+{{ form_row(form.company, sylius_test_form_attribute(type ~ 'company')) }}
+</div>
+
+
+
+{{ form_row(
+    form.street,
+    (
+        sylius_test_form_attribute(type ~ 'street')
+        | sylius_merge_recursive({
+            label: false,
+            attr: {
+                placeholder: 'Adresse postale, ex : 22, rue des 3 croix',
+                class: 'placeholder-dark',
+                style: 'border:none!important;border-bottom:1px solid rgba(16,53,89,0.4)!important;border-radius:0!important;box-shadow:none!important;'
+            }
+        })
+    )
+) }}
+
+
+
+
+<div class="two fields">
+    {# City #}
+    {% set phCity = form.city.vars.label|trans ~ (form.city.vars.required ? ' *' : '') %}
+    {{ form_row(
+        form.city,
+        sylius_test_form_attribute(type ~ 'city')|sylius_merge_recursive({
+            label: false,
+            attr: {
+                placeholder: phCity,
+                class: 'placeholder-dark',
+                style: 'border:none!important;border-bottom:1px solid rgba(16,53,89,0.4)!important;border-radius:0!important;box-shadow:none!important;'
+            }
+        })
+    ) }}
+
+    {# Postcode #}
+    {% set phPost = form.postcode.vars.label|trans ~ (form.postcode.vars.required ? ' *' : '') %}
+    {{ form_row(
+        form.postcode,
+        sylius_test_form_attribute(type ~ 'postcode')|sylius_merge_recursive({
+            label: false,
+            attr: {
+                placeholder: phPost,
+                class: 'placeholder-dark',
+                style: 'border:none!important;border-bottom:1px solid rgba(16,53,89,0.4)!important;border-radius:0!important;box-shadow:none!important;'
+            }
+        })
+    ) }}
+</div>
+
+{# Numéro de téléphone #}
+{{ form_row(
+    form.phoneNumber,
+    sylius_test_form_attribute(type ~ 'phone-number')|sylius_merge_recursive({
+        label: false,
+        attr: {
+            placeholder: 'Numéro de téléphone (ex : 01XXXXXXXXX sans espace)',
+            class: 'placeholder-dark',
+            style: '
+                border: none !important;
+                border-bottom: 1px solid rgba(16,53,89,0.4) !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+            '|trim
+        }
+    })
+) }}
+
+{# Astuce sous le champ #}
+<div class="ui message" style="border:none;background:transparent;box-shadow:none;padding:0;margin-top:0.5em;">
+    <i class="lightbulb icon" style="color:rgba(255, 180, 0, 0.8);"></i>
+    <span class="content" style="display:inline-block;vertical-align:middle;color:#4a4a4a;">
+        {{ 'Le numéro de téléphone permet de faciliter votre livraison.' }}
+    </span>
+</div>
+
+{% include '@SyliusShop/Common/Form/_countryCode.html.twig' with {'form': form.countryCode} %}
+
+<div class="province-container field" style={display: none }data-url="{{ path('sylius_shop_ajax_render_province_form') }}">
+    {% if form.provinceCode is defined %}
+        {{ form_row(form.provinceCode, sylius_test_form_attribute('province-code')|sylius_merge_recursive( {'attr': {'class': 'ui dropdown'}})) }}
+    {% elseif form.provinceName is defined %}
+        {{ form_row(form.provinceName, sylius_test_form_attribute('province-name')) }}
+    {% endif %}
+</div>
+
+{% if form.provinceCode is defined %}
+    {{ form_errors(form) }}
+{% endif %}
