@@ -19,6 +19,9 @@
             "src/Entity/.gitignore"
         ]
     },
+    "asdoria/sylius-bulk-edit-plugin": {
+        "version": "0.1.5"
+    },
     "babdev/pagerfanta-bundle": {
         "version": "v2.8.0"
     },

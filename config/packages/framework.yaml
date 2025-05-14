@@ -11,6 +11,11 @@ framework:
         mapping:
             paths: [ '%kernel.project_dir%/config/serialization' ]
 
+    messenger:
+        buses:
+            asdoria_bulk_edit.bus: ~
+
+
 when@dev:
     framework:
         profiler: { only_exceptions: false }
