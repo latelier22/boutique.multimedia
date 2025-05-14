@@ -68,4 +68,5 @@ return [
     Symfony\UX\React\ReactBundle::class => ['all' => true],
     FluxSE\PayumStripeBundle\FluxSEPayumStripeBundle::class => ['all' => true],
     FluxSE\SyliusPayumStripePlugin\FluxSESyliusPayumStripePlugin::class => ['all' => true],
+    Asdoria\SyliusBulkEditPlugin\AsdoriaSyliusBulkEditPlugin::class => ['all' => true],
 ];
