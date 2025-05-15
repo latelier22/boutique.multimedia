@@ -30,6 +30,7 @@
         "portphp/spreadsheet": "^1.0",
         "psr/http-factory": "*",
         "sylius/admin-order-creation-plugin": "^0.15.0",
+        "sylius/invoicing-plugin": "^0.25.1",
         "sylius/paypal-plugin": "^1.6",
         "sylius/state-machine-abstraction": "~1.13.0",
         "sylius/sylius": "~1.12.17",
