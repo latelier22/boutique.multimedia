@@ -80,9 +80,11 @@ sylius_customer:
         customer:
             classes:
                 model: App\Entity\Customer\Customer
+                repository: App\Repository\CustomerRepository
         customer_group:
             classes:
                 model: App\Entity\Customer\CustomerGroup
+                 
 
 sylius_locale:
     resources:
@@ -140,6 +142,7 @@ sylius_product:
         product_variant:
             classes:
                 model: App\Entity\Product\ProductVariant
+                repository: App\Repository\ProductVariantRepository
             translation:
                 classes:
                     model: App\Entity\Product\ProductVariantTranslation
@@ -253,3 +256,7 @@ sylius_theme:
             scan_depth: 1
             directories:
                 - "%kernel.project_dir%/themes"
+
+
+
+
