@@ -37,7 +37,12 @@ jobs:
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -avz --exclude 'vendor/' --exclude 'node_modules/' --delete ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
+          rsync -rlptz \
+            --exclude 'vendor/' \
+            --exclude 'node_modules/' \
+            --exclude 'public/media/' \
+            --delete \
+            ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
       - name: Install PHP dependencies (no dev)
         run: |
