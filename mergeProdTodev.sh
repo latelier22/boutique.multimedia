@@ -1,4 +1,4 @@
-git checkout dev
+git checkout prod
 git fetch origin
-git merge origin/prod
-git push origin dev
+git merge origin/dev
+git push origin prod
