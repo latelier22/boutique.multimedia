@@ -1,6 +1,8 @@
 const path = require('path');
 const Encore = require('@symfony/webpack-encore');
 
+const FosRouting = require('fos-router/webpack/FosRouting');
+
 const syliusBundles = path.resolve(__dirname, 'vendor/sylius/sylius/src/Sylius/Bundle/');
 const uiBundleScripts = path.resolve(syliusBundles, 'UiBundle/Resources/private/js/');
 const uiBundleResources = path.resolve(syliusBundles, 'UiBundle/Resources/private/');
@@ -37,6 +39,8 @@ Encore
   .setOutputPath('public/build/admin/')
   .setPublicPath('/build/admin')
   .addEntry('admin-entry', './vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/entry.js')
+   // ajoute le plugin qui appellera automatiquement `fos:js-routing:dump` à chaque build
+  .addPlugin(new FosRouting())
   .enableStimulusBridge(controllersConfig)
   .disableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
