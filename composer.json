@@ -27,6 +27,7 @@
         "flux-se/sylius-payum-stripe-plugin": "^2.0",
         "friendsofsylius/sylius-import-export-plugin": "^0.27.0",
         "odiseoteam/sylius-banner-plugin": "^1.3",
+        "odiseoteam/sylius-vendor-plugin": "^1.8",
         "portphp/csv": "^2.0",
         "portphp/spreadsheet": "^1.0",
         "psr/http-factory": "*",

@@ -344,6 +344,19 @@
     "odiseoteam/sylius-banner-plugin": {
         "version": "v1.3.1"
     },
+    "odiseoteam/sylius-vendor-plugin": {
+        "version": "1.8",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.6",
+            "ref": "01f8b8a1f637d60153f4bf847af0d632a04ebc2e"
+        },
+        "files": [
+            "config/packages/odiseo_sylius_vendor_plugin.yaml",
+            "config/routes/odiseo_sylius_vendor_plugin.yaml"
+        ]
+    },
     "openlss/lib-array2xml": {
         "version": "0.0.10"
     },
