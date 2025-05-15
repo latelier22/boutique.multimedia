@@ -6,6 +6,7 @@ imports:
     - { resource: "@SyliusPayPalPlugin/Resources/config/config.yaml" }
     - { resource: "../parameters.yaml" }
     - { resource: "@AsdoriaSyliusBulkEditPlugin/config/config.yaml"}
+    - { resource: "@SyliusAdminOrderCreationPlugin/Resources/config/app/config.yml" }
 
 parameters:
     sylius_core.public_dir: '%kernel.project_dir%/public'
