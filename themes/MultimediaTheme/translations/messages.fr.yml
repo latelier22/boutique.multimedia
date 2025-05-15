@@ -12,6 +12,12 @@ sylius:
         notes: 'Notes supplémentaires'
         variant:
             tracked: 'Suivi des stocks'
+        customer:
+            email: 'Email'
+        user:
+            email: 'Email'
+        guest:
+            email: 'Email'
     ui:
         abandoned: 'Abandonné'
         about: 'À propos'
