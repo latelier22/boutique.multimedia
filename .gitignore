@@ -2,8 +2,8 @@
 /public/build
 /public/css
 /public/js
-/public/media
-!/public/media/image/.gitkeep
+#/public/media
+#!/public/media/image/.gitkeep
 
 /etc/build/*
 !/etc/build/.gitignore
