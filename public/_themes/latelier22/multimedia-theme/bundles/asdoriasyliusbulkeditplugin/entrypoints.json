@@ -1,0 +1,12 @@
+{
+  "entrypoints": {
+    "admin-bulk-edit": {
+      "css": [
+        "/bundles/asdoriasyliusbulkeditplugin/admin-bulk-edit.min.css"
+      ],
+      "js": [
+        "/bundles/asdoriasyliusbulkeditplugin/admin-bulk-edit.min.js"
+      ]
+    }
+  }
+}
