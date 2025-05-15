@@ -7,6 +7,7 @@ imports:
     - { resource: "../parameters.yaml" }
     - { resource: "@AsdoriaSyliusBulkEditPlugin/config/config.yaml"}
     - { resource: "@SyliusAdminOrderCreationPlugin/Resources/config/app/config.yml" }
+    - { resource: "@OdiseoSyliusBannerPlugin/Resources/config/config.yaml" }
 
 parameters:
     sylius_core.public_dir: '%kernel.project_dir%/public'
