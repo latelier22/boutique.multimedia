@@ -39,12 +39,12 @@ Encore
   .setOutputPath('public/build/admin/')
   .setPublicPath('/build/admin')
   .addEntry('admin-entry', './vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/entry.js')
-  .addPlugin(
-    new FosRouting(
-      { target: './public/build/admin/js/fos_js_routes.json' },
-      false
-    )
-  )
+  // .addPlugin(
+  //   new FosRouting(
+  //     { target: './public/build/admin/js/fos_js_routes.json' },
+  //     false
+  //   )
+  // )
   .enableStimulusBridge(controllersConfig)
   .disableSingleRuntimeChunk()
   .cleanupOutputBeforeBuild()
