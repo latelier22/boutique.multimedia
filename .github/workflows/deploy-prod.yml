@@ -27,7 +27,7 @@ jobs:
       - name: Clear Symfony cache before rsync
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
-            sudo rm -rf /var/www/boutique.multimedia/*
+            sudo rm -rf /var/www/boutique.multimedia/var/cache/*
           "
       - name: Clean public/build on VPS
         run: |
@@ -37,7 +37,7 @@ jobs:
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -avz \
+          rsync -rlptz \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
             --delete \
