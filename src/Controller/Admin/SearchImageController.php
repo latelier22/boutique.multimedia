@@ -124,7 +124,7 @@ class SearchImageController extends AbstractController
             }
         }
 
-        return $this->render('@Syliusadmin/Images/image_search_results.html.twig', [
+        return $this->render('@SyliusAdmin/Images/image_search_results.html.twig', [
             'images'  => $images,
             'product' => $product,
         ]);
