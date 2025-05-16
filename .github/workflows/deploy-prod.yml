@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up SSH key for secure connection
+      - name: Set up SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -22,60 +22,47 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H vps.latelier22.fr >> ~/.ssh/known_hosts
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 1) Clear out the ENTIRE cache directory (including dot-files!)
-      #    and recreate it with proper ownership.
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Clear and recreate Symfony cache on VPS
+      # 1) Wipe and recreate both cache & log dirs as www-data
+      - name: Prepare cache & logs on VPS
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr << 'EOF'
-            sudo rm -rf /var/www/boutique.multimedia/var/cache
-            sudo mkdir -p /var/www/boutique.multimedia/var/cache
-            sudo chown -R www-data:www-data /var/www/boutique.multimedia/var/cache
+            sudo rm -rf /var/www/boutique.multimedia/var/cache \
+                         /var/www/boutique.multimedia/var/log
+            sudo mkdir -p /var/www/boutique.multimedia/var/{cache,log}
+            sudo chown -R www-data:www-data /var/www/boutique.multimedia/var
+            sudo chmod -R 775 /var/www/boutique.multimedia/var
           EOF
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 2) Remove old built assets
-      # ─────────────────────────────────────────────────────────────────────────────
+      # 2) Clean built assets
       - name: Clean public/build on VPS
         run: |
-          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "
-            sudo rm -rf /var/www/boutique.multimedia/public/build
-          "
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr \
+            "sudo rm -rf /var/www/boutique.multimedia/public/build"
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 3) Rsync code, but explicitly exclude var/cache so rsync never even
-      #    tries to touch it (and similarly skip vendor, node_modules, media)
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Sync application code to VPS
+      # 3) Rsync your code—but exclude var/, vendor/, node_modules/, media/
+      - name: Sync application code
         run: |
           rsync -az \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
             --exclude 'public/media/' \
-            --exclude 'var/cache/' \
+            --exclude 'var/' \
             --delete \
             ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 4) Install PHP deps & warm up cache via Symfony commands
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Install PHP dependencies & clear/warm cache
+      # 4) Install PHP deps *as root* so cache scripts can run
+      - name: Install PHP dependencies
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
-            export APP_ENV=prod
-            composer install --no-dev --optimize-autoloader
-            php bin/console cache:clear --env=prod --no-warmup
-            php bin/console cache:warmup --env=prod
-            sudo chown -R www-data:www-data var/cache var/log
-            sudo chmod -R 775 var/cache var/log
+            sudo composer install --no-dev --optimize-autoloader
+            # after install, ensure var is still owned by www-data
+            sudo chown -R www-data:www-data var
+            sudo chmod -R 775 var
           EOF
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 5) Build your assets
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Install Node deps and build assets
+      # 5) Build front-end assets
+      - name: Install Node deps & build assets
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
@@ -83,10 +70,8 @@ jobs:
             sudo pnpm run build
           EOF
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 6) Environment file & media permissions
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Swap in prod .env & fix media perms
+      # 6) Swap in .env and fix media perms
+      - name: Env & media permissions
         run: |
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
@@ -95,12 +80,11 @@ jobs:
             sudo chmod -R 775 public/media
           EOF
 
-      # ─────────────────────────────────────────────────────────────────────────────
-      # 7) Restart PHP-FPM & Nginx
-      # ─────────────────────────────────────────────────────────────────────────────
-      - name: Restart services
+      # 7) Restart services
+      - name: Restart PHP-FPM & Nginx
         run: |
-          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr "sudo systemctl restart php8.2-fpm && sudo systemctl restart nginx"
+          ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr \
+            "sudo systemctl restart php8.2-fpm && sudo systemctl restart nginx"
 
       - name: ✅ Done
         run: echo "🎉 Deployment complete!"
