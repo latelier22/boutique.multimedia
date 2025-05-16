@@ -109,6 +109,28 @@ jobs:
              sudo chmod -R 775 public/media"
 
       # ─────────────────────────────────────────────────────────────────────────────
+      # Debug : afficher les vars et le .env sur le serveur
+      # ─────────────────────────────────────────────────────────────────────────────
+      - name: Debug remote ENV and .env
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
+            set -x
+
+            echo "---- Remote ENV vars ----"
+            echo "GOOGLE_CSE_ID=\"$GOOGLE_CSE_ID\""
+            echo "GOOGLE_API_KEY=\"$GOOGLE_API_KEY\""
+
+            echo "---- /var/www/boutique.multimedia/.env ----"
+            cat /var/www/boutique.multimedia/.env
+
+            echo "---- printenv | grep GOOGLE ----"
+            printenv | grep GOOGLE || true
+          EOF
+
+      # ─────────────────────────────────────────────────────────────────────────────
       # 7) Restart PHP-FPM & Nginx
       # ─────────────────────────────────────────────────────────────────────────────
       - name: Restart services
