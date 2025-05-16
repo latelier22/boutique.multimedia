@@ -16,12 +16,12 @@ jobs:
       - name: Set up SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # don’t fail if key-scan can’t reach the server
-          ssh-keyscan -H vps.latelier22.fr >> ~/.ssh/known_hosts || true
+          ssh-keyscan -H vps.latelier22.fr >> ~/.ssh/known_hosts
 
       # 1) Wipe and recreate both cache & log dirs as www-data
       - name: Prepare cache & logs on VPS
