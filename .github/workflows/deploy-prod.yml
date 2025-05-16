@@ -109,25 +109,30 @@ jobs:
              sudo chmod -R 775 public/media"
 
       # ─────────────────────────────────────────────────────────────────────────────
-      # Debug : afficher les vars et le .env sur le serveur
+      # DEBUG: Show that GitHub secrets actually exist in the runner
       # ─────────────────────────────────────────────────────────────────────────────
-      - name: Debug remote ENV and .env
+      - name: Debug GitHub Actions secrets on runner
+        run: |
+          echo "Runner sees these secrets (they’ll be masked in logs):"
+          echo "GOOGLE_CSE_ID = ${{ secrets.GOOGLE_CSE_ID }}"
+          echo "GOOGLE_API_KEY  = ${{ secrets.GOOGLE_API_KEY }}"
+
+          # Also print their lengths to prove they’re non-empty
+          echo -n "Length of GOOGLE_CSE_ID: " && echo -n "${{ secrets.GOOGLE_CSE_ID }}" | wc -c
+          echo -n "Length of GOOGLE_API_KEY:  " && echo -n "${{ secrets.GOOGLE_API_KEY }}" | wc -c
+
+      # ─────────────────────────────────────────────────────────────────────────────
+      # DEBUG: Show the .env file _after_ you’ve appended the secrets on the server
+      # ─────────────────────────────────────────────────────────────────────────────
+      - name: Debug remote .env contents
         run: |
           ssh -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               -i ~/.ssh/id_rsa \
               debian@vps.latelier22.fr << 'EOF'
-            set -x
-
-            echo "---- Remote ENV vars ----"
-            echo "GOOGLE_CSE_ID=\"$GOOGLE_CSE_ID\""
-            echo "GOOGLE_API_KEY=\"$GOOGLE_API_KEY\""
-
-            echo "---- /var/www/boutique.multimedia/.env ----"
+            echo "===== REMOTE .env ====="
             cat /var/www/boutique.multimedia/.env
-
-            echo "---- printenv | grep GOOGLE ----"
-            printenv | grep GOOGLE || true
+            echo "===== DONE ====="
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
