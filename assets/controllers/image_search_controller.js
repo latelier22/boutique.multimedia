@@ -51,8 +51,11 @@ export default class extends Controller {
             body:    JSON.stringify({ url })
           }
         );
-        this.closeModal();
-        // location.reload();
+       // On se souvient qu'on veut rester sur "media"
+      sessionStorage.setItem('syliusActiveTab', 'media');
+
+      this.closeModal();
+      location.reload();
       });
     });
   }
