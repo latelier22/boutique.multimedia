@@ -4,3 +4,10 @@ liip_imagine:
             web_path:
                 web_root: "%kernel.project_dir%/public"
                 cache_prefix: "media/cache"
+
+    loaders:
+        default:
+            filesystem:
+                data_root:
+                    - "%sylius_core.public_dir%/media/image"
+                    - "%sylius_core.public_dir%/media" # Add media folder
