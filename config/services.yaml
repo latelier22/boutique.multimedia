@@ -1,3 +1,8 @@
+parameters:
+    locale: fr_FR
+    google_api_key: '%env(GOOGLE_API_KEY)%'
+    google_cse_id:  '%env(GOOGLE_CSE_ID)%'
+
 services:
     # Default configuration for services in *this* file
     _defaults:
@@ -33,3 +38,8 @@ services:
 
     redis_connection_factory:
         class: Enqueue\Redis\RedisConnectionFactory
+
+    App\Controller\Admin\SearchImageController:
+        arguments:
+            $googleApiKey: '%google_api_key%'
+            $googleCseId:  '%google_cse_id%'
