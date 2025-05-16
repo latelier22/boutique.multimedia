@@ -1,0 +1,17 @@
+{% for img in images %}
+  <div class="ui card image-card"
+       data-url="{{ img.url }}">
+    <div class="image"><img src="{{ img.url }}" alt="{{ img.title }}"></div>
+    <div class="content">
+      <div class="header">{{ img.title }}</div>
+      <div class="description">{{ img.snippet }}</div>
+    </div>
+    <div class="extra content">
+      <button type="submit" class="ui button primary">
+        {{ 'Ajouter'|trans }}
+      </button>
+    </div>
+  </div>
+{% else %}
+  <div class="ui message">{{ 'Aucun résultat'|trans }}</div>
+{% endfor %}
