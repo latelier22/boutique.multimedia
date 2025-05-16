@@ -37,9 +37,12 @@ jobs:
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -rlz \
+          rsync -rlpz --dry-run \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
+            --include 'public/media/vendor-logo/' \
+            --include 'public/media/vendor-logo/**' \
+            --exclude 'public/media/**' \
             --delete \
             ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
