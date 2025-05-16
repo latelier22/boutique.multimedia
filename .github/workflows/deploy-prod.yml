@@ -37,12 +37,9 @@ jobs:
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -rlpz --dry-run \
+          rsync -rlz \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
-            --include 'public/media/vendor-logo/' \
-            --include 'public/media/vendor-logo/**' \
-            --exclude 'public/media/**' \
             --delete \
             ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
@@ -85,7 +82,11 @@ jobs:
             cd /var/www/boutique.multimedia &&
             php bin/console cache:clear --env=prod &&
             sudo chown -R www-data:www-data /var/www/boutique.multimedia/var &&
-            sudo chmod -R 775 /var/www/boutique.multimedia/var
+            sudo chmod -R 775 /var/www/boutique.multimedia/var &&
+            sudo chown -R www-data:www-data  /var/www/boutique.multimedia/var/cache &&
+            sudo chown -R www-data:www-data  /var/www/boutique.multimedia/var/log &&
+            sudo chmod -R 777  /var/www/boutique.multimedia/var/cache &&
+            sudo chmod -R 777  /var/www/boutique.multimedia/var/log
           "
 
       - name: Restart services
