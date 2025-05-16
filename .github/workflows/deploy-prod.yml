@@ -40,6 +40,7 @@ jobs:
           rsync -rlz \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
+            --exclude 'public/media/'
             --delete \
             ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
