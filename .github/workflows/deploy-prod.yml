@@ -16,6 +16,7 @@ jobs:
       - name: Set up SSH key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
@@ -76,6 +77,8 @@ jobs:
           ssh -i ~/.ssh/id_rsa debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
             cp .env.prod .env
+            echo "GOOGLE_CSE_ID="${{ secrets.GOOGLE_CSE_ID }}" >> .env
+            echo "GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" >> .env
             sudo chown -R www-data:www-data public/media
             sudo chmod -R 775 public/media
           EOF
