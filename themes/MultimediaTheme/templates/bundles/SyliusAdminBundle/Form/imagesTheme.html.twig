@@ -1,0 +1,31 @@
+{% extends '@SyliusUi/Form/imagesTheme.html.twig' %}
+
+{% block sylius_product_image_widget %}
+
+    {{ block('sylius_image_widget') }}
+    {# Bouton qui ouvre la modale #}
+<button type="button" class="ui button primary" id="search-images-btn" data-controller="image-search" data-action="click->image-search#openModal">
+    {{ 'Rechercher une image'|trans }}
+</button>
+
+{# La modale vide, qui sera remplie par JS #}
+<div class="ui modal" id="image-search-modal" data-controller="image-search">
+  <div class="header">{{ 'Rechercher une image'|trans }}</div>
+  <div class="content">
+    <div class="ui input fluid">
+      <input type="text" placeholder="{{ 'Votre recherche...'|trans }}" data-image-search-target="query">
+    </div>
+    <div class="ui divider"></div>
+    <div class="ui five stackable cards" data-image-search-target="results">
+      {# JS injectera ici les cartes d’aperçu #}
+    </div>
+  </div>
+</div>
+
+    {% apply spaceless %}
+        {% if product.id is not null and 0 != product.variants|length and not product.simple %}
+            <br/>
+            {{ form_row(form.productVariants, {'remote_url': path('sylius_admin_ajax_product_variants_by_phrase', {'productCode': product.code}), 'remote_criteria_type': 'contains', 'remote_criteria_name': 'phrase', 'load_edit_url': path('sylius_admin_ajax_product_variants_by_codes', {'productCode': product.code})}) }}
+        {% endif %}
+    {% endapply %}
+{% endblock %}
