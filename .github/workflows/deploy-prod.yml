@@ -96,17 +96,30 @@ jobs:
       # ─────────────────────────────────────────────────────────────────────────────
       - name: Env file & media perms
         run: |
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-              -i ~/.ssh/id_rsa debian@vps.latelier22.fr \
-            "cd /var/www/boutique.multimedia && \
-             cp .env.prod .env && \
-             sed -i '/^DATABASE_URL=/d' .env && \
-             sed -i '/^MAILER_DSN=/d' .env && \
-             sed -i '/^OPENAI_KEY=/d' .env && \
-             echo \"GOOGLE_CSE_ID=${{ secrets.GOOGLE_CSE_ID }}\" >> .env && \
-             echo \"GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}\" >> .env && \
-             sudo chown -R www-data:www-data public/media && \
-             sudo chmod -R 775 public/media"
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr <<EOF
+            cd /var/www/boutique.multimedia
+
+            cp .env.prod .env
+
+            # remove any old keys just in case
+            sed -i '/^GOOGLE_CSE_ID=/d' .env
+            sed -i '/^GOOGLE_API_KEY=/d' .env
+
+            # now append with guaranteed newlines
+            printf "\nGOOGLE_CSE_ID=%s\n" "${{ secrets.GOOGLE_CSE_ID }}" >> .env
+            printf "GOOGLE_API_KEY=%s\n"     "${{ secrets.GOOGLE_API_KEY }}" >> .env
+
+            # verify (this will show up in your logs, values masked)
+            echo "---- final .env ----"
+            tail -n 3 .env
+
+            # fix media perms
+            sudo chown -R www-data:www-data public/media
+            sudo chmod -R 775 public/media
+          EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
       # DEBUG: Show that GitHub secrets actually exist in the runner
