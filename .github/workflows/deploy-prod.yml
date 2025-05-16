@@ -96,17 +96,17 @@ jobs:
       # ─────────────────────────────────────────────────────────────────────────────
       - name: Env file & media perms
         run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              -i ~/.ssh/id_rsa \
-              debian@vps.latelier22.fr << 'EOF'
-            cd /var/www/boutique.multimedia
-            cp .env.prod .env
-            echo "GOOGLE_CSE_ID=${{ secrets.GOOGLE_CSE_ID }}" >> .env
-            echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> .env
-            sudo chown -R www-data:www-data public/media
-            sudo chmod -R 775 public/media
-          EOF
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa debian@vps.latelier22.fr \
+            "cd /var/www/boutique.multimedia && \
+             cp .env.prod .env && \
+             sed -i '/^DATABASE_URL=/d' .env && \
+             sed -i '/^MAILER_DSN=/d' .env && \
+             sed -i '/^OPENAI_KEY=/d' .env && \
+             echo \"GOOGLE_CSE_ID=${{ secrets.GOOGLE_CSE_ID }}\" >> .env && \
+             echo \"GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}\" >> .env && \
+             sudo chown -R www-data:www-data public/media && \
+             sudo chmod -R 775 public/media"
 
       # ─────────────────────────────────────────────────────────────────────────────
       # 7) Restart PHP-FPM & Nginx
