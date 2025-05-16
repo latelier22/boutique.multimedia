@@ -52,7 +52,7 @@ export default class extends Controller {
           }
         );
         this.closeModal();
-        location.reload();
+        // location.reload();
       });
     });
   }
