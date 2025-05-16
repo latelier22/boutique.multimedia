@@ -37,7 +37,7 @@ jobs:
 
       - name: Copy files to VPS (excluding vendor/, node_modules/, media/)
         run: |
-          rsync -rlptz \
+          rsync -rlz \
             --exclude 'vendor/' \
             --exclude 'node_modules/' \
             --delete \
