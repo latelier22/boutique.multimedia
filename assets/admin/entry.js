@@ -1,6 +1,9 @@
 import '../bootstrap.js'
 import '../app.js'
 
+// assets/admin/entry.js
+import 'jquery';
+import 'semantic-ui-css/components/tab.js';
 
 // assets/admin/entry.js
 import Routing from 'fos-router';
@@ -23,14 +26,12 @@ Routing.setRoutingData(routes);
 //   });
 // });
 
-import $ from 'jquery';
 
+// … later on DOMContentLoaded …
 document.addEventListener('DOMContentLoaded', () => {
   const tab = sessionStorage.getItem('syliusActiveTab');
   if (tab) {
-    // On utilise Semantic-UI pour changer la tab
     $(`.ui.menu .item[data-tab="${tab}"]`).tab('change tab', tab);
-    // On efface pour le prochain reload
     sessionStorage.removeItem('syliusActiveTab');
   }
 });
