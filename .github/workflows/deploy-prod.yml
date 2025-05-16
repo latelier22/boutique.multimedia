@@ -13,16 +13,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Load SSH key into ssh-agent
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known-hosts: vps.latelier22.fr
-
-      # 1) Wipe and recreate cache & log dirs on the server
-      - name: Prepare var/cache & var/log
+      - name: Set up SSH key for secure connection
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          ssh debian@vps.latelier22.fr << 'EOF'
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      # ─────────────────────────────────────────────────────────────────────────────
+      # 1) Wipe and recreate cache & log dirs on the server (with SSH opts)
+      # ─────────────────────────────────────────────────────────────────────────────
+      - name: Prepare var/cache & var/log on VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
             sudo rm -rf /var/www/boutique.multimedia/var/cache \
                          /var/www/boutique.multimedia/var/log
             sudo mkdir -p /var/www/boutique.multimedia/var/{cache,log}
@@ -30,16 +37,24 @@ jobs:
             sudo chmod -R 775 /var/www/boutique.multimedia/var
           EOF
 
+      # ─────────────────────────────────────────────────────────────────────────────
       # 2) Remove old built assets
-      - name: Clean public/build
+      # ─────────────────────────────────────────────────────────────────────────────
+      - name: Clean public/build on VPS
         run: |
-          ssh debian@vps.latelier22.fr \
-            "sudo rm -rf /var/www/boutique.multimedia/public/build"
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr \
+              "sudo rm -rf /var/www/boutique.multimedia/public/build"
 
-      # 3) Rsync code (excluding var/, vendor/, node_modules/, public/media/)
+      # ─────────────────────────────────────────────────────────────────────────────
+      # 3) Rsync code (exclut var/, vendor/, node_modules/, public/media/)
+      # ─────────────────────────────────────────────────────────────────────────────
       - name: Sync application code
         run: |
           rsync -az \
+            -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa" \
             --exclude='vendor/' \
             --exclude='node_modules/' \
             --exclude='public/media/' \
@@ -47,30 +62,44 @@ jobs:
             --delete \
             ./ debian@vps.latelier22.fr:/var/www/boutique.multimedia
 
-      # 4) Install PHP deps as root (so Symfony can clear/warm cache)
+      # ─────────────────────────────────────────────────────────────────────────────
+      # 4) Install PHP deps as root (pour que cache:clear fonctionne)
+      # ─────────────────────────────────────────────────────────────────────────────
       - name: Install PHP dependencies
         run: |
-          ssh debian@vps.latelier22.fr << 'EOF'
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
             sudo composer install --no-dev --optimize-autoloader
-            # Symfony’s post-install will clear/warm cache under www-data
             sudo chown -R www-data:www-data var
             sudo chmod -R 775 var
           EOF
 
+      # ─────────────────────────────────────────────────────────────────────────────
       # 5) Build front-end assets
+      # ─────────────────────────────────────────────────────────────────────────────
       - name: Install Node deps & build assets
         run: |
-          ssh debian@vps.latelier22.fr << 'EOF'
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
             sudo pnpm install
             sudo pnpm run build
           EOF
 
+      # ─────────────────────────────────────────────────────────────────────────────
       # 6) Swap in prod .env and fix media permissions
+      # ─────────────────────────────────────────────────────────────────────────────
       - name: Env file & media perms
         run: |
-          ssh debian@vps.latelier22.fr << 'EOF'
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
             cp .env.prod .env
             echo "GOOGLE_CSE_ID=${{ secrets.GOOGLE_CSE_ID }}" >> .env
@@ -79,11 +108,16 @@ jobs:
             sudo chmod -R 775 public/media
           EOF
 
+      # ─────────────────────────────────────────────────────────────────────────────
       # 7) Restart PHP-FPM & Nginx
+      # ─────────────────────────────────────────────────────────────────────────────
       - name: Restart services
         run: |
-          ssh debian@vps.latelier22.fr \
-            "sudo systemctl restart php8.2-fpm && sudo systemctl restart nginx"
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr \
+              "sudo systemctl restart php8.2-fpm && sudo systemctl restart nginx"
 
       - name: ✅ Deployment complete
         run: echo "🎉 Deployed to prod!"
