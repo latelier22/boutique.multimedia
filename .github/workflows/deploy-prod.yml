@@ -55,6 +55,7 @@ jobs:
         run: |
           rsync -az \
             -e "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i ~/.ssh/id_rsa" \
+            --rsync-path="sudo rsync" \
             --exclude='vendor/' \
             --exclude='node_modules/' \
             --exclude='public/media/' \
