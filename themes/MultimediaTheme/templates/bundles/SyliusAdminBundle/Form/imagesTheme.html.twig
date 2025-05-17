@@ -14,6 +14,12 @@
               data-action="image-search#openModal">
         {{ 'Rechercher une image'|trans }}
       </button>
+      {# --- NOUVEAU BOUTON "Coller une image" --- #}
+      <button type="button"
+              class="ui button"
+              data-action="image-search#pasteImage">
+        Coller une image
+      </button>
 
       <div class="ui modal"
            data-image-search-target="modal">

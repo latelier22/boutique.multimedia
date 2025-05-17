@@ -130,38 +130,81 @@ class SearchImageController extends AbstractController
         ]);
     }
 
-    /**
-     * AJAX : ajoute une image externe à un produit.
-     *
-     * @Route("/admin/ajax/product/{id}/add-image", name="admin_ajax_add_product_image", methods={"POST"})
-     */
-    public function ajaxAddProductImage(Request $request, int $id): JsonResponse
-    {
-        $product = $this->productRepository->find($id);
-        if (null === $product) {
-            return $this->json(['error' => 'Produit introuvable'], 404);
-        }
+    // /**
+    //  * AJAX : ajoute une image externe à un produit.
+    //  *
+    //  * @Route("/admin/ajax/product/{id}/add-image", name="admin_ajax_add_product_image", methods={"POST"})
+    //  */
+    // public function ajaxAddProductImage(Request $request, int $id): JsonResponse
+    // {
+    //     $product = $this->productRepository->find($id);
+    //     if (null === $product) {
+    //         return $this->json(['error' => 'Produit introuvable'], 404);
+    //     }
 
-        $data = json_decode((string) $request->getContent(), true);
-        $url  = $data['url'] ?? '';
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
-            return $this->json(['error' => 'URL invalide'], 400);
-        }
+    //     $data = json_decode((string) $request->getContent(), true);
+    //     $url  = $data['url'] ?? '';
+    //     if (!filter_var($url, FILTER_VALIDATE_URL)) {
+    //         return $this->json(['error' => 'URL invalide'], 400);
+    //     }
 
-        $tmpPath = sys_get_temp_dir() . '/' . uniqid() . '.' . pathinfo($url, PATHINFO_EXTENSION);
-        file_put_contents($tmpPath, file_get_contents($url));
-        $uploadedFile = new UploadedFile($tmpPath, basename($tmpPath), null, null, true);
+    //     $tmpPath = sys_get_temp_dir() . '/' . uniqid() . '.' . pathinfo($url, PATHINFO_EXTENSION);
+    //     file_put_contents($tmpPath, file_get_contents($url));
+    //     $uploadedFile = new UploadedFile($tmpPath, basename($tmpPath), null, null, true);
 
-        $productImage = new ProductImage();
-        $productImage->setFile($uploadedFile);
-        $product->addImage($productImage);
+    //     $productImage = new ProductImage();
+    //     $productImage->setFile($uploadedFile);
+    //     $product->addImage($productImage);
 
-        $this->uploader->upload($productImage);
-        $this->entityManager->persist($productImage);
-        $this->entityManager->flush();
+    //     $this->uploader->upload($productImage);
+    //     $this->entityManager->persist($productImage);
+    //     $this->entityManager->flush();
 
-        return $this->json(['success' => true, 'imageId' => $productImage->getId()]);
+    //     return $this->json(['success' => true, 'imageId' => $productImage->getId()]);
+    // }
+
+/**
+ * @Route("/admin/ajax/product/{id}/add-image", name="admin_ajax_add_product_image", methods={"POST"})
+ */
+public function ajaxAddProductImage(Request $request, ProductRepositoryInterface $productRepository, EntityManagerInterface $em, ImageUploaderInterface $uploader, int $id): JsonResponse
+{
+    $product = $productRepository->find($id);
+    if (!$product) {
+        return $this->json(['error'=>'Produit introuvable'], 404);
     }
+
+    // Cas 1: on reçoit un fichier “file” (collé depuis le presse-papier)
+    if ($request->files->has('file')) {
+        /** @var UploadedFile $uploadedFile */
+        $uploadedFile = $request->files->get('file');
+        if (0 !== strpos($uploadedFile->getMimeType(), 'image/')) {
+            return $this->json(['error'=>'Ce n’est pas une image'], 400);
+        }
+    }
+    // Cas 2: on reçoit un JSON { url: "https://…" } (recherche Google)
+    else {
+        $data = json_decode((string) $request->getContent(), true);
+        if (!isset($data['url']) || !filter_var($data['url'], FILTER_VALIDATE_URL)) {
+            return $this->json(['error'=>'Donnée invalide'], 400);
+        }
+        // on télécharge l’URL dans un tmp file
+        $tmpPath = sys_get_temp_dir().'/'.uniqid().'.'.pathinfo($data['url'], PATHINFO_EXTENSION);
+        file_put_contents($tmpPath, file_get_contents($data['url']));
+        $uploadedFile = new UploadedFile($tmpPath, basename($tmpPath), null, null, true);
+    }
+
+    // Crée l’entité et upload physiquement
+    $productImage = new ProductImage();
+    $productImage->setFile($uploadedFile);
+    $product->addImage($productImage);
+
+    $uploader->upload($productImage);
+    $em->persist($productImage);
+    $em->flush();
+
+    return $this->json(['success'=>true,'imageId'=>$productImage->getId()]);
+}
+
 
     /**
      * Télécharge l’image passée en paramètre.
