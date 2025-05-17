@@ -92,7 +92,29 @@ jobs:
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
-      # 6) Swap in prod .env and fix media permissions
+      # 6) (Re)create prod.log + install Symfony assets
+      # ─────────────────────────────────────────────────────────────────────────────
+      - name: Install Symfony assets on VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_rsa \
+              debian@vps.latelier22.fr << 'EOF'
+            cd /var/www/boutique.multimedia
+
+            # 6.a) (Re)créer var/log/prod.log avec les bons droits
+            sudo mkdir -p var/log
+            sudo touch var/log/prod.log
+            sudo chown www-data:www-data var/log/prod.log
+            sudo chmod 664 var/log/prod.log
+
+            # 6.b) Installer les assets des bundles dans public/bundles
+            sudo -u www-data php bin/console assets:install public --symlink --env=prod
+          EOF
+
+
+      # ─────────────────────────────────────────────────────────────────────────────
+      # 7) Swap in prod .env and fix media permissions
       # ─────────────────────────────────────────────────────────────────────────────
       - name: Env file & media perms
         run: |
@@ -149,7 +171,7 @@ jobs:
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
-      # 7) Restart PHP-FPM & Nginx
+      # 8) Restart PHP-FPM & Nginx
       # ─────────────────────────────────────────────────────────────────────────────
       - name: Restart services
         run: |
