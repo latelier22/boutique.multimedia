@@ -6,7 +6,8 @@
     {# ---------------------------------------- #}
     {# START : zone entièrement gérée par Stimulus #}
     <div data-controller="image-search"
-         data-image-search-product-id-value="{{ product.id }}">
+         data-image-search-product-id-value="{{ product.id }}"
+         data-image-search-default-query-value="{{ product.name|e('html_attr') }}">
 
       <button type="button"
               class="ui button primary"
@@ -23,6 +24,7 @@
           <div class="ui action input" style="width:100%;">
             <input type="text"
                    class="ui input fluid"
+                   value=""
                    placeholder="{{ 'Votre recherche…'|trans }}"
                    data-image-search-target="query"
                    data-action="keydown->image-search#onKeydown">

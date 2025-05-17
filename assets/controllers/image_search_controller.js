@@ -2,9 +2,13 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
   static targets = ['modal', 'query', 'results'];
-  static values  = { productId: Number };
+  static values  = {
+    productId: Number,
+    defaultQuery: String     // ← on déclare notre nouveau Value
+  };
 
   openModal() {
+    this.queryTarget.value = this.defaultQueryValue || '';
     this.modalTarget.classList.add('active', 'visible');
     this.queryTarget.focus();
   }
