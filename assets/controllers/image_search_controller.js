@@ -63,4 +63,47 @@ export default class extends Controller {
       });
     });
   }
+
+connect() {
+    document.addEventListener('paste', this.onPaste.bind(this));
+  }
+  disconnect() {
+    document.removeEventListener('paste', this.onPaste.bind(this));
+  }
+
+  // Méthode liée au click du bouton
+  pasteImage(event) {
+    // on peut juste donner le focus au document pour que le prochain Ctrl+V soit capté
+    window.focus();
+  }
+
+  onPaste(event) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let item of items) {
+      if (item.type.startsWith('image/')) {
+        const blob = item.getAsFile();
+        return this.uploadBlob(blob);
+      }
+    }
+  }
+
+  async uploadBlob(blob) {
+    const form = new FormData();
+    form.append('file', blob, 'pasted.png');
+    await fetch(
+      `/admin/ajax/product/${this.productIdValue}/add-image`,
+      {
+        method: 'POST',
+        body: form,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      }
+    );
+    sessionStorage.setItem('syliusActiveTab', 'media');
+    location.reload();
+  }
+
+
+
 }
