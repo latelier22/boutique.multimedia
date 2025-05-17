@@ -37,6 +37,9 @@ devDependencies:
   '@hotwired/stimulus':
     specifier: ^3.0.0
     version: 3.2.2
+  '@hotwired/turbo':
+    specifier: ^7.1.1 || ^8.0
+    version: 8.0.13
   '@semantic-ui-react/css-patch':
     specifier: ^1.1.2
     version: 1.1.3
@@ -52,6 +55,9 @@ devDependencies:
   '@symfony/ux-react':
     specifier: file:vendor/symfony/ux-react/assets
     version: file:vendor/symfony/ux-react/assets(@hotwired/stimulus@3.2.2)(react-dom@18.3.1)(react@18.3.1)
+  '@symfony/ux-turbo':
+    specifier: file:vendor/symfony/ux-turbo/assets
+    version: file:vendor/symfony/ux-turbo/assets(@hotwired/stimulus@3.2.2)(@hotwired/turbo@8.0.13)
   '@symfony/webpack-encore':
     specifier: ^5.1.0
     version: 5.1.0(@babel/core@7.27.1)(@babel/preset-env@7.27.2)(@babel/preset-react@7.27.1)(@symfony/stimulus-bridge@4.0.1)(postcss@8.5.3)(sass-loader@16.0.5)(sass@1.87.0)(webpack-cli@5.1.4)(webpack@5.99.8)
@@ -1317,6 +1323,11 @@ packages:
 
   /@hotwired/stimulus@3.2.2:
     resolution: {integrity: sha512-eGeIqNOQpXoPAIP7tC1+1Yc1yl1xnwYqg+3mzqxyrbE5pg5YFBZcA6YoTiByJB6DKAEsiWtl6tjTJS4IYtbB7A==}
+    dev: true
+
+  /@hotwired/turbo@8.0.13:
+    resolution: {integrity: sha512-M7qXUqcGab6G5PKOiwhgbByTtrPgKPFCTMNQ52QhzUEXEqmp0/ApEguUesh/FPiUjrmFec+3lq98KsWnYY2C7g==}
+    engines: {node: '>= 14'}
     dev: true
 
   /@humanwhocodes/config-array@0.13.0:
@@ -10185,4 +10196,16 @@ packages:
       '@hotwired/stimulus': 3.2.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+    dev: true
+
+  file:vendor/symfony/ux-turbo/assets(@hotwired/stimulus@3.2.2)(@hotwired/turbo@8.0.13):
+    resolution: {directory: vendor/symfony/ux-turbo/assets, type: directory}
+    id: file:vendor/symfony/ux-turbo/assets
+    name: '@symfony/ux-turbo'
+    peerDependencies:
+      '@hotwired/stimulus': ^3.0.0
+      '@hotwired/turbo': ^7.1.1 || ^8.0
+    dependencies:
+      '@hotwired/stimulus': 3.2.2
+      '@hotwired/turbo': 8.0.13
     dev: true

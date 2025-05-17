@@ -1,0 +1,12 @@
+sylius_ui:
+    events:
+        sylius.admin.layout.javascripts:
+            blocks:
+                scripts:
+                    template: "@SyliusAdmin/_scripts-vide.html.twig"
+                    priority: 10
+                legacy:
+                    template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
+                    priority: 0
+                    context:
+                        event: sylius.admin.layout.javascripts

@@ -20,11 +20,13 @@
   "devDependencies": {
     "@babel/preset-react": "^7.0.0",
     "@hotwired/stimulus": "^3.0.0",
+    "@hotwired/turbo": "^7.1.1 || ^8.0",
     "@semantic-ui-react/css-patch": "^1.1.2",
     "@sylius-ui/frontend": "^1.0",
     "@symfony/stimulus-bridge": "^3.2.0 || ^4.0.0",
     "@symfony/ux-dropzone": "file:vendor/symfony/ux-dropzone/assets",
     "@symfony/ux-react": "file:vendor/symfony/ux-react/assets",
+    "@symfony/ux-turbo": "file:vendor/symfony/ux-turbo/assets",
     "@symfony/webpack-encore": "^5.1.0",
     "react": "^18.0",
     "react-dom": "^18.0",

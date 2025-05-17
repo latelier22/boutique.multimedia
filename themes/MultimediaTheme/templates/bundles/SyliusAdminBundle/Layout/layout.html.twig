@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <title>{% block title %}Sylius{% endblock %}</title>
+
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+
+    {% block metatags %}{% endblock %}
+
+    {% block stylesheets %}
+        <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    {% endblock %}
+
+    {# Place JS only in head, override block in child templates to avoid duplication #}
+    {% block head_javascripts %}
+        {{ encore_entry_script_tags('admin-entry', null, 'admin') }}
+        {{ encore_entry_script_tags('app-admin-entry', null, 'app.admin') }}
+        <script src="/bundles/fosjsrouting/js/router.js"></script>
+    {% endblock %}
+
+    {# Load the compiled application JS once in the head for Turbo compatibility #}
+   
+</head>
+
+<body data-turbo-suppress-warning>
+    {# Stimulus Layout controller attached here #}
+    <div class="admin-layout"
+         data-controller="layout"
+         data-layout-breakpoint-value="768">
+
+        <div class="admin-layout__sidebar">
+            <div class="admin-layout__nav">
+                {% block sidebar %}{% endblock %}
+                <div class="admin-layout__toggle"
+                     data-action="click->layout#toggle">
+                    <i class="close icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-layout__body">
+            <div class="admin-layout__topbar">
+                <div class="ui borderless menu">
+                    {% block topbar %}{% endblock %}
+                </div>
+            </div>
+
+            <div class="admin-layout__content">
+                {% block flash_messages %}
+                    {% include '@SyliusUi/_flashes.html.twig' %}
+                {% endblock %}
+
+                {% block pre_content %}{% endblock %}
+                {% block content %}{% endblock %}
+                {% block post_content %}{% endblock %}
+            </div>
+
+            <div class="admin-layout__footer">
+                {% block footer %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    {# Global confirmation modal #}
+    {% include '@SyliusUi/Modal/_confirmation.html.twig' %}
+
+    {# Additional JS controllers or scripts (no encore here) #}
+    {% block javascripts %}{% endblock %}
+</body>
+</html>
