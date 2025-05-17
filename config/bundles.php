@@ -76,4 +76,5 @@ return [
     Vich\UploaderBundle\VichUploaderBundle::class => ['all' => true],
     Odiseo\SyliusBannerPlugin\OdiseoSyliusBannerPlugin::class => ['all' => true],
     Odiseo\SyliusVendorPlugin\OdiseoSyliusVendorPlugin::class => ['all' => true],
+    Symfony\UX\Turbo\TurboBundle::class => ['all' => true],
 ];
