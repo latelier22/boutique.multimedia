@@ -107,8 +107,11 @@ jobs:
             sudo touch var/log/prod.log
             sudo chown www-data:www-data var/log/prod.log
             sudo chmod 664 var/log/prod.log
+            # 1) S’assurer que public/ est owned by www-data et writable
+            sudo chown -R www-data:www-data public
+            sudo chmod -R 775 public
 
-            # 6.b) Installer les assets des bundles dans public/bundles
+            # 2) Installer les assets (en symlink) via l’utilisateur www-data
             sudo -u www-data php bin/console assets:install public --symlink --env=prod
           EOF
 
