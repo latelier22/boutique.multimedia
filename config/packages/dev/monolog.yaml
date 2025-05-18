@@ -7,3 +7,8 @@ monolog:
         firephp:
             type: firephp
             level: info
+        error_log:
+            type: stream
+            path: "%kernel.logs_dir%/dev-error.log"
+            level: error
+            channels: ["!event"] 

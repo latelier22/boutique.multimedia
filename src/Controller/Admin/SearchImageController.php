@@ -17,6 +17,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Routing\Annotation\Route;
 
+// ✅ Correct — correspond au plugin que tu utilises
+
 class SearchImageController extends AbstractController
 {
     private string $googleApiKey;
@@ -168,6 +170,8 @@ class SearchImageController extends AbstractController
  */
 public function ajaxAddProductImage(Request $request, ProductRepositoryInterface $productRepository, EntityManagerInterface $em, ImageUploaderInterface $uploader, int $id): JsonResponse
 {
+    
+    
     $product = $productRepository->find($id);
     if (!$product) {
         return $this->json(['error'=>'Produit introuvable'], 404);
@@ -238,4 +242,54 @@ public function ajaxAddProductImage(Request $request, ProductRepositoryInterface
             'Cache-Control'       => 'private, max-age=0, must-revalidate',
         ]);
     }
+
+/**
+   
+     * Route: /ajax/product/{productId}/remove-image/{imageId}
+     * 
+     * This route handles the removal of an image associated with a specific product.
+     * 
+     * @param int $productId The ID of the product.
+     * @param int $imageId The ID of the image to be removed.
+     * @return JsonResponse Returns a JSON response indicating the result of the operation.
+     * 
+     * @route("/admin/ajax/product/{productId}/remove-image/{imageId}", name="admin_ajax_remove_product_image", methods={"DELETE"}) 
+     */
+    
+/**
+ * @Route("/admin/ajax/product/{productId}/remove-image/{imageId}", name="admin_ajax_remove_product_image", methods={"DELETE"})
+ */
+public function removeImage(
+   int $productId,
+    int $imageId,
+    ManagerRegistry $doctrine,
+    EntityManagerInterface $manager
+): JsonResponse {
+    $imageRepository = $doctrine->getRepository(ProductImage::class);
+
+    $product = $this->productRepository->find($productId);
+    $image   = $imageRepository->find($imageId);
+
+    if (!$product || !$image) {
+        return new JsonResponse(['error' => 'Not found'], 404);
+    }
+
+    // Détache l’image du produit et de ses variants
+    if ($product->getImages()->contains($image)) {
+        $product->removeImage($image);
+    }
+
+    foreach ($product->getVariants() as $variant) {
+        if ($variant->getImages()->contains($image)) {
+            $variant->removeImage($image);
+        }
+    }
+
+    $manager->persist($product);
+    $manager->remove($image);
+    $manager->flush();
+
+    return new JsonResponse(['success' => true]);
+}
+
 }

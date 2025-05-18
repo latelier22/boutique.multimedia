@@ -147,14 +147,14 @@ async pasteImage() {
 
     // 1) Si on remplace une ancienne image, on la supprime d'abord
     if (this.editingImageId) {
-      await fetch(
-        `/admin/ajax/product/${this.productIdValue}/remove-image/${this.editingImageId}`,
-        {
-          method:  'DELETE',
-          headers: { 'X-Requested-With':'XMLHttpRequest' }
-        }
-      );
+  await fetch(
+    `/admin/ajax/product/${this.productIdValue}/remove-image/${this.editingImageId}`,
+    {
+      method: 'DELETE',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
     }
+  );
+}
 
     // 2) On récupère le blob rogné
     const canvas = this.cropper.getCroppedCanvas();
