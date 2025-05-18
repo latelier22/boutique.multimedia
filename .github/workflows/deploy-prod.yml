@@ -148,8 +148,9 @@ jobs:
             sudo chown -R www-data:www-data public/media
             sudo chmod -R 775 public/media
 
+            sudo chmod 777 var/cache/prod
             php bin/console cache:clear --env=prod
-            chmod -R 775 var/cache
+            chmod 777 -R var/cache/prod
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
