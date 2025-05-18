@@ -175,15 +175,14 @@ async pasteImage() {
       }
     );
 
-    if (res.ok) {
-      // reset
-      this.editingImageId = null;
-      this.cropper.destroy();
-      this.closeModal();
-      location.reload();
-    } else {
-      console.error('Upload échoué', await res.text());
-    }
+   if (res.ok) {
+    // indiquer qu’on veut rester sur l’onglet “media”
+    sessionStorage.setItem('syliusActiveTab', 'media');
+    // puis recharger
+    location.reload();
+  } else {
+    console.error('Upload échoué', await res.text());
+  }
   }
 
   _formatBytes(bytes) {
