@@ -1,26 +1,25 @@
+{# templates/admin/_sylius_product_image_widget.html.twig #}
 {% extends '@SyliusUi/Form/imagesTheme.html.twig' %}
 
 {% block sylius_product_image_widget %}
     {{ block('sylius_image_widget') }}
 
-    {# ---------------------------------------- #}
-    {# START : zone entièrement gérée par Stimulus #}
     <div data-controller="image-search"
          data-image-search-product-id-value="{{ product.id }}"
          data-image-search-default-query-value="{{ product.name|e('html_attr') }}">
-
+      {# — Boutons de recherche & collage #}
       <button type="button"
               class="ui button primary"
               data-action="image-search#openModal">
         {{ 'Rechercher une image'|trans }}
       </button>
-      {# --- NOUVEAU BOUTON "Coller une image" --- #}
       <button type="button"
               class="ui button"
               data-action="image-search#pasteImage">
-        Coller une image
+        {{ 'Coller une image' }}
       </button>
 
+      {# — Modale pour la recherche Google #}
       <div class="ui modal"
            data-image-search-target="modal">
         <i class="close icon"
@@ -30,7 +29,7 @@
           <div class="ui action input" style="width:100%;">
             <input type="text"
                    class="ui input fluid"
-                   value=""
+                   value="{{ product.name|e }}"
                    placeholder="{{ 'Votre recherche…'|trans }}"
                    data-image-search-target="query"
                    data-action="keydown->image-search#onKeydown">
@@ -42,6 +41,7 @@
           <div class="ui divider"></div>
           <div class="ui five stackable cards"
                data-image-search-target="results">
+            {# Insérées dynamiquement par Stimulus #}
           </div>
         </div>
         <div class="actions">
@@ -51,10 +51,27 @@
           </button>
         </div>
       </div>
-    </div>
-    {# END Stimulus zone #}
-    {# ---------------------------------------- #}
 
+      {# — CONTENU pour le collage d’image — #}
+      {# — ZONE DE PRÉVISU COLLER — #}
+      <div data-image-search-target="previewContainer"
+           class="ui segment"
+           style="display:none; margin-top:1em; max-width:300px;">
+        <h4 class="ui header">{{ 'Aperçu de l’image collée' }}</h4>
+        <img data-image-search-target="preview"
+             alt="Preview"
+             style="width:100%; border:1px solid #ddd; border-radius:4px;" />
+        <p>{{ 'Taille :' }} <span data-image-search-target="size"></span></p>
+        <button class="ui positive button"
+                data-action="image-search#confirmPaste"
+                data-image-search-target="confirmButton"
+                disabled>
+          {{ 'Valider l’image' }}
+        </button>
+      </div>
+    </div>
+
+    {# — Le reste de votre widget Sylius — #}
     {% apply spaceless %}
         {% if product.id is not null and product.variants|length > 0 and not product.simple %}
             <br/>
