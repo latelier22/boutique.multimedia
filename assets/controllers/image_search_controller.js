@@ -7,13 +7,16 @@ export default class extends Controller {
     'modal','query','results',
     'previewContainer','preview','size','confirmButton'
   ];
-  static values = {
+   static values = {
     productId: Number,
-    defaultQuery: String
+    defaultQuery: String,
+    imageId: Number,
+    imageUrl: String
   };
 
   connect() {
     this.cropper = null;
+    this.editingImageId = null; // pas en Values, juste interne
   }
 
   openModal() {
@@ -64,6 +67,27 @@ export default class extends Controller {
       });
     });
   }
+
+
+/**
+   * Chargement de l'image existante pour édition
+   */
+  async editImage(event) {
+    // récupère les valeurs depuis le bouton cliqué
+    const id  = this.imageIdValue;
+    const url = this.imageUrlValue;
+    this.editingImageId = id;
+
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      this._showCropper(blob);
+    } catch (e) {
+      console.error('[ImageSearch] Impossible de charger l’image existante', e);
+    }
+  }
+
+
 async pasteImage() {
     if (!navigator.clipboard?.read) {
       return console.error('[ImageSearch] Clipboard.read() non supporté');
@@ -108,26 +132,45 @@ async pasteImage() {
     };
   }
 
-  async confirmPaste() {
-    if (!this.cropper) return console.error('Cropper non initialisé');
-    // Récupère le canevas rogné
+ async confirmPaste() {
+    if (!this.cropper) {
+      return console.error('Pas de cropper initialisé');
+    }
+
+    // 1) Si on remplace une ancienne image, on la supprime d'abord
+    if (this.editingImageId) {
+      await fetch(
+        `/admin/ajax/product/${this.productIdValue}/remove-image/${this.editingImageId}`,
+        {
+          method:  'DELETE',
+          headers: { 'X-Requested-With':'XMLHttpRequest' }
+        }
+      );
+    }
+
+    // 2) On récupère le blob rogné
     const canvas = this.cropper.getCroppedCanvas();
     const blob   = await new Promise(res => canvas.toBlob(res));
-    const file   = new File([blob], 'cropped.png', { type: blob.type });
+    const file   = new File([blob], 'edited.png', { type: blob.type });
 
+    // 3) On envoie en POST comme avant
     const form = new FormData();
     form.append('file', file);
-    form.append('url', '');
+    form.append('url', ''); // champ url vide si non utile
 
     const res = await fetch(
       `/admin/ajax/product/${this.productIdValue}/add-image`,
       {
-        method: 'POST',
-        body:   form,
-        headers:{ 'X-Requested-With':'XMLHttpRequest' }
+        method:  'POST',
+        body:    form,
+        headers: { 'X-Requested-With':'XMLHttpRequest' }
       }
     );
+
     if (res.ok) {
+      // reset
+      this.editingImageId = null;
+      this.cropper.destroy();
       this.closeModal();
       location.reload();
     } else {
