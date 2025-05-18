@@ -914,6 +914,9 @@
             "ref": "f75ac166398e107796ca94cc57fa1edaa06ec47f"
         }
     },
+    "symfony/ux-cropperjs": {
+        "version": "v2.24.0"
+    },
     "symfony/ux-dropzone": {
         "version": "v2.24.0"
     },
