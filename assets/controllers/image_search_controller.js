@@ -17,6 +17,12 @@ export default class extends Controller {
   connect() {
     this.cropper = null;
     this.editingImageId = null; // pas en Values, juste interne
+    console.log('image-search connecté');
+  
+  // 🔥 Corrige le cas du bouton "Éditer" injecté après le DOM initial
+  document.querySelectorAll('[data-action~="image-search#editImage"]').forEach(button => {
+    button.addEventListener('click', this.editImage.bind(this));
+  });
   }
 
   openModal() {

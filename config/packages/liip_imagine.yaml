@@ -9,6 +9,7 @@ liip_imagine:
         default:
             filesystem:
                 data_root:
+                    - '%kernel.project_dir%/public/'
                     - '%kernel.project_dir%/public/media/image'
                     - '%kernel.project_dir%/public/media/image'
                     - '%kernel.project_dir%/public/media/banner-image'
