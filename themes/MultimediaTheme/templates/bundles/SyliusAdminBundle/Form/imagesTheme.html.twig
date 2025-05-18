@@ -53,25 +53,26 @@
       </div>
 
       {# — CONTENU pour le collage d’image — #}
-      {# — ZONE DE PRÉVISU COLLER — #}
-      <div data-image-search-target="previewContainer"
-           class="ui segment"
-           style="display:none; margin-top:1em; max-width:300px;">
-        <h4 class="ui header">{{ 'Aperçu de l’image collée' }}</h4>
-        <img data-image-search-target="preview"
-             alt="Preview"
-             style="width:100%; border:1px solid #ddd; border-radius:4px;" />
-        <p>{{ 'Taille :' }} <span data-image-search-target="size"></span></p>
-        <button class="ui positive button"
-                data-action="image-search#confirmPaste"
-                data-image-search-target="confirmButton"
-                disabled>
-          {{ 'Valider l’image' }}
-        </button>
-      </div>
+     <div data-image-search-target="previewContainer"
+       class="ui segment"
+       style="display:none; margin-top:1em; max-width:300px;">
+    <h4 class="ui header">{{ 'Aperçu de l’image collée' }}</h4>
+
+    <img data-image-search-target="preview"
+         alt="Preview"
+         style="width:100%; border:1px solid #ddd; border-radius:4px;" />
+
+    <p>{{ 'Taille :' }} <span data-image-search-target="size"></span></p>
+    <button class="ui positive button"
+            data-action="image-search#confirmPaste"
+            data-image-search-target="confirmButton"
+            disabled>
+      {{ 'Valider l’image rognée' }}
+    </button>
+  </div>
+
     </div>
 
-    {# — Le reste de votre widget Sylius — #}
     {% apply spaceless %}
         {% if product.id is not null and product.variants|length > 0 and not product.simple %}
             <br/>
