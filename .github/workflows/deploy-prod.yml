@@ -128,7 +128,9 @@ jobs:
               debian@vps.latelier22.fr <<EOF
             cd /var/www/boutique.multimedia
 
-            cp .env.prod .env
+            sudo cp .env.prod .env
+            sudo chown www-data:www-data .env
+            sudo chmod 640 .env
 
             # remove any old keys just in case
             sed -i '/^GOOGLE_CSE_ID=/d' .env
@@ -145,6 +147,9 @@ jobs:
             # fix media perms
             sudo chown -R www-data:www-data public/media
             sudo chmod -R 775 public/media
+
+            php bin/console cache:clear --env=prod
+            chmod -R 775 var/cache
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
