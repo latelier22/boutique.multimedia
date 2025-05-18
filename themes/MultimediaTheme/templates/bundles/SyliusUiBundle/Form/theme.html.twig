@@ -238,7 +238,6 @@
 {% block sylius_image_widget %}
     {% apply spaceless %}
         {{ form_row(form.type) }}
-
         <div class="ui-element-spacer">
             <label for="{{ form.file.vars.id }}" class="ui icon labeled button">
                 <i class="cloud upload icon"></i> {{ 'sylius.ui.choose_file'|trans }}
@@ -246,25 +245,18 @@
         </div>
 
         {% if form.vars.value.path|default(null) is not null %}
-            {# On enveloppe l’image existante dans un container Stimulus #}
-            <div
-              data-controller="image-search"
-              data-image-search-image-id-value="{{ form.vars.value.id }}"
-              data-image-search-image-url-value="{{ form.vars.value.path }}"
-              class="ui small bordered image-wrapper"
-            >
-                <img
-                  class="ui small bordered image"
-                  src="{{ form.vars.value.path|imagine_filter('sylius_small') }}"
-                  alt="{{ form.vars.value.type }}"
-                  data-image-search-target="preview"
-                />
-                <button
-                  type="button"
-                  class="ui button mini"
-                  data-action="image-search#editImage"
-                >
-                  {{ 'Éditer l’image' }}
+            <div class="ui segment" style="position: relative;">
+                <img class="ui small bordered image"
+                     src="{{ form.vars.value.path|imagine_filter('sylius_small') }}"
+                     alt="{{ form.vars.value.type }}" />
+
+                <button type="button"
+                        class="ui mini button orange"
+                        style="position: absolute; top: 0.5em; right: 0.5em; z-index: 10;"
+                        data-action="image-search#editImage"
+                        data-image-search-image-id-value="{{ form.vars.value.id }}"
+                        data-image-search-image-url-value="{{ form.vars.value.path|imagine_filter('sylius_shop_product_original') }}">
+                    ✎ {{ 'Éditer' }}
                 </button>
             </div>
         {% endif %}
@@ -277,3 +269,4 @@
         </div>
     {% endapply %}
 {% endblock %}
+

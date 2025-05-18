@@ -73,19 +73,21 @@ export default class extends Controller {
    * Chargement de l'image existante pour édition
    */
   async editImage(event) {
-    // récupère les valeurs depuis le bouton cliqué
-    const id  = this.imageIdValue;
-    const url = this.imageUrlValue;
-    this.editingImageId = id;
+  const button = event.currentTarget;
+  const id  = button.dataset.imageSearchImageIdValue;
+  const url = button.dataset.imageSearchImageUrlValue;
+  this.editingImageId = id;
+  console.log('Edit image', id, url);
+  
 
-    try {
-      const res  = await fetch(url);
-      const blob = await res.blob();
-      this._showCropper(blob);
-    } catch (e) {
-      console.error('[ImageSearch] Impossible de charger l’image existante', e);
-    }
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    this._showCropper(blob);
+  } catch (e) {
+    console.error('[ImageSearch] Impossible de charger l’image existante', e);
   }
+}
 
 
 async pasteImage() {
