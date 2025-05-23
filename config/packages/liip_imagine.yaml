@@ -10,9 +10,9 @@ liip_imagine:
             filesystem:
                 data_root:
                     - '%kernel.project_dir%/public/'
-                    - '%kernel.project_dir%/public/media/image'
-                    - '%kernel.project_dir%/public/media/image'
-                    - '%kernel.project_dir%/public/media/banner-image'
-                    - '%kernel.project_dir%/public/media/vendor-logo'
+                    # - '%kernel.project_dir%/public/media/image'
+                    # - '%kernel.project_dir%/public/media/image'
+                    # - '%kernel.project_dir%/public/media/banner-image'
+                    # - '%kernel.project_dir%/public/media/vendor-logo'
                     # - "%sylius_core.public_dir%/media/image"
                     # - "%sylius_core.public_dir%/media" # Add media folder

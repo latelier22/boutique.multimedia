@@ -82,7 +82,7 @@ jobs:
             sudo chown -R www-data:www-data /var/www/.cache/composer/files
 
             # 2) Supprimer l’ancien vendor (éventuellement root-owned)
-            rm -rf vendor
+            #rm -rf vendor
 
             # 3) Installer les dépendances en prod, **en tant que** www-data
             sudo -u www-data composer install --no-dev --optimize-autoloader
