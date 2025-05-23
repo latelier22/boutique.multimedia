@@ -140,50 +140,77 @@ async pasteImage() {
     };
   }
 
- async confirmPaste() {
-    if (!this.cropper) {
-      return console.error('Pas de cropper initialisé');
-    }
+async confirmPaste() {
+  if (this.confirmInProgress) return; // 🔒 déjà en cours
+  this.confirmInProgress = true;
+  this.confirmButtonTarget.disabled = true;
 
-    // 1) Si on remplace une ancienne image, on la supprime d'abord
+  if (!this.cropper) {
+    console.error('Pas de cropper initialisé');
+    this._resetConfirmButton();
+    return;
+  }
+
+  try {
+    // 1) Supprimer l’image précédente si édition
     if (this.editingImageId) {
-  await fetch(
-    `/admin/ajax/product/${this.productIdValue}/remove-image/${this.editingImageId}`,
-    {
-      method: 'DELETE',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      const delRes = await fetch(
+        `/admin/ajax/product/${this.productIdValue}/remove-image/${this.editingImageId}`,
+        {
+          method: 'DELETE',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }
+      );
+      if (!delRes.ok) {
+        console.error('Suppression échouée', await delRes.text());
+        this._resetConfirmButton();
+        return;
+      }
     }
-  );
-}
 
-    // 2) On récupère le blob rogné
+    // 2) Obtenir le blob depuis le cropper
     const canvas = this.cropper.getCroppedCanvas();
-    const blob   = await new Promise(res => canvas.toBlob(res));
-    const file   = new File([blob], 'edited.png', { type: blob.type });
+    const blob = await new Promise(resolve => canvas.toBlob(resolve));
 
-    // 3) On envoie en POST comme avant
+    if (!blob) {
+      console.error('Erreur : toBlob a retourné null');
+      this._resetConfirmButton();
+      return;
+    }
+
+    const file = new File([blob], 'edited.png', { type: blob.type });
+
+    // 3) Envoyer le fichier
     const form = new FormData();
     form.append('file', file);
-    form.append('url', ''); // champ url vide si non utile
+    form.append('url', '');
 
     const res = await fetch(
       `/admin/ajax/product/${this.productIdValue}/add-image`,
       {
-        method:  'POST',
-        body:    form,
-        headers: { 'X-Requested-With':'XMLHttpRequest' }
+        method: 'POST',
+        body: form,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
       }
     );
 
-   if (res.ok) {
-    // indiquer qu’on veut rester sur l’onglet “media”
-    sessionStorage.setItem('syliusActiveTab', 'media');
-    // puis recharger
-    location.reload();
-  } else {
-    console.error('Upload échoué', await res.text());
+    if (res.ok) {
+      sessionStorage.setItem('syliusActiveTab', 'media');
+      location.reload();
+    } else {
+      console.error('Upload échoué', await res.text());
+      this._resetConfirmButton();
+    }
+  } catch (e) {
+    console.error('Erreur pendant le traitement', e);
+    this._resetConfirmButton();
   }
-  }
+}
+
+_resetConfirmButton() {
+  this.confirmInProgress = false;
+  this.confirmButtonTarget.disabled = false;
+}
 
   _formatBytes(bytes) {
     if (bytes < 1024) return `${bytes} B`;
