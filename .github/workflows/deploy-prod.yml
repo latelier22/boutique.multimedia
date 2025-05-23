@@ -78,6 +78,9 @@ jobs:
             sudo chown -R www-data:www-data .
             sudo chmod -R u+rwX .
 
+            sudo mkdir -p /var/www/.cache/composer/files
+            sudo chown -R www-data:www-data /var/www/.cache/composer/files
+
             # 2) Supprimer l’ancien vendor (éventuellement root-owned)
             rm -rf vendor
 
@@ -136,34 +139,34 @@ jobs:
           ssh -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               -i ~/.ssh/id_rsa \
-              debian@vps.latelier22.fr <<EOF
+              debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
 
+            # 1) Copier le .env prod et en donner l'accès à www-data
             sudo cp .env.prod .env
             sudo chown www-data:www-data .env
             sudo chmod 640 .env
 
-            # remove any old keys just in case
-            sed -i '/^GOOGLE_CSE_ID=/d' .env
-            sed -i '/^GOOGLE_API_KEY=/d' .env
+            # 2) Supprimer d'éventuelles anciennes clés
+            sudo sed -i '/^GOOGLE_CSE_ID=/d; /^GOOGLE_API_KEY=/d' .env
 
-            # now append with guaranteed newlines
-            printf "\nGOOGLE_CSE_ID=%s\n" "${{ secrets.GOOGLE_CSE_ID }}" >> .env
-            printf "GOOGLE_API_KEY=%s\n"     "${{ secrets.GOOGLE_API_KEY }}" >> .env
+            # 3) Ajouter les nouvelles valeurs via sudo tee (garantit l'écriture)
+            echo "GOOGLE_CSE_ID=${{ secrets.GOOGLE_CSE_ID }}" | sudo tee -a .env > /dev/null
+            echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" | sudo tee -a .env > /dev/null
 
-            # verify (this will show up in your logs, values masked)
+            # 4) Vérifier le contenu (optionnel)
             echo "---- final .env ----"
-            tail -n 3 .env
+            sudo cat .env
 
-            # fix media perms
+            # 5) Fix media perms & clear cache
             sudo chown -R www-data:www-data public/media
             sudo chmod -R 775 public/media
 
             sudo chmod 777 var/cache/prod
             php bin/console cache:clear --env=prod
-            sudo chmod 777 -R var/cache/prod
-            sudo chmod 777 -R var/log
+            sudo chmod -R 777 var/cache/prod var/log
           EOF
+
 
       # ─────────────────────────────────────────────────────────────────────────────
       # DEBUG: Show that GitHub secrets actually exist in the runner
