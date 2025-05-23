@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "70d9ccb175a1208938108ed9c4670459",
+    "content-hash": "3a9ce53397ab7d0d9ce51f5324fb5c4d",
     "packages": [
         {
             "name": "alcohol/iso4217",
