@@ -73,7 +73,9 @@ jobs:
               -i ~/.ssh/id_rsa \
               debian@vps.latelier22.fr << 'EOF'
             cd /var/www/boutique.multimedia
-            sudo composer install --no-dev --optimize-autoloader
+            sudo -u www-data composer install --no-dev --optimize-autoloader
+            sudo chown -R www-data:www-data vendor
+            sudo chmod -R 755 vendor
             sudo chown -R www-data:www-data var
             sudo chmod -R 775 var
           EOF
