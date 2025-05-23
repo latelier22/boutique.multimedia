@@ -150,8 +150,8 @@ jobs:
 
             sudo chmod 777 var/cache/prod
             php bin/console cache:clear --env=prod
-            chmod 777 -R var/cache/prod
-            chmod 777 -R var/log
+            sudo chmod 777 -R var/cache/prod
+            sudo chmod 777 -R var/log
           EOF
 
       # ─────────────────────────────────────────────────────────────────────────────
