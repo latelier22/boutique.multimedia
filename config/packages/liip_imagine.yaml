@@ -28,3 +28,18 @@ liip_imagine:
             data_loader: banner_image
             filters:
                 thumbnail: { size: [540, 146], mode: outbound }
+
+
+        sylius_shop_product_original: ~
+        sylius_shop_product_tiny_thumbnail:
+            filters:
+                thumbnail: { size: [64, 64], mode: inset }
+        sylius_shop_product_small_thumbnail:
+            filters:
+                thumbnail: { size: [150, 112], mode: inset }
+        sylius_shop_product_thumbnail:
+            filters:
+                thumbnail: { size: [260, 260], mode: inset }
+        sylius_shop_product_large_thumbnail:
+            filters:
+                thumbnail: { size: [550, 412], mode: inset }
