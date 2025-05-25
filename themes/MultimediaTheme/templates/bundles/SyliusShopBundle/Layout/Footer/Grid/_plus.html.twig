@@ -1,0 +1,13 @@
+<div class="four wide column">
+    <a href="https://www.multimedia-services.fr" target="_blank" style="display: inline-block; text-align: center;">
+        <h4 class="ui inverted header" style="color: #808080;">
+            Visitez notre site vitrine:<div class="sub header" style="padding: 5px 0;">Déjà un an à Loudéac!</div>
+        </h4>
+        {% if use_webpack %}
+            <img class="ui fluid image" style="max-width: 170px;" src="{{ asset('build/app/shop/images/logo-multimedia-services.png', 'app.shop') }}" alt="Multimedia Services">
+        {% else %}
+            <img class="ui fluid image" style="max-width: 170px;" src="{{ asset('assets/shop/img/sylius-plus-banner.png') }}" alt="Sylius Plus">
+        {% endif %}
+    </a>
+</div>
+

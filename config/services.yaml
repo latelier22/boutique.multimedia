@@ -43,3 +43,12 @@ services:
         arguments:
             $googleApiKey: '%google_api_key%'
             $googleCseId:  '%google_cse_id%'
+
+    App\Twig\ProductExtension:
+        tags: ['twig.extension']
+        public: true
+
+    App\Service\ProductAssociationFilterService:
+        public: true
+
+

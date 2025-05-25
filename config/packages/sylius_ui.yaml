@@ -80,15 +80,18 @@ sylius_ui:
                 banner:
                     template: "@SyliusShop/Homepage/_banner.html.twig"
                     priority: 60
-                latest_products:
-                    template: "@SyliusShop/Homepage/_latestProducts.html.twig"
+                # latest_products:
+                #     template: "@SyliusShop/Homepage/_latestProducts.html.twig"
+                #     priority: 0
+                mis_en_avant_products:
+                    template: "@SyliusShop/Homepage/_mis-en-avant_Products.html.twig"
                     priority: 50
-                latest_products_carousel:
-                    template: "@SyliusShop/Homepage/_latestProductsCarousel.html.twig"
-                    priority: 40
-                newsletter:
-                    template: "@SyliusShop/Homepage/_newsletter.html.twig"
-                    priority: 30
+                # latest_products_carousel:
+                #     template: "@SyliusShop/Homepage/_latestProductsCarousel.html.twig"
+                #     priority: 40
+                # newsletter:
+                #     template: "@SyliusShop/Homepage/_newsletter.html.twig"
+                #     priority: 30
                 products_grid:
                     template: "@SyliusShop/Homepage/_productsGrid.html.twig"
                     priority: 20
@@ -695,13 +698,13 @@ sylius_ui:
                     priority: 45
                     context:
                         event: sylius.shop.layout.before_footer
-                plus:
-                    template: "@SyliusShop/Layout/Footer/Grid/_plus.html.twig"
-                    priority: 40
+                # plus:
+                #     template: "@SyliusShop/Layout/Footer/Grid/_plus.html.twig"
+                #     priority: 0
                 your_store:
                     template: "@SyliusShop/Layout/Footer/Grid/_your_store.html.twig"
                     priority: 30
-                customer_care:
+                customer_care:  
                     template: "@SyliusShop/Layout/Footer/Grid/_customer_care.html.twig"
                     priority: 20
                 payment_methods:
