@@ -1,0 +1,7 @@
+{% set columns = "four doubling" %}
+
+<div class="ui {{ columns }} cards">
+    {% for product in products %}
+        {% include '@SyliusShop/Product/_box.html.twig' %}
+    {% endfor %}
+</div>

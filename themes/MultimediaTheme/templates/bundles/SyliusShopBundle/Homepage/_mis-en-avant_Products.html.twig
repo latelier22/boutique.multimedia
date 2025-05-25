@@ -1,0 +1,19 @@
+{% set products = products_by_taxon_slug('mis-en-avant', app.request.locale) %}
+
+<h2 class="ui center aligned huge header">{{ 'sylius.ui.front.title'|trans }}</h2>
+<h3 class="ui  aligned header">{{ 'sylius.ui.front.description'|trans }}</h3>
+<div class="ui hidden divider"></div>
+
+{# {{ dump(products) }}
+{{dump(app.request.locale)}} #}
+
+
+
+{% if products is not empty %}
+    {% include '@SyliusShop/Homepage/_list.html.twig' %}
+{% else %}
+    <div class="ui info message">
+        <div class="header">{{ 'sylius.ui.no_featured_products'|trans }}</div>
+        <p>{{ 'sylius.ui.please_check_back_later'|trans }}</p>
+    </div>
+{% endif %}
