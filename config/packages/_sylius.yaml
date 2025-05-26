@@ -9,6 +9,8 @@ imports:
     - { resource: "@SyliusAdminOrderCreationPlugin/Resources/config/app/config.yml" }
     - { resource: "@OdiseoSyliusBannerPlugin/Resources/config/config.yaml" }
     - { resource: "@OdiseoSyliusVendorPlugin/Resources/config/config.yaml" }
+    - { resource: "@AsdoriaSyliusConfiguratorPlugin/Resources/config/config.yaml"}
+    
 
 parameters:
     sylius.security.shop_regex: "^/(?!%sylius_admin.path_name%|api/.*|api$|media/.*)[^/]++"
@@ -86,6 +88,7 @@ sylius_attribute:
             attribute:
                 classes:
                     model: App\Entity\Product\ProductAttribute
+                    repository: App\Repository\ProductAttributeRepository
                 translation:
                     classes:
                         model: App\Entity\Product\ProductAttributeTranslation

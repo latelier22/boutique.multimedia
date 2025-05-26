@@ -78,4 +78,5 @@ return [
     Odiseo\SyliusVendorPlugin\OdiseoSyliusVendorPlugin::class => ['all' => true],
     Symfony\UX\Turbo\TurboBundle::class => ['all' => true],
     Symfony\UX\Cropperjs\CropperjsBundle::class => ['all' => true],
+    Asdoria\SyliusConfiguratorPlugin\AsdoriaSyliusConfiguratorPlugin::class => ['all' => true],
 ];
