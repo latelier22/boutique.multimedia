@@ -8,7 +8,7 @@ imports:
     - { resource: "@AsdoriaSyliusBulkEditPlugin/config/config.yaml"}
     - { resource: "@SyliusAdminOrderCreationPlugin/Resources/config/app/config.yml" }
     - { resource: "@OdiseoSyliusBannerPlugin/Resources/config/config.yaml" }
-    - { resource: "@OdiseoSyliusVendorPlugin/Resources/config/config.yaml" }
+   
 
 parameters:
     sylius.security.shop_regex: "^/(?!%sylius_admin.path_name%|api/.*|api$|media/.*)[^/]++"
