@@ -75,7 +75,6 @@ return [
     Sylius\InvoicingPlugin\SyliusInvoicingPlugin::class => ['all' => true],
     Vich\UploaderBundle\VichUploaderBundle::class => ['all' => true],
     Odiseo\SyliusBannerPlugin\OdiseoSyliusBannerPlugin::class => ['all' => true],
-    Odiseo\SyliusVendorPlugin\OdiseoSyliusVendorPlugin::class => ['all' => true],
     Symfony\UX\Turbo\TurboBundle::class => ['all' => true],
     Symfony\UX\Cropperjs\CropperjsBundle::class => ['all' => true],
 ];
