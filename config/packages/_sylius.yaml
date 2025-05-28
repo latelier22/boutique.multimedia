@@ -15,6 +15,9 @@ imports:
 parameters:
     sylius.security.shop_regex: "^/(?!%sylius_admin.path_name%|api/.*|api$|media/.*)[^/]++"
     sylius_core.public_dir: '%kernel.project_dir%/public'
+    #asdoria.model.configurator.class: 'Asdoria\SyliusConfiguratorPlugin\Entity\Configurator'
+    #asdoria.model.configurator_item.class: 'Asdoria\SyliusConfiguratorPlugin\Entity\ConfiguratorItem'
+    #asdoria.model.configurator_step.class: 'Asdoria\SyliusConfiguratorPlugin\Entity\ConfiguratorStep'
 
 webpack_encore:
     builds:
