@@ -11,7 +11,7 @@
                 <div class="ui segment">
                     {{ form_row(form.code) }}
                     {{ form_row(form.enabled) }}
-                    {{ form_row(form.vendor) }}
+                    {# {{ form_row(form.vendor) }} #}
                     {% if product.simple %}
                         {{ form_row(form.variant.shippingRequired) }}
                     {% else %}
