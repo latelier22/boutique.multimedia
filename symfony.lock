@@ -22,6 +22,9 @@
     "asdoria/sylius-bulk-edit-plugin": {
         "version": "0.1.5"
     },
+    "asdoria/sylius-configurator-plugin": {
+        "version": "0.1.2"
+    },
     "babdev/pagerfanta-bundle": {
         "version": "v2.8.0"
     },

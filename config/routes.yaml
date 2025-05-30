@@ -27,3 +27,6 @@ odiseo_sylius_banner_plugin_shop:
 
 shop_taxon_mis_en_avant:
     path: /{_locale}/taxons/mis-en-avant
+
+asdoria_product_configurator:
+    resource: "@AsdoriaSyliusConfiguratorPlugin/Resources/config/routing.yaml"

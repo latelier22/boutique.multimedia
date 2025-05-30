@@ -4,3 +4,4 @@ doctrine_migrations:
             table_name: sylius_migrations
     migrations_paths:
         'App\Migrations': "%kernel.project_dir%/src/Migrations"
+        'Asdoria\SyliusConfiguratorPlugin\Migrations': '%kernel.project_dir%/vendor/asdoria/sylius-configurator-plugin/src/Migrations'
