@@ -1,9 +1,14 @@
+{# templates/bundles/SyliusShopBundle/Shop/Homepage/index.html.twig #}
 {% extends '@SyliusShop/layout.html.twig' %}
 
+{# 1) Redéfinition de la sidebar SEULEMENT pour la homepage #}
+{% block sylius_shop_sidebar %}
+{% endblock %}
+
+{# 2) Votre contenu actuel #}
 {% block content %}
     <div class="homepage">
         <div class="ui hidden divider"></div>
-        SALUT template 
         {{ sylius_template_event('sylius.shop.homepage') }}
     </div>
 {% endblock %}
