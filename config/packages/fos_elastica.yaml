@@ -1,0 +1,75 @@
+
+fos_elastica:
+    clients:
+        default: { host: vps.latelier22.fr, port: 9200 }
+    
+
+parameters:
+    # active l’auto-découverte des facets (true par défaut)
+    bitbag_es_facets_auto_discover: true
+
+    # vide ces tableaux pour indexer _tous_ vos options et attributs
+    bitbag_es_excluded_filter_options:   []
+    bitbag_es_excluded_filter_attributes: []
+
+# config/services.yaml (ou un fichier sous config/packages)
+
+# 1) Paramètre de taille de bucket (déjà présent chez vous)
+
+    # taille de chaque tranche de prix, ici 10 000.00 (en centimes si votre currency est en €/cent)
+    bitbag_es_shop_price_facet_interval: 10000
+    locale: fr_FR
+
+services:
+    # 1) PriceFacet
+    bitbag_sylius_elasticsearch_plugin.facet.price:
+        class: BitBag\SyliusElasticsearchPlugin\Facet\PriceFacet
+        arguments:
+            - '@bitbag_sylius_elasticsearch_plugin.property_name_resolver.channel_pricing'
+            - '@Sylius\Bundle\MoneyBundle\Formatter\MoneyFormatterInterface'
+            - '@sylius.context.shopper'
+            - '%bitbag_es_shop_price_facet_interval%'
+        tags:
+            - { name: bitbag_sylius_elasticsearch_plugin.facet }
+
+    # 2) AttributeFacet pour l’attribut "Etat"
+    bitbag_sylius_elasticsearch_plugin.facet.attribute.etat:
+        class: BitBag\SyliusElasticsearchPlugin\Facet\AttributeFacet
+        arguments:
+            - '@bitbag_sylius_elasticsearch_plugin.property_name_resolver.attribute'
+            - '@sylius.repository.product_attribute'
+            - Etat                           # code EXACT de votre attribut
+            - '@sylius.context.locale'
+        tags:
+            - { name: bitbag_sylius_elasticsearch_plugin.facet }
+    
+    bitbag_sylius_elasticsearch_plugin.facet.taxon:
+        class: BitBag\SyliusElasticsearchPlugin\Facet\TaxonFacet
+        arguments:
+            # 1) Repository Sylius pour les Taxons
+            - '@sylius.repository.taxon'
+            # 2) Nom du champ ES qui contient les taxons
+            - 'product_taxons'
+            # 3) Contexte du canal
+            - '@sylius.context.channel'
+            # 4) Contexte de la locale
+            - '@sylius.context.locale'
+        tags:
+            - { name: bitbag_sylius_elasticsearch_plugin.facet }
+
+    # 3) Registry : on y ajoute les deux facets
+    bitbag_sylius_elasticsearch_plugin.facet.registry:
+        class: BitBag\SyliusElasticsearchPlugin\Facet\Registry
+        calls:
+            - method: addFacet
+              arguments:
+                  - price
+                  - '@bitbag_sylius_elasticsearch_plugin.facet.price'
+            - method: addFacet
+              arguments:
+                  - attribute_etat
+                  - '@bitbag_sylius_elasticsearch_plugin.facet.attribute.etat'
+            - method: addFacet
+              arguments:
+                  - taxon
+                  - '@bitbag_sylius_elasticsearch_plugin.facet.taxon'

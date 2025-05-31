@@ -27,3 +27,8 @@ odiseo_sylius_banner_plugin_shop:
 
 shop_taxon_mis_en_avant:
     path: /{_locale}/taxons/mis-en-avant
+
+# config/routes.yaml
+
+bitbag_sylius_elasticsearch_plugin:
+    resource: "@BitBagSyliusElasticsearchPlugin/Resources/config/routing.yml"

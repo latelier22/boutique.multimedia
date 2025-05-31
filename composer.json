@@ -24,6 +24,7 @@
     "require": {
         "php": "^8.1",
         "asdoria/sylius-bulk-edit-plugin": "*",
+        "bitbag/elasticsearch-plugin": "*",
         "flux-se/sylius-payum-stripe-plugin": "^2.0",
         "friendsofsylius/sylius-import-export-plugin": "^0.27.0",
         "odiseoteam/sylius-banner-plugin": "*",

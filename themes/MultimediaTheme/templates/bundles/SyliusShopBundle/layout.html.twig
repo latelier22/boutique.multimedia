@@ -43,8 +43,9 @@
 
         {{ sylius_template_event('sylius.shop.layout.before_content') }}
 
-        {% block content %}
-        {% endblock %}
+       
+                    {% block content %}{% endblock %}
+         
 
         {{ sylius_template_event('sylius.shop.layout.after_content') }}
     </div>
