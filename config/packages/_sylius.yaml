@@ -9,6 +9,7 @@ imports:
     - { resource: "@SyliusAdminOrderCreationPlugin/Resources/config/app/config.yml" }
     - { resource: "@OdiseoSyliusBannerPlugin/Resources/config/config.yaml" }
     - { resource: "@AsdoriaSyliusConfiguratorPlugin/Resources/config/config.yaml"}
+    - { resource: "@BitBagSyliusElasticsearchPlugin/Resources/config/config.yml" }
    
 
 parameters:

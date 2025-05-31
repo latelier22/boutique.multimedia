@@ -30,3 +30,6 @@ shop_taxon_mis_en_avant:
 
 asdoria_product_configurator:
     resource: "@AsdoriaSyliusConfiguratorPlugin/Resources/config/routing.yaml"
+
+bitbag_sylius_elasticsearch_plugin:
+    resource: "@BitBagSyliusElasticsearchPlugin/Resources/config/routing.yml"
