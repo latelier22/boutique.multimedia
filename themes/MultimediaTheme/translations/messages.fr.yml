@@ -1043,3 +1043,11 @@ sylius:
     top_bar: 'Inscrivez-vous à notre newsletter et bénéficiez de -20% de réduction'
 
 asdoria_bulk_edit.menu.admin.asdoria_bulk_edit.taxons: 'Catégories'
+
+monsieurbiz_searchplugin:
+    instant:
+        result:
+            app_taxon: Catégories
+    search:
+        result:
+            app_taxon: Catégories
