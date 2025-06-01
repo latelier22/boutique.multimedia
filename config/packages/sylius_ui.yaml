@@ -710,6 +710,9 @@ sylius_ui:
                 payment_methods:
                     template: "@SyliusShop/Layout/Footer/Grid/_payment_methods.html.twig"
                     priority: 10
+                constact:
+                    template: "@SyliusShop/Layout/Footer/Grid/_contact.html.twig"
+                    priority: 5
 
         sylius.shop.layout.header.grid:
             blocks:
