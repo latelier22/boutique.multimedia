@@ -1,18 +1,3 @@
-parameters:
-    monsieurbiz.search.product.is_in_stock_scoring_boost: 200 # Enable the boost for in stock products
-    monsieurbiz.search.product.search.fields_to_search: 
-        - 'name^5'
-        - 'description'
-        - 'short_description' # We add our new value in search
-    monsieurbiz.search.product.search.nested_fields_to_search:
-        - 'main_taxon:name^2' # We add our new nested value in instant search
-    monsieurbiz.search.product.instant.fields_to_search: 
-        - 'name^5'
-        - 'name.autocomplete'
-        - 'description'
-        - 'short_description' # We add our new value in search
-    monsieurbiz.search.product.instant.nested_fields_to_search:
-        - 'main_taxon:name^2' # We add our new nested value in instant search
 
 
 services:
@@ -35,11 +20,14 @@ services:
         resource: '../../src/Controller'
         tags: ['controller.service_arguments']
 
-    # Add short_description in indexed data with the logic to get the value
-    App\Search\Automapper\DecorateProductMapperConfiguration:
-        decorates: MonsieurBiz\SyliusSearchPlugin\AutoMapper\ProductMapperConfiguration
-        arguments:
-            - '@.inner'
+    ##################################################################
+    # 3) Décoration de ProductMapperConfiguration du plugin
+    ##################################################################
+    # App\Search\Automapper\DecorateProductMapperConfiguration:
+    #     decorates: 'MonsieurBiz\SyliusSearchPlugin\AutoMapper\ProductMapperConfiguration'
+    #     decoration_inner_name: 'App\Search\Automapper\DecorateProductMapperConfiguration.inner'
+    #     arguments:
+    #         - '@App\Search\Automapper\DecorateProductMapperConfiguration.inner'
     # Define sorters
     App\Search\Request\Sorting\Product\ShortDescriptionSorter:
         tags:
@@ -86,30 +74,3 @@ services:
                 - 'description'
         tags:
             - { name: app.search.request.taxon_search_filter }
-
-
-
-monsieurbiz_sylius_search:
-  documents:
-    app_taxon:
-      source: 'Sylius\Component\Core\Model\TaxonInterface'
-      target: 'App\Search\Model\Taxon\TaxonDTO'
-      templates:
-        item: '@MonsieurBizSyliusSearchPlugin/Search/Taxon/_box.html.twig'
-        instant: '@MonsieurBizSyliusSearchPlugin/Instant/Taxon/_box.html.twig'
-      datasource: 'App\Search\Model\Datasource\TaxonDatasource'
-      position: 2
-      limits:
-        search: [9, 18, 27]
-        taxon: [9, 18, 27]
-        instant_search: [5]
-
-  automapper_classes:
-    sources:
-      taxon: '%sylius.model.taxon.class%'
-    targets:
-      app_taxon: 'App\Search\Model\Taxon\TaxonDTO'
-
-  # **Ajoutez cette section** pour qu’Elastically sache où trouver vos fichiers de mapping
-  elastically_configuration_paths:
-    - '%kernel.project_dir%/src/Resources/config/elasticsearch'
