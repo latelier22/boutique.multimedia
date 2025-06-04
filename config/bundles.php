@@ -78,4 +78,5 @@ return [
     MonsieurBiz\SyliusSettingsPlugin\MonsieurBizSyliusSettingsPlugin::class => ['all' => true],
     Jane\Bundle\AutoMapperBundle\JaneAutoMapperBundle::class => ['all' => true],
     MonsieurBiz\SyliusSearchPlugin\MonsieurBizSyliusSearchPlugin::class => ['all' => true],
+    BitBag\SyliusWishlistPlugin\BitBagSyliusWishlistPlugin::class => ['all' => true],
 ];

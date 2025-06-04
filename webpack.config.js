@@ -7,6 +7,12 @@ const syliusBundles = path.resolve(__dirname, 'vendor/sylius/sylius/src/Sylius/B
 const uiBundleScripts = path.resolve(syliusBundles, 'UiBundle/Resources/private/js/');
 const uiBundleResources = path.resolve(syliusBundles, 'UiBundle/Resources/private/');
 
+// webpack.config.js
+const [ bitbagWishlistShop, bitbagWishlistAdmin ] = require('./vendor/bitbag/wishlist-plugin/webpack.config.js')
+
+
+
+
 // Shared controllers.json path
 const controllersConfig = './assets/controllers.json';
 
@@ -107,4 +113,4 @@ appAdminConfig.resolve.alias['sylius/bundle'] = syliusBundles;
 appAdminConfig.externals = Object.assign({}, appAdminConfig.externals, { window: 'window', document: 'document' });
 appAdminConfig.name = 'app.admin';
 
-module.exports = [shopConfig, adminConfig, appShopConfig, appAdminConfig];
+module.exports = [shopConfig, adminConfig, appShopConfig, appAdminConfig, bitbagWishlistShop, bitbagWishlistAdmin];

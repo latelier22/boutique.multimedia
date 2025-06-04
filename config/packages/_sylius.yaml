@@ -10,6 +10,7 @@ imports:
     - { resource: "@OdiseoSyliusBannerPlugin/Resources/config/config.yaml" }
     - { resource: "@MonsieurBizSyliusSearchPlugin/Resources/config/config.yaml" }
    
+   
 
 parameters:
     sylius.security.shop_regex: "^/(?!%sylius_admin.path_name%|api/.*|api$|media/.*)[^/]++"

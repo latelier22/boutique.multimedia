@@ -732,6 +732,9 @@ sylius_ui:
                     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
                     context:
                         event: sylius.shop.layout.header
+                search:
+                    template: "@MonsieurBizSyliusSearchPlugin/Header/form.html.twig"
+                    priority: 20
 
         sylius.shop.login.register_column:
             blocks:
@@ -781,6 +784,9 @@ sylius_ui:
                 scripts:
                     template: "@SyliusShop/_scripts.html.twig"
                     priority: 10
+                    
+                monsieurbiz_search_javascripts:
+                    template: "@MonsieurBizSyliusSearchPlugin/_scripts.html.twig"
                 legacy:
                     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
                     priority: 0

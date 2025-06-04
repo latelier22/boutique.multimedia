@@ -9,3 +9,7 @@ framework:
                 json_manifest_path: '%kernel.project_dir%/public/build/app/admin/manifest.json'
             app.shop:
                 json_manifest_path: '%kernel.project_dir%/public/build/app/shop/manifest.json'
+            wishlist_shop:
+                json_manifest_path: '%kernel.project_dir%/public/build/bitbag/wishlist/shop/manifest.json'
+            wishlist_admin:
+                json_manifest_path: '%kernel.project_dir%/public/build/bitbag/wishlist/admin/manifest.json'
