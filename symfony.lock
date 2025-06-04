@@ -31,6 +31,19 @@
     "behat/transliterator": {
         "version": "v1.2.0"
     },
+    "bitbag/wishlist-plugin": {
+        "version": "4.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "4.4",
+            "ref": "96b9eb4312dca97d006d107069c271fabf333e57"
+        },
+        "files": [
+            "config/packages/bitbag_wishlist_plugin.yaml",
+            "config/routes/bitbag_wishlist_plugin.yaml"
+        ]
+    },
     "clue/stream-filter": {
         "version": "v1.4.0"
     },
