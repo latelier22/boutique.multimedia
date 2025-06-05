@@ -27,6 +27,9 @@
         "bitbag/wishlist-plugin": "*",
         "flux-se/sylius-payum-stripe-plugin": "^2.0",
         "friendsofsylius/sylius-import-export-plugin": "^0.27.0",
+        "monsieurbiz/sylius-cms-page-plugin": "*",
+        "monsieurbiz/sylius-media-manager-plugin": "^1.0",
+        "monsieurbiz/sylius-rich-editor-plugin": "*",
         "monsieurbiz/sylius-search-plugin": "^2.3",
         "nikic/php-parser": "^4.0",
         "odiseoteam/sylius-banner-plugin": "*",
@@ -123,6 +126,9 @@
             "@php bin/console sylius:show-plus-info --ansi"
         ],
         "auto-scripts": {
+
+            "vendor/monsieurbiz/sylius-rich-editor-plugin/scripts/replace_intl_extension.php": "php-script",
+
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }
