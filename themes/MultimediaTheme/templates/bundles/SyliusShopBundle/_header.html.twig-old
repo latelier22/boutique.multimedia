@@ -1,6 +1,7 @@
 <div class="ui basic segment">
     <div class="ui three column stackable grid">
-        {% include "@SyliusShop/_logo.html.twig" %}
+        HEADER
+        {% include "@SyliusShop/Layout/Header/_logo.html.twig" %}
         <div class="column">
             {{ sonata_block_render_event('sylius.shop.layout.header') }}
         </div>

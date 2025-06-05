@@ -722,6 +722,9 @@ sylius_ui:
                 content:
                     template: "@SyliusShop/Layout/Header/_content.html.twig"
                     priority: 20
+                wishlist:
+                    template: "@SyliusShop/Layout/Header/_wishlist.html.twig"
+                    priority: 15
                 cart:
                     template: "@SyliusShop/Layout/Header/_cart.html.twig"
                     priority: 10
