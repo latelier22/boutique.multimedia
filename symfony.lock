@@ -25,20 +25,24 @@
     "babdev/pagerfanta-bundle": {
         "version": "v2.8.0"
     },
-    "behat/behat": {
-        "version": "v3.5.0"
-    },
-    "behat/gherkin": {
-        "version": "v4.5.1"
-    },
     "behat/mink-selenium2-driver": {
         "version": "v1.3.1"
     },
     "behat/transliterator": {
         "version": "v1.2.0"
     },
-    "bitbag/elasticsearch-plugin": {
-        "version": "v3.3.2"
+    "bitbag/wishlist-plugin": {
+        "version": "4.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "4.4",
+            "ref": "96b9eb4312dca97d006d107069c271fabf333e57"
+        },
+        "files": [
+            "config/packages/bitbag_wishlist_plugin.yaml",
+            "config/routes/bitbag_wishlist_plugin.yaml"
+        ]
     },
     "clue/stream-filter": {
         "version": "v1.4.0"
@@ -51,9 +55,6 @@
     },
     "dealerdirect/phpcodesniffer-composer-installer": {
         "version": "v0.7.1"
-    },
-    "dmore/behat-chrome-extension": {
-        "version": "1.3.0"
     },
     "dmore/chrome-mink-driver": {
         "version": "2.7.0"
@@ -160,23 +161,8 @@
     "friends-of-behat/mink-browserkit-driver": {
         "version": "v1.4.0"
     },
-    "friends-of-behat/mink-debug-extension": {
-        "version": "v2.0.1"
-    },
-    "friends-of-behat/mink-extension": {
-        "version": "v2.5.0"
-    },
     "friends-of-behat/page-object-extension": {
         "version": "0.1"
-    },
-    "friends-of-behat/suite-settings-extension": {
-        "version": "v1.0.1"
-    },
-    "friends-of-behat/symfony-extension": {
-        "version": "v1.2.2"
-    },
-    "friends-of-behat/variadic-extension": {
-        "version": "v1.1.0"
     },
     "friendsofphp/proxy-manager-lts": {
         "version": "v1.0.3"
@@ -234,6 +220,9 @@
     },
     "instaclick/php-webdriver": {
         "version": "1.4.5"
+    },
+    "jane-php/automapper-bundle": {
+        "version": "v7.5.3"
     },
     "jms/metadata": {
         "version": "1.6.0"
@@ -340,6 +329,32 @@
     },
     "monolog/monolog": {
         "version": "1.23.0"
+    },
+    "monsieurbiz/sylius-search-plugin": {
+        "version": "2.3",
+        "recipe": {
+            "repo": "github.com/monsieurbiz/symfony-recipes",
+            "branch": "master",
+            "version": "2.0",
+            "ref": "e88115d8c4ebb0b7889743e4af411841994c1788"
+        },
+        "files": [
+            "config/packages/monsieurbiz_sylius_search_plugin.yaml",
+            "config/routes/monsieurbiz_sylius_search_plugin.yaml"
+        ]
+    },
+    "monsieurbiz/sylius-settings-plugin": {
+        "version": "1.3",
+        "recipe": {
+            "repo": "github.com/monsieurbiz/symfony-recipes",
+            "branch": "master",
+            "version": "1.0",
+            "ref": "fafa903dedd49e881d21be1236c3d002e45278ed"
+        },
+        "files": [
+            "config/packages/monsieurbiz_settings_plugin.yaml",
+            "config/routes/monsieurbiz_settings_plugin.yaml"
+        ]
     },
     "myclabs/deep-copy": {
         "version": "1.8.1"
@@ -763,15 +778,6 @@
             "config/packages/mailer.yaml"
         ]
     },
-    "symfony/maker-bundle": {
-        "version": "1.63",
-        "recipe": {
-            "repo": "github.com/symfony/recipes",
-            "branch": "main",
-            "version": "1.0",
-            "ref": "fadbfe33303a76e25cb63401050439aa9b1a9c7f"
-        }
-    },
     "symfony/messenger": {
         "version": "4.3",
         "recipe": {
@@ -801,15 +807,6 @@
     },
     "symfony/options-resolver": {
         "version": "v4.1.3"
-    },
-    "symfony/panther": {
-        "version": "2.1",
-        "recipe": {
-            "repo": "github.com/symfony/recipes",
-            "branch": "main",
-            "version": "1.0",
-            "ref": "673836afb0eac2b0ec36c44f2ff0379e5a4b2177"
-        }
     },
     "symfony/password-hasher": {
         "version": "v5.3.2"

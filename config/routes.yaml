@@ -28,7 +28,18 @@ odiseo_sylius_banner_plugin_shop:
 shop_taxon_mis_en_avant:
     path: /{_locale}/taxons/mis-en-avant
 
-# config/routes.yaml
+app_export_data_taxon:
+    path: /admin/export/sylius.resource/csv
+    methods: [GET]
+    defaults:
+        resource: sylius.taxon
+        _controller: sylius.controller.export_data_taxon:exportAction
+        _sylius:
+            filterable: true
+            grid: sylius_admin_taxon
 
-bitbag_sylius_elasticsearch_plugin:
-    resource: "@BitBagSyliusElasticsearchPlugin/Resources/config/routing.yml"
+admin_export_taxons_csv:
+    path: /admin/export/taxons.csv
+    controller: App\Controller\Admin\TaxonExportController::exportTaxons
+
+

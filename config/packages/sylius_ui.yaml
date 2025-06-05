@@ -710,6 +710,9 @@ sylius_ui:
                 payment_methods:
                     template: "@SyliusShop/Layout/Footer/Grid/_payment_methods.html.twig"
                     priority: 10
+                constact:
+                    template: "@SyliusShop/Layout/Footer/Grid/_contact.html.twig"
+                    priority: 5
 
         sylius.shop.layout.header.grid:
             blocks:
@@ -719,6 +722,9 @@ sylius_ui:
                 content:
                     template: "@SyliusShop/Layout/Header/_content.html.twig"
                     priority: 20
+                wishlist:
+                    template: "@SyliusShop/Layout/Header/_wishlist.html.twig"
+                    priority: 15
                 cart:
                     template: "@SyliusShop/Layout/Header/_cart.html.twig"
                     priority: 10
@@ -729,6 +735,9 @@ sylius_ui:
                     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
                     context:
                         event: sylius.shop.layout.header
+                search:
+                    template: "@MonsieurBizSyliusSearchPlugin/Header/form.html.twig"
+                    priority: 20
 
         sylius.shop.login.register_column:
             blocks:
@@ -778,6 +787,9 @@ sylius_ui:
                 scripts:
                     template: "@SyliusShop/_scripts.html.twig"
                     priority: 10
+                    
+                monsieurbiz_search_javascripts:
+                    template: "@MonsieurBizSyliusSearchPlugin/_scripts.html.twig"
                 legacy:
                     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
                     priority: 0
