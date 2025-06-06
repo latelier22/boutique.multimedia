@@ -1044,6 +1044,8 @@ sylius:
 
 asdoria_bulk_edit.menu.admin.asdoria_bulk_edit.taxons: 'Catégories'
 
+sylius.ui.break_policy : "Droit de rétraction"
+
 monsieurbiz_searchplugin:
     instant:
         result:
