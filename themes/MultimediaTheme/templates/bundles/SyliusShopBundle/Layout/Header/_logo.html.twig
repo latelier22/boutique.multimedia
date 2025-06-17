@@ -1,9 +1,49 @@
-<div class="column">
-    <a href="{{ path('sylius_shop_homepage') }}">
-        {% if use_webpack %}
-            <img src="{{ asset('build/app/shop/images/logo-multimedia-services.png', 'app.shop') }}" alt="Sylius logo" class="ui small image" />
-        {% else %}
-            <img src="{{ asset('assets/shop/img/logo.png') }}" alt="Sylius logo" class="ui small image" />
-        {% endif %}
-    </a>
+<style>
+  .logo-mobile {
+    display: none;
+  }
+
+  .logo-desktop {
+    display: block;
+  }
+
+  @media (max-width: 768px) {
+    .logo-mobile {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 1em;
+    }
+
+    .logo-desktop {
+      display: none !important;
+    }
+
+    .logo-mobile img {
+      width: 100%;
+      height: auto;
+      max-width: 280px;
+    }
+  }
+</style>
+
+{# ✅ Logo desktop (normal, petit) #}
+<div class="column logo-desktop">
+  <a href="{{ path('sylius_shop_homepage') }}">
+    {% if use_webpack %}
+      <img src="{{ asset('build/app/shop/images/logo-multimedia-services.png', 'app.shop') }}" alt="Logo" class="ui small image" />
+    {% else %}
+      <img src="{{ asset('assets/shop/img/logo.png') }}" alt="Logo" class="ui small image" />
+    {% endif %}
+  </a>
+</div>
+
+{# ✅ Logo mobile (100% largeur) #}
+<div class="logo-mobile">
+  <a href="{{ path('sylius_shop_homepage') }}">
+    {% if use_webpack %}
+      <img src="{{ asset('build/app/shop/images/logo-multimedia-services.png', 'app.shop') }}" alt="Logo mobile" />
+    {% else %}
+      <img src="{{ asset('assets/shop/img/logo.png') }}" alt="Logo mobile" />
+    {% endif %}
+  </a>
 </div>

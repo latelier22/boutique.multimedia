@@ -86,18 +86,24 @@ sylius_ui:
                 mis_en_avant_products:
                     template: "@SyliusShop/Homepage/_mis-en-avant_Products.html.twig"
                     priority: 50
+                mobiles_products:
+                    template: "@SyliusShop/Homepage/_mobiles_Products.html.twig"
+                    priority: 45
+                pieces_products:
+                    template: "@SyliusShop/Homepage/_pieces_Products.html.twig"
+                    priority: 40
                 # latest_products_carousel:
                 #     template: "@SyliusShop/Homepage/_latestProductsCarousel.html.twig"
                 #     priority: 40
                 # newsletter:
                 #     template: "@SyliusShop/Homepage/_newsletter.html.twig"
                 #     priority: 30
-                products_grid:
-                    template: "@SyliusShop/Homepage/_productsGrid.html.twig"
-                    priority: 20
-                about_us:
-                    template: "@SyliusShop/Homepage/_aboutUs.html.twig"
-                    priority: 10
+                # products_grid:
+                #     template: "@SyliusShop/Homepage/_productsGrid.html.twig"
+                #     priority: 20
+                # about_us:
+                #     template: "@SyliusShop/Homepage/_aboutUs.html.twig"
+                #     priority: 10
 
         sylius.shop.cart.widget.button:
             blocks:
@@ -714,20 +720,46 @@ sylius_ui:
                     template: "@SyliusShop/Layout/Footer/Grid/_contact.html.twig"
                     priority: 5
 
-        sylius.shop.layout.header.grid:
+        # sylius.shop.layout.header.grid:
+        # blocks:
+            # logo:
+            #     template: "@SyliusShop/Layout/Header/_logo.html.twig"
+            #     priority: 30
+            #     context:
+            #         section: logo
+            # content:
+            #     template: "@SyliusShop/Layout/Header/_content.html.twig"
+            #     priority: 20
+            #     context:
+            #         section: rest
+            # wishlist:
+            #     template: "@SyliusShop/Layout/Header/_wishlist.html.twig"
+            #     priority: 15
+            #     context:
+            #         section: rest
+            # cart:
+            #     template: "@SyliusShop/Layout/Header/_cart.html.twig"
+            #     priority: 10
+            #     context:
+            #         section: rest
+        sylius.shop.layout.header.logo:
             blocks:
                 logo:
                     template: "@SyliusShop/Layout/Header/_logo.html.twig"
-                    priority: 30
+                    priority: 100
+
+        sylius.shop.layout.header.rest:
+            blocks:
                 content:
                     template: "@SyliusShop/Layout/Header/_content.html.twig"
-                    priority: 20
+                    priority: 50
                 wishlist:
                     template: "@SyliusShop/Layout/Header/_wishlist.html.twig"
-                    priority: 15
+                    priority: 40
                 cart:
                     template: "@SyliusShop/Layout/Header/_cart.html.twig"
-                    priority: 10
+                    priority: 30
+
 
         sylius.shop.layout.header.content:
             blocks:

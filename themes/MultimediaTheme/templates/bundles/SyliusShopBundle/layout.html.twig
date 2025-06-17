@@ -26,10 +26,72 @@
 {{ sylius_template_event('sylius.shop.layout.before_body') }}
 <div class="pusher" data-route="{{ app.request.get('_route') }}">
     {% block top %}
-        <div id="menu" class="top-menu">
-            <a href="#" class="top-menu__link">{{ 'sylius.top_bar'|trans }}</a>
-            <div class="top-bar">{{ sylius_template_event('sylius.shop.layout.topbar') }}</div>
-        </div>
+      <style>
+  .mobile-toggle-topbar {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .top-menu {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .desktop-only {
+      display: none !important;
+    }
+
+    .mobile-toggle-topbar {
+      display: inline-block;
+      background: none;
+      border: none;
+      font-size: 1.5em;
+      cursor: pointer;
+      margin-right: 1em;
+    }
+
+    .top-bar {
+      display: none;
+      padding: 1em;
+      text-align: right;
+    }
+
+    .top-bar.show {
+      display: block;
+    }
+  }
+</style>
+
+<div id="menu" class="top-menu">
+
+  {# ✅ Icône visible uniquement sur mobile, alignée à droite #}
+  <button class="mobile-toggle-topbar" id="toggle-topbar" aria-label="Mon compte">
+    👤
+  </button>
+
+  {# ✅ Lien visible uniquement sur desktop #}
+  <a href="#" class="top-menu__link desktop-only">{{ 'sylius.top_bar'|trans }}</a>
+
+</div>
+
+{# ✅ Bloc mobile affiché sous le menu, à droite en mobile #}
+<div class="top-bar" id="mobile-topbar">
+  {{ sylius_template_event('sylius.shop.layout.topbar') }}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('toggle-topbar');
+    const topbar = document.getElementById('mobile-topbar');
+
+    toggle?.addEventListener('click', () => {
+      topbar.classList.toggle('show');
+    });
+  });
+</script>
+
+
     {% endblock %}
 
     <div class="ui container">

@@ -1,2 +1,26 @@
 {{ encore_entry_script_tags('shop-entry', null, 'shop') }}
 {{ encore_entry_script_tags('app-shop-entry', null, 'app.shop') }}
+
+ <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleButton = document.querySelector('.desc-toggle-button');
+    const shortText = document.querySelector('.desc-text');
+    const fullText = document.querySelector('.desc-full');
+
+    if (!toggleButton || !shortText || !fullText) return;
+
+    toggleButton.addEventListener('click', function () {
+      const isExpanded = fullText.style.display === 'block';
+
+      if (isExpanded) {
+        fullText.style.display = 'none';
+        shortText.style.display = 'block';
+        toggleButton.textContent = 'Voir plus';
+      } else {
+        fullText.style.display = 'block';
+        shortText.style.display = 'none';
+        toggleButton.textContent = 'Voir moins';
+      }
+    });
+  });
+</script>
