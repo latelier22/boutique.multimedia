@@ -21,7 +21,11 @@ sylius:
         guest:
             email: 'Email'
     ui:
+        mobiles.title : "Nos téléphones!"
         front.title : "Articles à la Une!"
+        pieces.title : "Nos pièces détachées"
+        pieces.description : "Des pièces détachées au meilleur rapport qualité prix!"
+        mobiles.description : "Retrouvez tous nos téléphones neufs, reconditionnés oud'occasion..."
         front.description : "Découvrez les dernières tendances et les meilleures offres de notre boutique en ligne. Profitez d'une expérience de shopping unique avec une sélection soigneusement choisie d'articlesà ne pas rater."
         about: 'À propos'
         accept: 'Accepter'

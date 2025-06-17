@@ -1,7 +1,26 @@
 {% set products = products_by_taxon_slug('mis-en-avant', app.request.locale) %}
 
 <h2 class="ui center aligned huge header">{{ 'sylius.ui.front.title'|trans }}</h2>
-<h3 class="ui  aligned header">{{ 'sylius.ui.front.description'|trans }}</h3>
+<h3 class="ui aligned header">
+  <span class="front-desc mobile-only toggle-desc">
+    <span class="desc-short">
+      {{ 'sylius.ui.front.description'|trans|slice(0, 90) ~ '…' }}
+      <button type="button" class="desc-toggle-show ui tiny basic button">[+]</button>
+    </span>
+    <span class="desc-full" style="display: none;">
+      {{ 'sylius.ui.front.description'|trans }}
+      <button type="button" class="desc-toggle-hide ui tiny basic button">[–]</button>
+    </span>
+  </span>
+
+  <span class="front-desc desktop-only">
+    {{ 'sylius.ui.front.description'|trans }}
+  </span>
+</h3>
+
+
+
+
 <div class="ui hidden divider"></div>
 
 {# {{ dump(products) }}
@@ -17,3 +36,4 @@
         <p>{{ 'sylius.ui.please_check_back_later'|trans }}</p>
     </div>
 {% endif %}
+

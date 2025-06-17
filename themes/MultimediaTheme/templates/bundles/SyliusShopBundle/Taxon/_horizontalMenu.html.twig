@@ -1,0 +1,152 @@
+{# /var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/views/Taxon/_horizontalMenu.html.twig #}
+
+{% macro item(taxon) %}
+    {% import _self as macros %}
+    
+    {% if taxon.enabledChildren|length > 0 %}
+        <div class="ui dropdown item" {{ sylius_test_html_attribute('menu-item') }}>
+            <span class="text">{{ taxon.name }}</span>
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                {% for childTaxon in taxon.enabledChildren %}
+                    {{ macros.item(childTaxon) }}
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <a href="{{ path('sylius_shop_product_index', {'slug': taxon.slug, '_locale': taxon.translation.locale}) }}" class="item" {{ sylius_test_html_attribute('menu-item') }}>{{ taxon.name }}</a>
+    {% endif %}
+{% endmacro %}
+
+{% import _self as macros %}
+
+{% if taxons|length > 0 %}
+<div class="ui large stackable menu desktop-only" {{ sylius_test_html_attribute('menu') }}>
+    {% for taxon in taxons %}
+        {{ macros.item(taxon) }}
+    {% endfor %}
+</div>
+{% endif %}
+<style>
+  /* Par défaut sur desktop */
+  .desktop-only {
+    display: block;
+  }
+
+  #burger-btn,
+  #burger-menu {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .desktop-only {
+      display: none !important;
+    }
+
+    /* Bouton burger fixe en haut à gauche */
+    #burger-btn {
+      display: block;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 2000;
+      font-size: 1.5em;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: black; /* ou noir selon ton fond */
+    }
+
+    /* Menu burger overlay */
+    #burger-menu {
+      display: none;
+      position: fixed;
+      top: 50px; /* sous le bouton */
+      left: 0;
+      right: 0;
+      z-index: 1999;
+      background: white;
+      padding: 1em;
+      border-top: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    #burger-menu.show {
+      display: block;
+    }
+
+    #burger-menu ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    #burger-menu li {
+      margin-bottom: 0.5em;
+    }
+
+    .submenu {
+      display: none;
+      margin-left: 1em;
+    }
+
+    .submenu.show {
+      display: block;
+    }
+
+    .toggle-sub {
+      background: none;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+      margin: 0.5em 0;
+    }
+  }
+</style>
+
+
+<button id="burger-btn" class="burger-fixed" aria-label="Menu">☰</button>
+
+<nav id="burger-menu" class="burger-menu-fixed">
+  <ul>
+    {% for taxon in taxons %}
+      <li>
+        {% if taxon.enabledChildren|length > 0 %}
+          <button class="toggle-sub" data-target="sub-{{ taxon.id }}">▶ {{ taxon.name }}</button>
+          <ul class="submenu" id="sub-{{ taxon.id }}">
+            {% for child in taxon.enabledChildren %}
+              <li>
+                <a href="{{ path('sylius_shop_product_index', {'slug': child.slug, '_locale': child.translation.locale}) }}">{{ child.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <a href="{{ path('sylius_shop_product_index', {'slug': taxon.slug, '_locale': taxon.translation.locale}) }}">{{ taxon.name }}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</nav>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('burger-btn');
+    const menu = document.getElementById('burger-menu');
+
+    btn?.addEventListener('click', () => {
+      menu.classList.toggle('show');
+    });
+
+    document.querySelectorAll('.toggle-sub').forEach(el => {
+      el.addEventListener('click', () => {
+        const target = document.getElementById(el.dataset.target);
+        target.classList.toggle('show');
+        el.textContent = (target.classList.contains('show') ? '▼ ' : '▶ ') + el.textContent.slice(2);
+      });
+    });
+  });
+</script>

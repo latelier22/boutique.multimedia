@@ -1,0 +1,28 @@
+{% set products = products_by_taxon_slug('categories/etat', app.request.locale) %}
+
+{% if products is not empty %}
+    <a href="{{ path('sylius_shop_product_index', {'slug': 'categories/etat', '_locale': app.request.locale}) }}">
+    <span class="mobiles-link-highlight" style="display:inline-block;width:100%;height:100%;">
+    <style>
+    .mobiles-link-highlight {
+        border-radius: 16px;
+        transition: background 0.2s, border 0.2s;
+    }
+    a:hover .mobiles-link-highlight {
+        background: #f0f4fa;
+        border: 2px solid #b5c7d3;
+    }
+    </style>
+    <h2 class="ui center aligned huge header">{{ 'sylius.ui.mobiles.title'|trans }}</h2>
+    </span>
+    </a>
+    <h3 class="ui aligned header">{{ 'sylius.ui.mobiles.description'|trans }}</h3>
+    <div class="ui hidden divider"></div>
+
+    {% include '@SyliusShop/Homepage/_carousel.html.twig' with { products: products } %}
+{% else %}
+    <div class="ui info message">
+        <div class="header">{{ 'sylius.ui.no_featured_products'|trans }}</div>
+        <p>{{ 'sylius.ui.please_check_back_later'|trans }}</p>
+    </div>
+{% endif %}

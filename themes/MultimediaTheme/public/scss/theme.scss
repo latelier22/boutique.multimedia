@@ -1349,3 +1349,21 @@ address {
 .text-break {
     word-break: break-word;
 }
+
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: inline;
+}
+
+@media screen and (max-width: 768px) {
+  .mobile-only {
+    display: inline;
+  }
+  .desktop-only {
+    display: none;
+  }
+}

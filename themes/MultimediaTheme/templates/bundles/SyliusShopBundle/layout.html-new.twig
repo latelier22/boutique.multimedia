@@ -33,3 +33,30 @@
 {% block javascripts %}
     {{ sylius_template_event('sylius.admin.layout.javascripts') }}
 {% endblock %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const containers = document.querySelectorAll('.toggle-desc');
+
+    containers.forEach(function (container) {
+      const shortEl = container.querySelector('.desc-short');
+      const fullEl = container.querySelector('.desc-full');
+      const showBtn = container.querySelector('.desc-toggle-show');
+      const hideBtn = container.querySelector('.desc-toggle-hide');
+
+      if (showBtn && hideBtn && shortEl && fullEl) {
+        showBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          shortEl.style.display = 'none';
+          fullEl.style.display = 'inline';
+        });
+
+        hideBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          fullEl.style.display = 'none';
+          shortEl.style.display = 'inline';
+        });
+      }
+    });
+  });
+</script>

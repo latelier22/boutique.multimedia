@@ -1,0 +1,49 @@
+<style>
+  @media (max-width: 768px) {
+    .header-grid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .header-logo {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 1em;
+    }
+
+    .header-rest {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 1em;
+      flex-wrap: wrap;
+    }
+  }
+
+  @media (min-width: 769px) {
+    .header-grid {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    .header-logo,
+    .header-rest {
+      display: block;
+    }
+  }
+</style>
+<div class="ui basic segment">
+  <div class="header-grid">
+    <div class="header-logo">
+      {{ sylius_template_event('sylius.shop.layout.header.logo') }}
+    </div>
+
+    <div class="header-rest">
+      {{ sylius_template_event('sylius.shop.layout.header.rest') }}
+    </div>
+  </div>
+</div>

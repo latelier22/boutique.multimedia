@@ -5,3 +5,26 @@
 {{ encore_entry_script_tags('app-shop-entry', null, 'app.shop') }}
 
 {{ encore_entry_script_tags('bitbag-wishlist-shop', null, 'wishlist_shop') }}
+
+ <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.toggle-desc').forEach(function (container) {
+      const toggleShow = container.querySelector('.desc-toggle-show');
+      const toggleHide = container.querySelector('.desc-toggle-hide');
+      const shortText = container.querySelector('.desc-short');
+      const fullText = container.querySelector('.desc-full');
+
+      if (!toggleShow || !toggleHide || !shortText || !fullText) return;
+
+      toggleShow.addEventListener('click', function () {
+        shortText.style.display = 'none';
+        fullText.style.display = 'inline';
+      });
+
+      toggleHide.addEventListener('click', function () {
+        fullText.style.display = 'none';
+        shortText.style.display = 'inline';
+      });
+    });
+  });
+</script>
