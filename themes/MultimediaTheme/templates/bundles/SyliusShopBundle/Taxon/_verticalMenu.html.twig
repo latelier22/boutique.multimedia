@@ -1,13 +1,27 @@
 {{ sylius_template_event('sylius.shop.product.index.before_vertical_menu', {'taxon': taxon}) }}
 
 <div class="ui fluid vertical menu" {{ sylius_test_html_attribute('vertical-menu') }}>
-
     <div class="header item">{{ taxon.name }}</div>
+
     {% for child in taxon.enabledChildren %}
-    <a href="{{ path('sylius_shop_product_index', {'slug': child.slug, '_locale': child.translation.locale}) }}" class="item" {{ sylius_test_html_attribute('vertical-menu-item') }}>{{ child.name }}</a>
+        <a href="{{ path('sylius_shop_product_index', {'slug': child.slug, '_locale': child.translation.locale}) ~ '?sorting%5Bprice%5D=asc' }}"
+           class="item"
+           {{ sylius_test_html_attribute('vertical-menu-item') }}>
+            {{ child.name }}
+        </a>
+
+        {% set min = lowest_price_by_taxon(child) %}
+        {% if min is not null %}
+            <div style="margin-left: 1.5em; font-size: 0.9em; color: #2185d0; font-style: italic;">
+                À partir de {{ (min / 100)|number_format(2, ',', ' ') }} €
+            </div>
+        {% endif %}
     {% endfor %}
+
     {% if taxon.parent is not empty and not taxon.parent.isRoot() and taxon.parent.enabled %}
-        <a href="{{ path('sylius_shop_product_index', {'slug': taxon.parent.slug, '_locale': taxon.parent.translation.locale}) }}" class="item" {{ sylius_test_html_attribute('vertical-menu-go-level-up') }}>
+        <a href="{{ path('sylius_shop_product_index', {'slug': taxon.parent.slug, '_locale': taxon.parent.translation.locale}) }}"
+           class="item"
+           {{ sylius_test_html_attribute('vertical-menu-go-level-up') }}>
             <i class="up arrow icon"></i> {{ 'sylius.ui.go_level_up'|trans }}
         </a>
     {% endif %}

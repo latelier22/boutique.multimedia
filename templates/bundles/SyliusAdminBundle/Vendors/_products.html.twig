@@ -1,0 +1,14 @@
+{% if products is empty %}
+  <em>Aucun produit.</em>
+{% else %}
+  <ul>
+    {% for p in products %}
+      <li>
+        <strong>{{ p.product_model ?? p.product_name ?? ('Produit #' ~ (p.product_id ?? '')) }}</strong>
+        — Achat: {{ p.product_supply_price ?? '—' }} €
+        / Vente: {{ p.product_price ?? '—' }} €
+        / Stock: {{ p.stock_available ?? p.stock_qty ?? 0 }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}

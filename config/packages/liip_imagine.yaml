@@ -42,4 +42,4 @@ liip_imagine:
                 thumbnail: { size: [260, 260], mode: inset }
         sylius_shop_product_large_thumbnail:
             filters:
-                thumbnail: { size: [550, 412], mode: inset }
+                thumbnail: { size: [300, 300], mode: inset }

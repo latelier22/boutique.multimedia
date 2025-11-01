@@ -1,0 +1,44 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/ci_page.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Pièce d'identité — rachat #{{ r.id }}{% endblock %}
+
+{% block content %}
+<style>
+  .wrap{display:flex;gap:16px;flex-wrap:wrap}
+  .card{flex:1 1 380px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px}
+  .card h4{margin:0 0 10px}
+  .ph{display:flex;align-items:center;justify-content:center;height:420px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc}
+  .ph img{max-width:100%;max-height:100%;border-radius:6px}
+</style>
+
+<h2 class="ui header">Pièce d’identité — Rachat #{{ r.id }}</h2>
+
+<div class="wrap">
+  <div class="card">
+    <h4>Recto</h4>
+    <div class="ph">
+      {% if ci.recto %}
+        <a href="{{ ci.recto }}" target="_blank" rel="noopener"><img src="{{ ci.recto }}" alt="Recto"></a>
+      {% else %}
+        <span class="muted">Non disponible</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>Verso</h4>
+    <div class="ph">
+      {% if ci.verso %}
+        <a href="{{ ci.verso }}" target="_blank" rel="noopener"><img src="{{ ci.verso }}" alt="Verso"></a>
+      {% else %}
+        <span class="muted">Non disponible</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="ui right aligned basic segment" style="margin-top:12px">
+  <a class="ui button" href="{{ path('admin_rachats_show', { id: r.id }) }}">👁️ Voir la fiche</a>
+  <a class="ui primary button" href="{{ path('admin_rachats_edit', { id: r.id }) }}">✏️ Éditer</a>
+</div>
+{% endblock %}

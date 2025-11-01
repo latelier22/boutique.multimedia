@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 10mm; }
+  body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color:#111; }
+  .page { border:1.4pt solid #1f2937; border-radius:8px; padding:14px; min-height: calc(297mm - 20mm);
+          box-sizing:border-box; position: relative; display:flex; flex-direction:column; background:#fff; }
+  .title { font-size:20px; font-weight:700; margin:0 0 10px; color:#111827; }
+  table.w { width:100%; border-collapse:collapse; } td { vertical-align:top; }
+  .box { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:10px; }
+  .label { font-weight:600; color:#374151; }
+  .muted { color:#6b7280; }
+  .logo { max-height:52px; }
+  .shop-name { font-size:14px; font-weight:700; color:#111827; }
+  .shop-lines div { line-height:1.35; }
+  .section-title { font-weight:700; margin:10px 0 6px; color:#111827; }
+  .id-box { border:1px dashed #9ca3af; border-radius:8px; height:70mm; display:flex; align-items:center; justify-content:center; color:#9ca3af; }
+  .photos { display:flex; gap:8px; flex-wrap:wrap; }
+  .photos img { width:45%; max-width:280px; border:1px solid #e5e7eb; border-radius:6px; object-fit:cover; }
+  .sign-strip { margin-top:auto; }
+  .sign-box { border:1px dashed #9ca3af; border-radius:8px; min-height:30mm; display:flex; align-items:center; justify-content:center; background:#fff; }
+</style>
+<body>
+<div class="page">
+  <div class="title">Bon de cession – #{{ r.id }}</div>
+
+  <table class="w"><tr>
+    <td style="width:55%; padding-right:10px">
+      <table class="w"><tr>
+        <td style="width:64px; padding-right:8px">
+          {% if company_logo_data_uri %}
+            <img class="logo" src="{{ company_logo_data_uri }}" alt="Logo">
+          {% endif %}
+        </td>
+        <td class="shop-lines">
+          <div class="shop-name">{{ shop.name }}</div>
+          <div>{{ shop.address }}</div>
+          <div>{{ shop.zip }} {{ shop.city }}{% if shop.country %} — {{ shop.country }}{% endif %}</div>
+          <div>Tél. {{ shop.phone }} • {{ shop.email }}</div>
+          <div class="muted">{{ shop.site }}</div>
+          {% if shop.tax_number %}<div>TVA : {{ shop.tax_number }}</div>{% endif %}
+          {% if shop.company_number %}<div>SIRET/SIREN : {{ shop.company_number }}</div>{% endif %}
+          {% if shop.legal_status %}<div>Statut : {{ shop.legal_status }}{% if shop.code_naf %} • NAF {{ shop.code_naf }}{% endif %}</div>{% endif %}
+          {% if shop.non_assujetti_tva == '1' %}<div class="muted">Non assujetti à la TVA</div>{% endif %}
+        </td>
+      </tr></table>
+    </td>
+    <td style="width:45%; padding-left:10px">
+      <div class="box">
+        <div class="label">Vendeur</div>
+        <div>{{ (r.nom ~ ' ' ~ r.prenom)|trim }}</div>
+        <div>Tél. {{ r.telephone }}</div>
+        <div>{{ r.email }}</div>
+        <div>{{ (r.adresse ~ ' ' ~ r.codePostal)|trim }}</div>
+        <div class="muted">Date : {{ (generated_at ?? 'now')|date('d/m/Y H:i') }}</div>
+      </div>
+    </td>
+  </tr></table>
+
+  <div class="box">
+    <div class="label">Appareil cédé</div>
+    <table class="w"><tr>
+      <td style="width:50%">
+        <div><span class="label">Marque / Modèle :</span> {{ r.marqueModele }}</div>
+        <div><span class="label">IMEI :</span> {{ r.imei }}</div>
+      </td>
+      <td style="width:50%">
+        <div><span class="label">Prix d'achat :</span> {{ r.prixAchat }} €</div>
+        {% if r.dateCession %}<div><span class="label">Date de cession :</span> {{ r.dateCession|date('d/m/Y') }}</div>{% endif %}
+      </td>
+    </tr></table>
+  </div>
+
+  <div class="section-title">Pièce d’identité (recto / verso)</div>
+    
+      <div><span class="label">NUMERO DE PIECE D'INDENTITE</span> {{ r.numeroCi }}</div>
+    
+    <div class="id-box" style="gap:8px;">
+      {% if pieces_identite_data is defined and pieces_identite_data|length %}
+        {% for src in pieces_identite_data %}
+          <img src="{{ src }}" style="max-height:70mm; max-width:48%;" alt="Pièce d'identité">
+        {% endfor %}
+      {% else %}
+        <span class="muted">Non fournie</span>
+      {% endif %}
+  </div>
+
+
+  <div class="section-title">Photos du produit</div>
+  {% if photos_data_uris|length %}
+    <div class="photos">
+      {% for src in photos_data_uris %}
+        <img src="{{ src }}" alt="photo">
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">Aucune photo</div>
+  {% endif %}
+
+  <div class="sign-strip">
+    <table class="w"><tr>
+      <td style="width:50%; padding-right:8px">
+        <div class="label">Signature Multimédia Services</div>
+        <div class="sign-box">
+          {% if company_sign_data_uri %}
+            <img src="{{ company_sign_data_uri }}" style="max-height:28mm; max-width:100%;" alt="Signature MS">
+          {% else %}<span class="muted">Non fournie</span>{% endif %}
+        </div>
+      </td>
+      <td style="width:50%; padding-left:8px">
+        <div class="label">Signature du vendeur</div>
+        <div class="sign-box">
+          {% if seller_sign_data_uri %}
+            <img src="{{ seller_sign_data_uri }}" style="max-height:28mm; max-width:100%;" alt="Signature vendeur">
+          {% else %}<span class="muted">Non fournie</span>{% endif %}
+        </div>
+      </td>
+    </tr></table>
+  </div>
+</div>
+</body>
+</html>

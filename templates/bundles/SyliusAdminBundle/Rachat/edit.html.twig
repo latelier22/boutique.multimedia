@@ -1,0 +1,308 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Éditer rachat #{{ rachat.id ?? '—' }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+  <h2 class="ui header">Rachat #{{ rachat.id ?? '—' }}</h2>
+
+  {{ form_start(form, { attr: { class: 'ui form', id: 'rachat-form' } }) }}
+
+  <div class="two fields">
+    <div class="field">{{ form_row(form.marqueModele) }}</div>
+    <div class="field">{{ form_row(form.imei) }}</div>
+  </div>
+
+  <div class="three fields">
+    <div class="field">{{ form_row(form.numeroCi) }}</div>
+    <div class="field">{{ form_row(form.prixAchat) }}</div>
+    <div class="field">{{ form_row(form.dateCession) }}</div>
+  </div>
+
+  <div class="three fields">
+    <div class="field">{{ form_row(form.nom) }}</div>
+    <div class="field">{{ form_row(form.prenom) }}</div>
+    <div class="field">{{ form_row(form.telephone) }}</div>
+  </div>
+
+  <div class="two fields">
+    <div class="field">{{ form_row(form.email) }}</div>
+    <div class="field">{{ form_row(form.codePostal) }}</div>
+  </div>
+
+  <div class="field">{{ form_row(form.adresse) }}</div>
+
+  <div class="two fields">
+    <button class="ui primary button" type="submit">Enregistrer</button>
+    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
+  </div>
+
+  <h4 class="ui dividing header">Pièce d'identité — Upload AJAX immédiat</h4>
+  <div class="two fields">
+    <div class="field">
+      {{ form_row(form.pieceIdentiteRectoFile) }}
+      <div id="ci-recto-preview" style="margin-top:.5rem;display:none">
+        <div class="ui small header">Recto sélectionné</div>
+        <img id="ci-recto-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+      </div>
+    </div>
+    <div class="field">
+      {{ form_row(form.pieceIdentiteVersoFile) }}
+      <div id="ci-verso-preview" style="margin-top:.5rem;display:none">
+        <div class="ui small header">Verso sélectionné</div>
+        <img id="ci-verso-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+      </div>
+    </div>
+  </div>
+
+  <div id="ci-saved" class="ui segment" style="background:#f8fafc; display:none">
+    <div class="ui header">Pièce d'identité enregistrée</div>
+    <div id="ci-saved-list" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+  </div>
+
+  <h4 class="ui dividing header">Photos produit</h4>
+  <div class="field">
+    {{ form_row(form.photoFiles) }}
+    <div class="muted" style="margin-top:.3rem">Les photos seront compressées en JPEG ≤ 1 Mo et stockées localement.</div>
+  </div>
+
+  {{ form_row(form._token) }}
+  <input type="hidden" name="_go_sign" id="go-sign" value="0">
+  {{ form_end(form, { render_rest: false }) }}
+</div>
+
+{# ========= Photos locales : conteneur TOUJOURS PRÉSENT + placeholder ========= #}
+<h4 class="ui dividing header">Photos locales</h4>
+<div id="photos-gallery" class="ui small images" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+<div id="photos-placeholder" class="ui message">
+  Aucune photo locale pour l’instant.
+</div>
+
+{# Pré-remplissage de la galerie au 1er rendu si des photos existent #}
+{% if rachat.id and rachat.photosJson %}
+  {% set arr = rachat.photosJson is string ? (rachat.photosJson|json_decode) : rachat.photosJson %}
+  {% if arr is iterable and (arr|length) > 0 %}
+    <script>
+      (function(){
+        const gallery = document.getElementById('photos-gallery');
+        const placeholder = document.getElementById('photos-placeholder');
+        if (placeholder) placeholder.style.display = 'none';
+        {% for name in arr|slice(0,24) %}
+          {% set fname = name is string ? (name|split('/')|last) : '' %}
+          {% if fname %}
+            (function(u){
+              const a = document.createElement('a');
+              a.href = u; a.target = '_blank'; a.rel='noopener'; a.className='image';
+              const img = document.createElement('img');
+              img.src = u;
+              img.style.height='120px';
+              img.style.aspectRatio='1/1';
+              img.style.objectFit='cover';
+              img.style.borderRadius='6px';
+              img.style.border='1px solid #e5e7eb';
+              a.appendChild(img);
+              gallery.appendChild(a);
+            })('{{ absolute_url(path("admin_rachats_photo", { id: rachat.id, file: fname })) }}');
+          {% endif %}
+        {% endfor %}
+      })();
+    </script>
+  {% endif %}
+{% endif %}
+
+{# ========= Actions bas de page ========= #}
+<div class="ui right aligned basic segment">
+  <a class="ui button" href="{{ path('admin_rachats_index') }}"><i class="left arrow icon"></i> Retour</a>
+
+  {% if rachat.id %}
+    <button type="button" id="btn-save-and-sign" class="ui primary button">
+      <i class="edit outline icon"></i> Signer
+    </button>
+    {% if rachat.pdfUrl %}
+      <a class="ui button" target="_blank" href="{{ rachat.pdfUrl }}"><i class="file pdf icon"></i> Ouvrir le PDF</a>
+    {% endif %}
+  {% else %}
+    <div class="ui warning message" style="display:inline-block;margin-left:1rem">
+      Enregistrez le rachat pour accéder à la signature et au PDF.
+    </div>
+  {% endif %}
+</div>
+
+{# ======================= JS ======================= #}
+<script>
+(function(){
+  const csrf  = '{{ csrf_token("rachat_edit_" ~ rachat.id) }}';
+  const uploadCiUrl     = '{{ path("admin_rachats_upload_ci", { id: rachat.id }) }}';
+  const uploadPhotosUrl = '{{ path("admin_rachats_upload_photos", { id: rachat.id }) }}';
+
+  // IDs réels générés par Symfony
+  const rectoId  = '{{ form.pieceIdentiteRectoFile.vars.id|e('js') }}';
+  const versoId  = '{{ form.pieceIdentiteVersoFile.vars.id|e('js') }}';
+  const photosId = '{{ form.photoFiles.vars.id|e('js') }}';
+
+  const rectoInput  = document.getElementById(rectoId);
+  const versoInput  = document.getElementById(versoId);
+  const photosInput = document.getElementById(photosId);
+
+  const ciSaved     = document.getElementById('ci-saved');
+  const ciSavedList = document.getElementById('ci-saved-list');
+
+  // Galerie + placeholder
+  function getGallery(){
+    let g = document.getElementById('photos-gallery');
+    if (!g) {
+      g = document.createElement('div');
+      g.id = 'photos-gallery';
+      g.className = 'ui small images';
+      g.style.display = 'flex';
+      g.style.flexWrap = 'wrap';
+      g.style.gap = '10px';
+      const ph = document.getElementById('photos-placeholder');
+      if (ph && ph.parentNode) ph.parentNode.insertBefore(g, ph);
+      else document.body.appendChild(g);
+    }
+    return g;
+  }
+  function hidePlaceholder(){
+    const ph = document.getElementById('photos-placeholder');
+    if (ph) ph.style.display = 'none';
+  }
+  function showPlaceholderIfEmpty(){
+    const g = getGallery();
+    const ph = document.getElementById('photos-placeholder');
+    if (ph) ph.style.display = g.children.length ? 'none' : 'block';
+  }
+  function addThumbToGallery(url){
+    const gallery = getGallery();
+    hidePlaceholder();
+    const a = document.createElement('a');
+    a.href = url; a.target='_blank'; a.rel='noopener'; a.className='image';
+    const img = document.createElement('img');
+    img.src = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+    img.style.height='120px';
+    img.style.aspectRatio='1/1';
+    img.style.objectFit='cover';
+    img.style.borderRadius='6px';
+    img.style.border='1px solid #e5e7eb';
+    a.appendChild(img);
+    gallery.appendChild(a);
+  }
+
+  function addSavedCiThumb(kind, url) {
+    if (!ciSaved || !ciSavedList) return;
+    ciSaved.style.display = 'block';
+    const prev = ciSavedList.querySelector('[data-kind="'+kind+'"]');
+    if (prev) prev.remove();
+    const wrap = document.createElement('div');
+    wrap.dataset.kind = kind;
+    wrap.style.border = '1px dashed #cbd5e1';
+    wrap.style.borderRadius = '8px';
+    wrap.style.padding = '8px';
+    wrap.style.width = '240px';
+    wrap.innerHTML = `
+      <div style="font-weight:600;color:#374151;margin-bottom:6px">Pièce ${kind}</div>
+      <img src="${url}" style="max-width:100%;height:auto;display:block" />
+      <a class="ui mini button" href="${url}" target="_blank" rel="noopener">🔗 Ouvrir</a>
+    `;
+    ciSavedList.appendChild(wrap);
+  }
+
+  // ====== UPLOAD CI (Recto/Verso) ======
+  async function uploadCi(file, kind) {
+    if (!file) return;
+    const preview = document.getElementById(`ci-${kind}-preview`);
+    const img = document.getElementById(`ci-${kind}-img`);
+    if (preview && img) {
+      preview.style.display = 'block';
+      const reader = new FileReader();
+      reader.onload = e => { img.src = e.target.result; };
+      reader.readAsDataURL(file);
+    }
+    const fd = new FormData();
+    fd.append('_token', csrf);
+    fd.append('ci', file);
+    fd.append('kind', kind);
+    try {
+      const res = await fetch(uploadCiUrl, { method: 'POST', body: fd });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j.error || res.statusText);
+      addSavedCiThumb(kind, j.url);
+    } catch (e) {
+      alert('Erreur upload ' + kind + ' : ' + e.message);
+      console.error(e);
+    }
+  }
+  if (rectoInput) rectoInput.addEventListener('change', () => uploadCi(rectoInput.files[0], 'recto'));
+  if (versoInput) versoInput.addEventListener('change', () => uploadCi(versoInput.files[0], 'verso'));
+
+  // ====== UPLOAD PHOTOS PRODUIT ======
+  async function uploadPhotos(files) {
+    const fd = new FormData();
+    fd.append('_token', csrf);
+    for (const f of files) fd.append('photos[]', f);
+
+    try {
+      const res = await fetch(uploadPhotosUrl, { method: 'POST', body: fd });
+      const j = await res.json();
+      if (!res.ok || !j.ok) throw new Error(j.error || res.statusText);
+
+      const gallery = getGallery();
+      gallery.innerHTML = '';
+      hidePlaceholder();
+      (j.all || []).slice(0, 24).forEach(u => addThumbToGallery(u));
+      showPlaceholderIfEmpty();
+    } catch (e) {
+      alert('Erreur upload photos : ' + e.message);
+      console.error(e);
+    }
+  }
+
+  if (photosInput) {
+    photosInput.addEventListener('change', async () => {
+      const files = Array.from(photosInput.files || []);
+      if (!files.length) return;
+
+      // Aperçu local immédiat
+      const gallery = getGallery();
+      gallery.innerHTML = '';
+      hidePlaceholder();
+      for (const f of files) {
+        if (!f.type || !f.type.startsWith('image/')) continue;
+        const reader = new FileReader();
+        reader.onload = e => addThumbToGallery(e.target.result);
+        reader.readAsDataURL(f);
+      }
+
+      await uploadPhotos(files);
+      photosInput.value = '';
+      showPlaceholderIfEmpty();
+    });
+  }
+
+  // ====== BOUTON SIGNER ======
+  const btn = document.getElementById('btn-save-and-sign');
+  const go  = document.getElementById('go-sign');
+  const frm = document.getElementById('rachat-form');
+  if (btn && go && frm) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      go.value = '1';
+      frm.submit();
+    });
+  }
+
+  // ====== Bloc "Pièce d'identité enregistrée" si déjà en DB ======
+  {% if rachat.pieceIdentiteUrl %}
+  try {
+    const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
+    if (Array.isArray(saved)) {
+      if (saved[0]) addSavedCiThumb('recto', saved[0]);
+      if (saved[1]) addSavedCiThumb('verso', saved[1]);
+    } else if (saved && typeof saved === 'object') {
+      if (saved.recto) addSavedCiThumb('recto', saved.recto);
+      if (saved.verso) addSavedCiThumb('verso', saved.verso);
+    }
+  } catch(e) {}
+  {% endif %}
+})();
+</script>
+{% endblock %}

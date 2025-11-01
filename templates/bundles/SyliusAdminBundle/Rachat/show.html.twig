@@ -1,0 +1,63 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/show.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Voir rachat #{{ r.id }}{% endblock %}
+
+{% block content %}
+<style>
+  .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:14px}
+  .row{display:grid;grid-template-columns:200px 1fr;gap:10px;margin-bottom:8px}
+  .label{color:#374151;font-weight:600}
+  .photos{display:flex;flex-wrap:wrap;gap:10px}
+  .photos img{height:120px;aspect-ratio:1/1;object-fit:cover;border:1px solid #e5e7eb;border-radius:6px}
+</style>
+
+<h2 class="ui header">Rachat #{{ r.id }}</h2>
+
+<div class="card">
+  <div class="row"><div class="label">Modèle</div><div>{{ r.marqueModele ?: '—' }}</div></div>
+  <div class="row"><div class="label">IMEI</div><div>{{ r.imei ?: '—' }}</div></div>
+  <div class="row"><div class="label">Prix d'achat</div><div>{{ r.prixAchat ?: '—' }} €</div></div>
+  <div class="row"><div class="label">Date de cession</div><div>{% if r.dateCession %}{{ r.dateCession|date('d/m/Y') }}{% else %}—{% endif %}</div></div>
+</div>
+
+<div class="card">
+  <div class="row"><div class="label">Nom</div><div>{{ r.nom ?: '—' }}</div></div>
+  <div class="row"><div class="label">Prénom</div><div>{{ r.prenom ?: '—' }}</div></div>
+  <div class="row"><div class="label">Téléphone</div><div>{{ r.telephone ?: '—' }}</div></div>
+  <div class="row"><div class="label">Email</div><div>{{ r.email ?: '—' }}</div></div>
+  <div class="row"><div class="label">Adresse</div><div>{{ r.adresse ?: '—' }} {{ r.codePostal ?: '' }}</div></div>
+</div>
+
+<div class="card">
+  <div class="label" style="margin-bottom:6px">Pièce d’identité</div>
+  {% if ci_urls is defined and (ci_urls.recto or ci_urls.verso) %}
+    <div class="photos">
+      {% if ci_urls.recto %}<a href="{{ ci_urls.recto }}" target="_blank" rel="noopener"><img src="{{ ci_urls.recto }}"></a>{% endif %}
+      {% if ci_urls.verso %}<a href="{{ ci_urls.verso }}" target="_blank" rel="noopener"><img src="{{ ci_urls.verso }}"></a>{% endif %}
+    </div>
+    <div style="margin-top:8px">
+      <a class="ui button" href="{{ path('admin_rachats_ci_page', { id: r.id }) }}">🪪 Ouvrir la page Pièce d’identité</a>
+    </div>
+  {% else %}
+    <div class="muted">—</div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="label" style="margin-bottom:6px">Photos produit</div>
+  {% if photos|length %}
+    <div class="photos">
+      {% for p in photos %}
+        <a href="{{ p }}" target="_blank" rel="noopener"><img src="{{ p }}" alt="photo"></a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">—</div>
+  {% endif %}
+</div>
+
+<div class="ui right aligned basic segment">
+  <a class="ui button" href="{{ path('admin_rachats_index') }}">↖︎ Retour à la liste</a>
+  <a class="ui primary button" href="{{ path('admin_rachats_edit', { id: r.id }) }}">✏️ Éditer</a>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Vendeurs (Hiboutik){% endblock %}
+
+{% block content %}
+<style>
+  #bar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  #bar input[type="search"]{padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;max-width:320px}
+  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+  thead th{position:sticky;top:0;background:#0d6efd;color:#fff}
+  .icon{padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:#f6f6f6;cursor:pointer;text-decoration:none}
+  .muted{opacity:.6}
+  pre.debug{background:#0b1022;color:#d1d5db;padding:8px;border-radius:8px;overflow:auto;max-height:200px}
+</style>
+
+<div id="bar">
+  <input id="search" type="search" placeholder="Rechercher…">
+  <a class="btn" href="{{ path('admin_vendors_create') }}">➕ Nouveau vendeur</a>
+  <a class="btn" href="{{ path('admin_vendors_index') }}">↻ Recharger</a>
+</div>
+
+<table id="vendors">
+  <thead>
+    <tr>
+      <th>ID</th><th>Nom</th><th>Email</th><th>Téléphone</th><th>URL</th><th class="muted">Statut</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for s in suppliers %}
+    {% set id = s.supplier_id ?? null %}
+    <tr data-id="{{ id }}">
+      <td>#{{ id ?? '—' }}</td>
+      <td>{{ s.supplier_name }}</td>
+      <td>{{ s.supplier_email ?? '' }}</td>
+      <td>{{ s.supplier_contact ?? '' }}</td>
+      <td>
+        {% if s.supplier_url %}
+          <a href="{{ s.supplier_url }}" target="_blank">lien</a>
+        {% else %}—{% endif %}
+      </td>
+      {# statut #}
+<td class="muted">
+  {% if (s.supplier_enabled ?? 0) == 1 %}✅ actif{% else %}⛔ inactif{% endif %}
+</td>
+     {# boutons #}
+<td>
+  <a class="icon" href="{{ s.supplier_id ? path('admin_vendors_edit', {id: s.supplier_id}) : '#' }}">✏️ Éditer</a>
+
+  {% if s.supplier_id is defined %}
+    {% if (s.supplier_enabled ?? 0) == 1 %}
+      <form action="{{ path('admin_vendors_toggle', {id: s.supplier_id, val: 0}) }}" method="post" style="display:inline">
+        <button class="icon" type="submit">❌ Désactiver</button>
+      </form>
+    {% else %}
+      <form action="{{ path('admin_vendors_toggle', {id: s.supplier_id, val: 1}) }}" method="post" style="display:inline">
+        <button class="icon" type="submit">✅ Activer</button>
+      </form>
+    {% endif %}
+    <button class="icon btn-prod" data-url="{{ path('admin_vendors_products', {id: s.supplier_id}) }}">📦 Produits</button>
+  {% endif %}
+</td>
+
+    </tr>
+    <tr class="prod-row" style="display:none"><td colspan="7"><div class="prod-box">Chargement…</div></td></tr>
+  {% else %}
+    <tr><td colspan="7"><em>Aucun vendeur.</em></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if debug %}
+  <h3>Debug dernière requête</h3>
+  <pre class="debug">{{ debug|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+{% endif %}
+
+<script>
+const $s = document.getElementById('search');
+$s.addEventListener('input', ()=>{
+  const q = $s.value.toLowerCase().trim();
+  for(const tr of document.querySelectorAll('#vendors tbody tr')){
+    if(tr.classList.contains('prod-row')) continue;
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    const nxt = tr.nextElementSibling;
+    if(nxt && nxt.classList.contains('prod-row')) nxt.style.display='none';
+  }
+});
+document.querySelectorAll('.btn-prod').forEach(b=>{
+  b.addEventListener('click', async ()=>{
+    const tr = b.closest('tr');
+    const row = tr.nextElementSibling;
+    row.style.display='table-row';
+    const box = row.querySelector('.prod-box');
+    box.textContent='⏳…';
+    try{
+      const r = await fetch(b.dataset.url);
+      const data = await r.json();
+      if(!Array.isArray(data) || data.length===0){ box.innerHTML='<em>Aucun produit.</em>'; return; }
+      box.innerHTML = '<ul>'+data.map(p => {
+        const nom   = p.product_model || p.product_name || 'Sans nom';
+        const achat = (p.product_supply_price ?? '—') + '€';
+        const vente = (p.product_price ?? '—') + '€';
+        return `<li>${nom} – achat ${achat} / vente ${vente}</li>`;
+      }).join('')+'</ul>';
+    }catch(e){
+      box.textContent = 'Erreur chargement.';
+    }
+  });
+});
+</script>
+{% endblock %}

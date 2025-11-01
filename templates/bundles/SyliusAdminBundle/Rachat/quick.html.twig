@@ -1,0 +1,82 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Rachat express{% endblock %}
+
+{% block content %}
+<style>
+  .max720{max-width:720px}
+</style>
+
+<h2 class="ui header">Rachat express</h2>
+
+<form method="post" class="ui form max720" id="quick-form">
+  <div class="field">
+    <label>Fournisseur existant (supplier_id)</label>
+    <input type="number" name="supplier_id" placeholder="ex: 4">
+    <small class="muted">Laisse vide si nouveau particulier.</small>
+  </div>
+
+  <div class="two fields">
+    <div class="field">
+      <label>Nom</label>
+      <input type="text" name="nom" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>Prénom</label>
+      <input type="text" name="prenom" autocomplete="given-name">
+    </div>
+  </div>
+
+  <div class="two fields">
+    <div class="field">
+      <label>Téléphone</label>
+      <input type="text" name="telephone" inputmode="tel" autocomplete="tel">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" name="email" autocomplete="email">
+    </div>
+  </div>
+
+  <div class="two fields">
+    <div class="field">
+      <label>Marque / Modèle *</label>
+      <input type="text" name="marque_modele" required>
+    </div>
+    <div class="field">
+      <label>Prix d'achat (€) *</label>
+      <input type="number" step="0.01" name="prix_achat" required min="0.01">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>IMEI (optionnel)</label>
+    <input type="text" name="imei">
+  </div>
+
+  <button class="ui primary button" type="submit">⚡ Enregistrer & créer</button>
+  <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour</a>
+</form>
+
+<script>
+(function(){
+  const f = document.getElementById('quick-form');
+  if (!f) return;
+
+  f.addEventListener('submit', (e)=>{
+    const mm = (f.querySelector('input[name="marque_modele"]')?.value||'').trim();
+    const pa = parseFloat(f.querySelector('input[name="prix_achat"]')?.value||'0');
+    if (!mm || !(pa>0)) {
+      e.preventDefault();
+      alert('Veuillez saisir Marque/Modèle et un prix d’achat > 0.');
+    }
+  });
+
+  // Enter -> submit depuis n’importe quel champ
+  f.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && !['TEXTAREA'].includes((e.target||{}).tagName)) {
+      // on laisse faire le navigateur (soumission)
+    }
+  });
+})();
+</script>
+{% endblock %}
