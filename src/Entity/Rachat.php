@@ -1,0 +1,401 @@
+<?php
+
+namespace App\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+/**
+ * @ORM\Entity()
+ * @ORM\Table(name="rachats")
+ * @ORM\HasLifecycleCallbacks()
+ */
+class Rachat
+{
+    /**
+     * @ORM\Id
+     * @ORM\GeneratedValue(strategy="AUTO")
+     * @ORM\Column(type="integer")
+     */
+    private ?int $id = null;
+
+    /** @ORM\Column(name="imei", type="string", length=255, nullable=true) */
+    private ?string $imei = null;
+
+    /** @ORM\Column(name="numero_ci", type="string", length=255, nullable=true) */
+    private ?string $numero_ci = null;
+
+    /** @ORM\Column(name="prix_achat", type="string", length=255, nullable=true) */
+    private ?string $prix_achat = null;
+
+    /** @ORM\Column(name="nom", type="string", length=255, nullable=true) */
+    private ?string $nom = null;
+
+    /** @ORM\Column(name="prenom", type="string", length=255, nullable=true) */
+    private ?string $prenom = null;
+
+    /** @ORM\Column(name="telephone", type="string", length=255, nullable=true) */
+    private ?string $telephone = null;
+
+    /** @ORM\Column(name="marque_modele", type="string", length=255, nullable=true) */
+    private ?string $marque_modele = null;
+
+    /** @ORM\Column(name="piece_identite_url", type="text", nullable=true) */
+    private ?string $piece_identite_url = null;
+
+    /** @ORM\Column(name="date_cession", type="datetime_immutable", nullable=true) */
+    private ?\DateTimeImmutable $date_cession = null;
+
+    /** @ORM\Column(name="adresse", type="text", nullable=true) */
+    private ?string $adresse = null;
+
+    /** @ORM\Column(name="code_postal", type="string", length=64, nullable=true) */
+    private ?string $code_postal = null;
+
+    /** @ORM\Column(name="email", type="string", length=255, nullable=true) */
+    private ?string $email = null;
+
+    /** @ORM\Column(name="signature_url", type="text", nullable=true) */
+    private ?string $signature_url = null;
+
+    /** @ORM\Column(name="pdf_url", type="text", nullable=true) */
+    private ?string $pdf_url = null;
+
+    /** @ORM\Column(name="photos_json", type="text", nullable=true) */
+    private ?string $photos_json = null;
+
+    /** @ORM\Column(name="photo1", type="text", nullable=true) */
+    private ?string $photo1 = null;
+
+    /** @ORM\Column(name="photo2", type="text", nullable=true) */
+    private ?string $photo2 = null;
+
+    /** @ORM\Column(name="photo3", type="text", nullable=true) */
+    private ?string $photo3 = null;
+
+    /** @ORM\Column(name="colonne1", type="text", nullable=true) */
+    private ?string $colonne1 = null;
+
+    /** @ORM\Column(name="colonne2", type="text", nullable=true) */
+    private ?string $colonne2 = null;
+
+    /** @ORM\Column(name="colonne3", type="text", nullable=true) */
+    private ?string $colonne3 = null;
+
+    /** @ORM\Column(name="colonne4", type="text", nullable=true) */
+    private ?string $colonne4 = null;
+
+    /** @ORM\Column(name="created_at", type="datetime_immutable", nullable=true) */
+    private ?\DateTimeImmutable $created_at = null;
+
+    /** @ORM\Column(name="hib_supplier_id", type="integer", nullable=true) */
+    private ?int $hibSupplierId = null;
+
+    /** @ORM\Column(name="hib_product_id", type="integer", nullable=true) */
+    private ?int $hibProductId = null;
+
+
+    /** @ORM\Column(name="enabled", type="boolean", options={"default":1}) */
+    private bool $enabled = true;
+
+    /** @ORM\Column(name="paid_method", type="string", length=16, nullable=true) */
+    private ?string $paidMethod = null;
+
+    /** @ORM\Column(name="paid_at", type="datetime_immutable", nullable=true) */
+    private ?\DateTimeImmutable $paidAt = null;
+
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+    public function setEnabled(bool $v): self
+    {
+        $this->enabled = $v;
+        return $this;
+    }
+
+    public function getPaidMethod(): ?string
+    {
+        return $this->paidMethod;
+    }
+    public function setPaidMethod(?string $v): self
+    {
+        $this->paidMethod = $v;
+        return $this;
+    }
+
+    public function getPaidAt(): ?\DateTimeImmutable
+    {
+        return $this->paidAt;
+    }
+    public function setPaidAt(?\DateTimeImmutable $v): self
+    {
+        $this->paidAt = $v;
+        return $this;
+    }
+
+
+    public function getHibSupplierId(): ?int
+    {
+        return $this->hibSupplierId;
+    }
+    public function setHibSupplierId(?int $v): self
+    {
+        $this->hibSupplierId = $v;
+        return $this;
+    }
+
+    public function getHibProductId(): ?int
+    {
+        return $this->hibProductId;
+    }
+    public function setHibProductId(?int $v): self
+    {
+        $this->hibProductId = $v;
+        return $this;
+    }
+
+
+    /** @ORM\PrePersist */
+    public function prePersist(): void
+    {
+        if ($this->created_at === null) {
+            $this->created_at = new \DateTimeImmutable();
+        }
+    }
+
+    // ===== Getters/Setters =====
+    public function getId(): ?int
+    {
+        return $this->id;
+    } // <-- pas de setId()
+
+    public function getImei(): ?string
+    {
+        return $this->imei;
+    }
+    public function setImei(?string $v): self
+    {
+        $this->imei = $v;
+        return $this;
+    }
+
+    public function getNumeroCi(): ?string
+    {
+        return $this->numero_ci;
+    }
+    public function setNumeroCi(?string $v): self
+    {
+        $this->numero_ci = $v;
+        return $this;
+    }
+
+    public function getPrixAchat(): ?string
+    {
+        return $this->prix_achat;
+    }
+    public function setPrixAchat(?string $v): self
+    {
+        $this->prix_achat = $v;
+        return $this;
+    }
+
+    public function getNom(): ?string
+    {
+        return $this->nom;
+    }
+    public function setNom(?string $v): self
+    {
+        $this->nom = $v;
+        return $this;
+    }
+
+    public function getPrenom(): ?string
+    {
+        return $this->prenom;
+    }
+    public function setPrenom(?string $v): self
+    {
+        $this->prenom = $v;
+        return $this;
+    }
+
+    public function getTelephone(): ?string
+    {
+        return $this->telephone;
+    }
+    public function setTelephone(?string $v): self
+    {
+        $this->telephone = $v;
+        return $this;
+    }
+
+    public function getMarqueModele(): ?string
+    {
+        return $this->marque_modele;
+    }
+    public function setMarqueModele(?string $v): self
+    {
+        $this->marque_modele = $v;
+        return $this;
+    }
+
+    public function getPieceIdentiteUrl(): ?string
+    {
+        return $this->piece_identite_url;
+    }
+    public function setPieceIdentiteUrl(?string $v): self
+    {
+        $this->piece_identite_url = $v;
+        return $this;
+    }
+
+    public function getDateCession(): ?\DateTimeImmutable
+    {
+        return $this->date_cession;
+    }
+    public function setDateCession(?\DateTimeImmutable $v): self
+    {
+        $this->date_cession = $v;
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+    public function setCreatedAt(?\DateTimeImmutable $v): self
+    {
+        $this->created_at = $v;
+        return $this;
+    }
+
+    public function getAdresse(): ?string
+    {
+        return $this->adresse;
+    }
+    public function setAdresse(?string $v): self
+    {
+        $this->adresse = $v;
+        return $this;
+    }
+
+    public function getCodePostal(): ?string
+    {
+        return $this->code_postal;
+    }
+    public function setCodePostal(?string $v): self
+    {
+        $this->code_postal = $v;
+        return $this;
+    }
+
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+    public function setEmail(?string $v): self
+    {
+        $this->email = $v;
+        return $this;
+    }
+
+    public function getSignatureUrl(): ?string
+    {
+        return $this->signature_url;
+    }
+    public function setSignatureUrl(?string $v): self
+    {
+        $this->signature_url = $v;
+        return $this;
+    }
+
+    public function getPdfUrl(): ?string
+    {
+        return $this->pdf_url;
+    }
+    public function setPdfUrl(?string $v): self
+    {
+        $this->pdf_url = $v;
+        return $this;
+    }
+
+    public function getPhotosJson(): ?string
+    {
+        return $this->photos_json;
+    }
+    public function setPhotosJson(?string $v): self
+    {
+        $this->photos_json = $v;
+        return $this;
+    }
+
+    public function getPhoto1(): ?string
+    {
+        return $this->photo1;
+    }
+    public function setPhoto1(?string $v): self
+    {
+        $this->photo1 = $v;
+        return $this;
+    }
+
+    public function getPhoto2(): ?string
+    {
+        return $this->photo2;
+    }
+    public function setPhoto2(?string $v): self
+    {
+        $this->photo2 = $v;
+        return $this;
+    }
+
+    public function getPhoto3(): ?string
+    {
+        return $this->photo3;
+    }
+    public function setPhoto3(?string $v): self
+    {
+        $this->photo3 = $v;
+        return $this;
+    }
+
+    public function getColonne1(): ?string
+    {
+        return $this->colonne1;
+    }
+    public function setColonne1(?string $v): self
+    {
+        $this->colonne1 = $v;
+        return $this;
+    }
+
+    public function getColonne2(): ?string
+    {
+        return $this->colonne2;
+    }
+    public function setColonne2(?string $v): self
+    {
+        $this->colonne2 = $v;
+        return $this;
+    }
+
+    public function getColonne3(): ?string
+    {
+        return $this->colonne3;
+    }
+    public function setColonne3(?string $v): self
+    {
+        $this->colonne3 = $v;
+        return $this;
+    }
+
+    public function getColonne4(): ?string
+    {
+        return $this->colonne4;
+    }
+    public function setColonne4(?string $v): self
+    {
+        $this->colonne4 = $v;
+        return $this;
+    }
+}

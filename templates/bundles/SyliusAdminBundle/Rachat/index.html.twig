@@ -1,0 +1,84 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/index.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Rachats{% endblock %}
+
+{% block content %}
+<style>
+  #bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none}
+  .btn-secondary{background:#475569;border-color:#475569}
+  .muted{opacity:.7}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+  thead th{position:sticky;top:0;background:#0d6efd;color:#fff;z-index:1}
+  .actions a{margin-right:6px}
+  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
+  .pill-ok{background:#dcfce7;color:#166534}
+  .pill-off{background:#fee2e2;color:#991b1b}
+  .nowrap{white-space:nowrap}
+</style>
+
+{# Barre d’actions minimale #}
+<div id="bar">
+  <a class="ui primary button" href="{{ path('admin_rachats_create') }}">➕ Créer (Quick)</a>
+
+  {% set viewingDisabled = enabled == 0 %}
+  <a class="ui button {{ viewingDisabled ? '' : 'primary' }}"
+     href="{{ path('admin_rachats_index', { enabled: 1 }) }}">👀 Actifs</a>
+  <a class="ui button {{ viewingDisabled ? 'primary' : '' }}"
+     href="{{ path('admin_rachats_index', { enabled: 0 }) }}">🙈 Masqués</a>
+</div>
+
+{# TABLEAU ÉPURÉ : Modèle, ID, Date cession, Nom, Prénom, Tél, Email, PDF, CI, Actions #}
+<table id="rachats">
+  <thead>
+    <tr>
+      <th>Modèle</th>
+      <th class="nowrap">ID</th>
+      <th class="nowrap">Date cession</th>
+      <th>Nom</th>
+      <th>Prénom</th>
+      <th class="nowrap">Téléphone</th>
+      <th>Email</th>
+      <th class="nowrap">PDF</th>
+      <th class="nowrap">Pièce ID</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in rows %}
+    <tr data-id="{{ row.id }}">
+      <td>{{ row.marque_modele ?: '—' }}</td>
+      <td class="nowrap">{{ row.id }}</td>
+      <td class="nowrap">{{ row.date_cession ?: '—' }}</td>
+      <td>{{ row.nom ?: '—' }}</td>
+      <td>{{ row.prenom ?: '—' }}</td>
+      <td class="nowrap">{{ row.telephone ?: '—' }}</td>
+      <td>{{ row.email ?: '—' }}</td>
+
+      {# PDF : icône cliquable si présent #}
+      <td class="nowrap">
+        {% if row.pdf_url %}
+          <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
+        {% else %}—{% endif %}
+      </td>
+
+      {# CI : petite icône si on a quelque chose en DB #}
+      <td class="nowrap">
+        {% if row.piece_identite_url %}
+          <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
+        {% else %}—{% endif %}
+      </td>
+
+      {# Actions : Voir + Éditer #}
+      <td class="actions">
+        <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
+        <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="10"><em>Aucun rachat.</em></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

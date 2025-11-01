@@ -29,6 +29,9 @@ importers:
       semantic-ui-css:
         specifier: ^2.2.0
         version: 2.5.0
+      signature_pad:
+        specifier: ^5.1.1
+        version: 5.1.1
       slick-carousel:
         specifier: ^1.8.1
         version: 1.8.1(jquery@3.7.1)
@@ -4715,6 +4718,9 @@ packages:
 
   signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
+
+  signature_pad@5.1.1:
+    resolution: {integrity: sha512-BT5JJygS5BS0oV+tffPRorIud6q17bM7v/1LdQwd0o6mTqGoI25yY1NjSL99OqkekWltS4uon6p52Y8j1Zqu7g==}
 
   slick-carousel@1.8.1:
     resolution: {integrity: sha512-XB9Ftrf2EEKfzoQXt3Nitrt/IPbT+f1fgqBdoxO3W/+JYvtEOW6EgxnWfr9GH6nmULv7Y2tPmEX3koxThVmebA==}
@@ -10644,6 +10650,8 @@ snapshots:
       side-channel-weakmap: 1.0.2
 
   signal-exit@3.0.7: {}
+
+  signature_pad@5.1.1: {}
 
   slick-carousel@1.8.1(jquery@3.7.1):
     dependencies:

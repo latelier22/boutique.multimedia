@@ -1,0 +1,7 @@
+when@dev:
+    sylius_api:
+        enabled: true
+# modif
+when@prod:
+    sylius_api:
+        enabled: true

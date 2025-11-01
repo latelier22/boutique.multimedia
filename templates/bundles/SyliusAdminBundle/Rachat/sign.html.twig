@@ -1,0 +1,192 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Signature rachat #{{ r.id }}{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+
+<style>
+  @page { size: A4; margin: 10mm; }
+  body  { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; color:#111; }
+  .page { border: 1.4pt solid #1f2937; border-radius: 8px; padding: 14px; min-height: calc(297mm - 20mm);
+          box-sizing: border-box; position: relative; display: flex; flex-direction: column; background:#fff; }
+  .title { font-size: 20px; font-weight: 700; margin: 0 0 10px; color:#111827; }
+  table.w { width:100%; border-collapse: collapse; }
+  td { vertical-align: top; }
+  .box { border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-bottom:10px; }
+  .label { font-weight:600; color:#374151; }
+  .muted { color:#6b7280; }
+
+  .logo { max-height: 52px; }
+  .shop-name { font-size:14px; font-weight:700; color:#111827; }
+  .shop-lines div { line-height: 1.35; }
+
+  .section-title { font-weight:700; margin:10px 0 6px; color:#111827; }
+  .id-box { border:1px dashed #9ca3af; border-radius:8px; height:70mm; display:flex; align-items:center; justify-content:center; color:#9ca3af; }
+  .photo-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .photo-row img { height:110px; aspect-ratio:1/1; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb; }
+
+  .sign-strip { margin-top:auto; }
+  .sign-box { border:1px dashed #9ca3af; border-radius:8px; min-height:30mm; display:flex; align-items:center; justify-content:center; background:#fff; }
+  .sign-label { margin-bottom:6px; font-weight:600; color:#374151; }
+
+  .sig-canvas { width:100%; height:140px; display:block; border:1px dashed #94a3b8; border-radius:8px; background:#fff; touch-action:none; }
+  .sig-toolbar{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .ui.button{ padding:.6em 1em; border:1px solid #cbd5e1; border-radius:8px; background:#f8fafc; cursor:pointer; }
+  .ui.button:hover{ background:#eef2f7; }
+  .ui.primary.button{ background:#2563eb; border-color:#2563eb; color:#fff; }
+  .ui.primary.button:hover{ background:#1e4fd7; }
+</style>
+
+<div class="page">
+  <div class="title">Bon de cession – #{{ r.id }}</div>
+
+  {# En-tête boutique + vendeur #}
+  <table class="w"><tr>
+    <td style="width:55%; padding-right:10px">
+      <table class="w"><tr>
+        <td style="width:64px; padding-right:8px">
+        <td style="width:64px; padding-right:8px">
+  <img class="logo" src="{{ path('admin_brand_asset', { file: 'logo-multimedia.png' }) }}" alt="Logo">
+</td>
+          {% if company_logo_data_uri %}
+            <img class="logo" src="{{ company_logo_data_uri }}">
+          {% endif %}
+        </td>
+        <td class="shop-lines">
+          <div class="shop-name">{{ shop.name }}</div>
+          <div>{{ shop.address }}</div>
+          <div>{{ shop.zip }} {{ shop.city }}{% if shop.country %} — {{ shop.country }}{% endif %}</div>
+          <div>Tél. {{ shop.phone }} • {{ shop.email }}</div>
+          <div class="muted">{{ shop.site }}</div>
+          {% if shop.tax_number %}<div>TVA : {{ shop.tax_number }}</div>{% endif %}
+          {% if shop.company_number %}<div>SIRET/SIREN : {{ shop.company_number }}</div>{% endif %}
+          {% if shop.legal_status %}<div>Statut : {{ shop.legal_status }}{% if shop.code_naf %} • NAF {{ shop.code_naf }}{% endif %}</div>{% endif %}
+          {% if shop.non_assujetti_tva == '1' %}<div class="muted">Non assujetti à la TVA</div>{% endif %}
+        </td>
+      </tr></table>
+    </td>
+    <td style="width:45%; padding-left:10px">
+      <div class="box">
+        <div class="label">Vendeur</div>
+        <div>{{ (r.nom ~ ' ' ~ r.prenom)|trim }}</div>
+        <div>Tél. {{ r.telephone }}</div>
+        <div>{{ r.email }}</div>
+        <div>{{ (r.adresse ~ ' ' ~ r.codePostal)|trim }}</div>
+        <div class="muted">Date : {{ (generated_at ?? "now")|date('d/m/Y H:i') }}</div>
+      </div>
+    </td>
+  </tr></table>
+
+  <div class="box">
+    <div class="label">Appareil cédé</div>
+    <table class="w"><tr>
+      <td style="width:50%">
+        <div><span class="label">Marque / Modèle :</span> {{ r.marqueModele }}</div>
+        <div><span class="label">IMEI :</span> {{ r.imei }}</div>
+      </td>
+      <td style="width:50%">
+        <div><span class="label">Prix d'achat :</span> {{ r.prixAchat }} €</div>
+        {% if r.dateCession %}<div><span class="label">Date de cession :</span> {{ r.dateCession|date('d/m/Y') }}</div>{% endif %}
+      </td>
+    </tr></table>
+  </div>
+
+  <div class="section-title">Pièce d’identité (recto / verso)</div>
+<div class="id-box" style="gap:10px;">
+  {% if ci_urls is defined and (ci_urls.recto or ci_urls.verso) %}
+    {% if ci_urls.recto %}<img src="{{ ci_urls.recto }}" style="max-height:70mm; max-width:48%">{% endif %}
+    {% if ci_urls.verso %}<img src="{{ ci_urls.verso }}" style="max-height:70mm; max-width:48%">{% endif %}
+  {% else %}
+    <span class="muted">Aucune pièce d’identité enregistrée</span>
+  {% endif %}
+</div>
+
+
+
+  <div class="section-title">Photos du produit</div>
+  {% if photos|length %}
+    <div class="photo-row">
+      {% for p in photos %}
+        <a href="{{ p }}" target="_blank" rel="noopener"><img src="{{ p }}" alt="photo"></a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">Aucune photo</div>
+  {% endif %}
+
+  <div class="sign-strip">
+    <table class="w"><tr>
+      <td style="width:50%; padding-right:8px">
+        <div class="sign-label">Signature Multimédia Services</div>
+        <div class="sign-box">
+          {% if company_sign_data_uri %}
+            <img src="{{ company_sign_data_uri }}" style="max-height:28mm; max-width:100%;">
+          {% else %}<span class="muted">Non fournie</span>{% endif %}
+        </div>
+      </td>
+      <td style="width:50%; padding-left:8px">
+        <div class="sign-label">Signature du vendeur</div>
+        <div class="sign-box">
+          <div style="width:100%;">
+            {% if seller_sig_data_uri %}
+              <div class="muted" style="margin-bottom:6px;">Signature existante :</div>
+              <img src="{{ seller_sig_data_uri }}" style="max-height:100px; max-width:100%; display:block; margin-bottom:8px;">
+            {% elseif r.signatureUrl %}
+              <div class="muted" style="margin-bottom:6px;">Signature existante :</div>
+              <img src="{{ absolute_url(r.signatureUrl) }}" style="max-height:100px; max-width:100%; display:block; margin-bottom:8px;">
+            {% endif %}
+
+            <canvas id="signature" class="sig-canvas"></canvas>
+            <div class="sig-toolbar">
+              <button class="ui button" type="button" id="btn-clear">Effacer</button>
+              <button class="ui button" type="button" id="btn-undo">Annuler un trait</button>
+              <button class="ui primary button" type="button" id="btn-save">Valider la signature</button>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr></table>
+  </div>
+</div>
+
+<form id="sig-form" method="post" action="{{ path('admin_rachats_sign_submit', {id: r.id}) }}" style="display:none">
+  <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+</form>
+
+<div style="margin-top:10px">
+  <a class="ui button" href="{{ path('admin_rachats_edit', {id: r.id}) }}">
+    ← Retour à l’édition
+  </a>
+  <a class="ui button" href="{{ path('admin_rachats_index') }}">
+    ↖︎ Retour à la liste
+  </a>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('signature');
+  const pad = new SignaturePad(canvas, {minWidth:.9, maxWidth:2.8, penColor:'#111', backgroundColor:'#fff'});
+
+  function resize(){
+    const ratio = Math.max(window.devicePixelRatio||1,1);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    let data = pad.isEmpty() ? null : pad.toData();
+    canvas.width = Math.floor(w*ratio); canvas.height = Math.floor(h*ratio);
+    const ctx = canvas.getContext('2d'); ctx.scale(ratio, ratio);
+    pad.clear(); if (data) pad.fromData(data);
+  }
+  new ResizeObserver(resize).observe(canvas.parentElement);
+  resize();
+
+  document.getElementById('btn-clear').onclick = ()=> pad.clear();
+  document.getElementById('btn-undo').onclick = ()=>{
+    const d = pad.toData(); d.pop(); pad.fromData(d);
+  };
+  document.getElementById('btn-save').onclick = ()=>{
+    if (pad.isEmpty()) { alert('Signature vide.'); return; }
+    document.getElementById('signature_dataurl').value = canvas.toDataURL('image/png');
+    document.getElementById('sig-form').submit();
+  };
+})();
+</script>
+{% endblock %}

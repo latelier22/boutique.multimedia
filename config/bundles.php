@@ -84,4 +84,5 @@ return [
     MonsieurBiz\SyliusRichEditorPlugin\MonsieurBizSyliusRichEditorPlugin::class => ['all' => true],
     MonsieurBiz\SyliusPlusAdapterPlugin\MonsieurBizSyliusPlusAdapterPlugin::class => ['all' => true],
     MonsieurBiz\SyliusMediaManagerPlugin\MonsieurBizSyliusMediaManagerPlugin::class => ['all' => true],
+    Symfony\Bundle\MakerBundle\MakerBundle::class => ['dev' => true],
 ];

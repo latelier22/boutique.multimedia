@@ -1,0 +1,28 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}PDF généré{% endblock %}
+{% block content %}
+<script>
+  (function(){
+    const url = {{ pdf_url ? ('"' ~ pdf_url|e('js') ~ '"') : 'null' }};
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  })();
+</script>
+
+<div class="ui segment">
+  <h3 class="ui header">PDF généré</h3>
+  {% if pdf_url %}
+    <p>
+      <a class="ui primary button" target="_blank" rel="noopener" href="{{ pdf_url }}">📄 Ouvrir le PDF</a>
+    </p>
+  {% else %}
+    <div class="ui red message">Impossible d’obtenir l’URL du PDF.</div>
+  {% endif %}
+
+  <div style="margin-top:10px; display:flex; gap:8px;">
+    <a class="ui button" href="{{ edit_url }}">← Retour à l’édition</a>
+    <a class="ui button" href="{{ list_url }}">↖︎ Retour à la liste</a>
+  </div>
+</div>
+{% endblock %}

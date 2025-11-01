@@ -16,8 +16,24 @@ use Sylius\Component\Taxonomy\Model\TaxonTranslationInterface;
 #[ORM\Table(name: 'sylius_taxon')]
 class Taxon extends BaseTaxon
 {
+    /**
+     * @ORM\Column(type="boolean", options={"default": false})
+     */
+    private $isFront = false;
+
+    public function isFront(): bool
+    {
+        return $this->isFront;
+    }
+
+    public function setIsFront(bool $isFront): void
+    {
+        $this->isFront = $isFront;
+    }
+
     protected function createTranslation(): TaxonTranslationInterface
     {
         return new TaxonTranslation();
     }
+
 }

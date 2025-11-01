@@ -1,9 +1,15 @@
 parameters:
-    locale: fr_FR
-    google_api_key: '%env(GOOGLE_API_KEY)%'
-    google_cse_id:  '%env(GOOGLE_CSE_ID)%'
+  locale: fr_FR
+  google_api_key: '%env(GOOGLE_API_KEY)%'
+  google_cse_id:  '%env(GOOGLE_CSE_ID)%'
+  hiboutik.account: '%env(string:HIBOUTIK_ACCOUNT)%'
+  hiboutik.login:   '%env(string:HIBOUTIK_LOGIN)%'
+  hiboutik.key:     '%env(string:HIBOUTIK_API_KEY)%'
+  hiboutik.debug:   true
+  $logger:     '@logger'
 
 services:
+   
     # Default configuration for services in *this* file
     _defaults:
         # Automatically injects dependencies in your services
@@ -51,4 +57,51 @@ services:
     App\Service\ProductAssociationFilterService:
         public: true
 
+    App\Twig\TaxonExtension:
+        tags: ['twig.extension']
+    
+    App\Form\Extension\TaxonTypeExtension:
+        tags:
+        - { name: form.type_extension, extended_type: Sylius\Bundle\TaxonomyBundle\Form\Type\TaxonType }
 
+
+    App\Controller\Admin\Product\CreateSimpleProductController:
+            arguments:
+                $productFactory: '@sylius.factory.product'
+                $variantFactory: '@sylius.factory.product_variant'
+                $channelPricingFactory: '@sylius.factory.channel_pricing'
+                $productTaxonFactory: '@sylius.factory.product_taxon'
+                $productRepository: '@sylius.repository.product'
+                $variantRepository: '@sylius.repository.product_variant'
+                $channelRepository: '@sylius.repository.channel'
+                $taxonRepository: '@sylius.repository.taxon'
+                $httpClient: '@http_client'
+    
+     # Client Hiboutik
+    App\Service\HiboutikClient:
+        arguments:
+            $httpClient: '@http_client'
+            $hibAccount: '%hiboutik.account%'
+            $hibLogin:   '%hiboutik.login%'
+            $hibApiKey:  '%hiboutik.key%'   # ⬅️ NOM QUI MATCHE le constructeur
+            $debug:      '%hiboutik.debug%'
+            $logger:     '@monolog.logger.hiboutik'
+    
+    monolog.logger.hiboutik:
+        class: Monolog\Logger
+        arguments: ['hiboutik']
+    
+    App\Service\RachatPdfGenerator:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $pdf: '@knp_snappy.pdf'
+
+
+    App\Twig\AppExtension:
+        tags: ['twig.extension']
+
+    App\Twig\JsonExtension:
+        tags: ['twig.extension']
+
+
+      

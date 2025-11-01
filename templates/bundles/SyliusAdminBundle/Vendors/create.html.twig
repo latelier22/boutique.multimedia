@@ -1,0 +1,26 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Créer un vendeur{% endblock %}
+
+{% block content %}
+<h2>Créer un vendeur</h2>
+<div style="max-width:700px">
+  {{ form_start(form, {attr:{class:'ui form'}}) }}
+    <div class="field">{{ form_row(form.supplier_name) }}</div>
+    <div class="two fields">
+      <div class="field">{{ form_row(form.supplier_email) }}</div>
+      <div class="field">{{ form_row(form.supplier_contact) }}</div>
+    </div>
+    <div class="field">{{ form_row(form.supplier_address) }}</div>
+    <div class="two fields">
+      <div class="field">{{ form_row(form.supplier_url) }}</div>
+      <div class="field">{{ form_row(form.supplier_enabled) }}</div>
+    </div>
+    <div class="two fields">
+      <div class="field">{{ form_row(form.supplier_position) }}</div>
+      <div class="field">{{ form_row(form.supplier_ref_ext) }}</div>
+    </div>
+    <button class="ui primary button" type="submit">💾 Enregistrer</button>
+    <a class="ui button" href="{{ path('admin_vendors_index') }}">Annuler</a>
+  {{ form_end(form) }}
+</div>
+{% endblock %}

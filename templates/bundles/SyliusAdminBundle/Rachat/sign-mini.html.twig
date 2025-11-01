@@ -1,0 +1,107 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Signature rachat #{{ rachat.id }}{% endblock %}
+
+{% block content %}
+<h2>Signature du vendeur – Rachat #{{ rachat.id }}</h2>
+
+{# CDN SignaturePad #}
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+
+<style>
+  .sig-wrap{
+    max-width: 900px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fff;
+  }
+  .sig-canvas{
+    width: 100%;
+    height: 240px;        /* hauteur CSS visible */
+    display: block;
+    border: 1px dashed #94a3b8;
+    border-radius: 8px;
+    background: #fff;
+    touch-action: none;   /* évite le pan/zoom mobile */
+  }
+  .sig-toolbar{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+</style>
+
+<div class="sig-wrap">
+  <canvas id="signature" class="sig-canvas"></canvas>
+  <div class="sig-toolbar">
+    <button class="ui button" id="btn-clear">Effacer</button>
+    <button class="ui button" id="btn-undo">Annuler un trait</button>
+    <button class="ui primary button" id="btn-save">Valider la signature</button>
+  </div>
+</div>
+
+<form id="sig-form" method="post" action="{{ path('admin_rachats_sign_submit', {id: rachat.id}) }}" style="display:none">
+  <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+</form>
+
+<script>
+(function(){
+  const canvas = document.getElementById('signature');
+  // Instancie SignaturePad
+  const signaturePad = new SignaturePad(canvas, {
+    minWidth: 0.8,  // stylo fin
+    maxWidth: 2.5,  // stylo gros
+    throttle: 0,    // dessin fluide
+    penColor: '#111',
+    backgroundColor: '#fff'
+  });
+
+  // Resize HiDPI : buffer interne = css * devicePixelRatio, puis scale
+  function resizeCanvas(keepDrawing=true){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const cssWidth  = canvas.clientWidth;
+    const cssHeight = canvas.clientHeight;
+
+    // Sauvegarde des traits avant resize
+    let data = null;
+    if (keepDrawing && !signaturePad.isEmpty()){
+      data = signaturePad.toData(); // tableau des strokes
+    }
+
+    canvas.width  = Math.floor(cssWidth  * ratio);
+    canvas.height = Math.floor(cssHeight * ratio);
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1,0,0,1,0,0); // reset
+    ctx.scale(ratio, ratio);       // important
+
+    // Recharge les traits après le scale
+    signaturePad.clear();
+    if (data) signaturePad.fromData(data);
+  }
+
+  // Appels initiaux + on resize
+  const ro = new ResizeObserver(()=>resizeCanvas(true));
+  ro.observe(canvas.parentElement);
+  resizeCanvas(true);
+  window.addEventListener('orientationchange', ()=>resizeCanvas(true));
+
+  // Boutons
+  document.getElementById('btn-clear').addEventListener('click', ()=>{
+    signaturePad.clear();
+  });
+
+  document.getElementById('btn-undo').addEventListener('click', ()=>{
+    const data = signaturePad.toData();
+    data.pop(); // supprime le dernier trait
+    signaturePad.fromData(data);
+  });
+
+  document.getElementById('btn-save').addEventListener('click', ()=>{
+    if (signaturePad.isEmpty()){
+      alert('Signature vide — merci de signer.');
+      return;
+    }
+    // PNG haute définition (buffer déjà HiDPI)
+    const dataURL = canvas.toDataURL('image/png');
+    document.getElementById('signature_dataurl').value = dataURL;
+    document.getElementById('sig-form').submit();
+  });
+})();
+</script>
+{% endblock %}
