@@ -674,4 +674,103 @@ public function getOrCreateMonthlyRachatInput(int $stockId = 1, int $supplierId 
     return ['ok' => false, 'status' => $status, 'error' => $raw];
 }
 
+// ===================== BARCODE / IMEI =====================
+
+/**
+ * Met l'IMEI (si présent et valide) dans product_barcode.
+ * - si IMEI vide => ne fait rien (OK)
+ * - si IMEI invalide => retourne ok=false + message (pas d'exception si tu veux)
+ */
+public function trySetBarcodeFromImei(int $productId, ?string $imeiRaw): array
+{
+    $imeiRaw = trim((string) $imeiRaw);
+
+    if ($imeiRaw === '') {
+        return ['ok' => true, 'skipped' => true, 'reason' => 'empty_imei'];
+    }
+
+    $check = $this->sanitizeImei($imeiRaw);
+    if (!$check['ok']) {
+        return ['ok' => false, 'skipped' => true, 'reason' => 'invalid_imei', 'error' => $check['error']];
+    }
+
+    // ⚠️ Hiboutik: update produit par attribut = x-www-form-urlencoded (comme suppliers)
+    // Endpoint le plus fiable : PUT /api/products/
+    // avec: product_attribute, product_id, new_value
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['body'] = http_build_query([
+        'product_attribute' => 'product_barcode',
+        'product_id'        => $productId,
+        'new_value'         => $check['imei'],
+    ]);
+
+    $r      = $this->httpClient->request('PUT', $this->baseUrl('products/'), $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $this->baseUrl('products/'),
+        'status' => $status,
+        'raw'    => $raw,
+        'sent'   => ['product_id' => $productId, 'product_attribute' => 'product_barcode', 'new_value' => $check['imei']],
+        'data'   => $data,
+    ];
+    if ($this->debug && $this->logger) {
+        $this->logger->info('[HIB UPDATE BARCODE]', $this->lastDebug);
+    }
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'data'   => $data,
+        'raw'    => $raw,
+        'imei'   => $check['imei'],
+    ];
+}
+
+/**
+ * Nettoie / valide IMEI.
+ * Retourne ['ok'=>true,'imei'=>...] ou ['ok'=>false,'error'=>...]
+ */
+private function sanitizeImei(string $imeiRaw): array
+{
+    $imei = preg_replace('/\D+/', '', $imeiRaw ?? '');
+    if ($imei === '') {
+        return ['ok' => false, 'error' => "IMEI vide"];
+    }
+
+    $len = strlen($imei);
+    // IMEI standard = 15
+    if ($len !== 15) {
+        return ['ok' => false, 'error' => "IMEI invalide ($len chiffres) : attendu 15"];
+    }
+
+    if (!$this->luhnCheck($imei)) {
+        return ['ok' => false, 'error' => "IMEI invalide : contrôle (Luhn) incorrect"];
+    }
+
+    return ['ok' => true, 'imei' => $imei];
+}
+
+private function luhnCheck(string $number): bool
+{
+    $sum = 0;
+    $alt = false;
+    for ($i = strlen($number) - 1; $i >= 0; $i--) {
+        $n = (int) $number[$i];
+        if ($alt) {
+            $n *= 2;
+            if ($n > 9) $n -= 9;
+        }
+        $sum += $n;
+        $alt = !$alt;
+    }
+    return ($sum % 10) === 0;
+}
+
+
+
 }

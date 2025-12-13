@@ -5,8 +5,9 @@
 <div class="ui segment">
   <h2 class="ui header">Rachat multi</h2>
 
-  <form class="ui form" method="post" enctype="multipart/form-data" id="multi-rachat-form">
-    {# --- VENDEUR --- #}
+  <form class="ui form" method="post" enctype="multipart/form-data" id="multi-form">
+    <input type="hidden" name="upload_token" value="{{ upload_token }}">
+
     <h4 class="ui dividing header">Vendeur</h4>
     <div class="three fields">
       <div class="field"><label>Nom</label><input type="text" name="nom" required></div>
@@ -21,33 +22,37 @@
     </div>
 
     <div class="field"><label>Adresse</label><textarea name="adresse" rows="2"></textarea></div>
+    <div class="field"><label>Date de cession</label><input type="date" name="date_cession"></div>
 
-    <div class="field">
-      <label>Date de cession</label>
-      <input type="date" name="date_cession">
-    </div>
-
-    {# --- CI --- #}
-    <h4 class="ui dividing header">Pièce d'identité</h4>
+    <h4 class="ui dividing header">Pièce d'identité (upload immédiat)</h4>
     <div class="two fields">
       <div class="field">
         <label>Recto</label>
-        <input type="file" name="ci_recto" accept="image/*" capture="environment" id="ci_recto">
-        <img id="ci_recto_preview" style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
+        <input type="file" id="ci_recto" accept="image/*" capture="environment">
+        <div id="ci_recto_box" style="margin-top:.5rem;display:none">
+          <img id="ci_recto_img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+        </div>
       </div>
       <div class="field">
         <label>Verso</label>
-        <input type="file" name="ci_verso" accept="image/*" capture="environment" id="ci_verso">
-        <img id="ci_verso_preview" style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
+        <input type="file" id="ci_verso" accept="image/*" capture="environment">
+        <div id="ci_verso_box" style="margin-top:.5rem;display:none">
+          <img id="ci_verso_img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+        </div>
       </div>
     </div>
 
-    {# --- PRODUITS --- #}
     <h4 class="ui dividing header">Produits</h4>
 
     <table class="ui celled table" id="products-table">
       <thead>
-        <tr><th>Libellé</th><th>IMEI</th><th>Prix (€)</th><th>Photo</th><th></th></tr>
+        <tr>
+          <th>Libellé</th>
+          <th>IMEI</th>
+          <th>Prix rachat (€)</th>
+          <th>Photos (upload immédiat)</th>
+          <th></th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -70,42 +75,146 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
 (function(){
-  // ====== Prévisualisation CI ======
-  function previewFile(inputId, imgId) {
-    const inp = document.getElementById(inputId);
-    const img = document.getElementById(imgId);
-    inp.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (!file) return;
+  const uploadToken = {{ upload_token|json_encode|raw }};
+  const csrf        = {{ upload_csrf|json_encode|raw }};
+  const urlCi        = {{ path('admin_rachats_multi_wizard_upload_ci')|json_encode|raw }};
+  const urlPhoto     = {{ path('admin_rachats_multi_wizard_upload_photo')|json_encode|raw }};
+
+  // ---- Utils
+  function isBadHeic(file){
+    const n = (file.name||'').toLowerCase();
+    const t = (file.type||'').toLowerCase();
+    return n.endsWith('.heic') || n.endsWith('.heif') || t.includes('heic') || t.includes('heif');
+  }
+
+  async function postFile(url, fields, fileFieldName, file){
+    const fd = new FormData();
+    fd.append('_token', csrf);
+    fd.append('upload_token', uploadToken);
+    for (const k in fields) fd.append(k, fields[k]);
+    fd.append(fileFieldName, file, file.name);
+
+    const res = await fetch(url, { method:'POST', body: fd });
+    const j = await res.json().catch(()=> ({}));
+    if (!res.ok || !j.ok) {
+      throw new Error(j.error || res.statusText || 'Erreur upload');
+    }
+    return j;
+  }
+
+  function openCropper(file, opts){
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = ev => {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+        const img = document.createElement('img');
         img.src = ev.target.result;
-        img.style.display = 'block';
+        img.style.maxWidth = '92%';
+        img.style.maxHeight = '80vh';
+        overlay.appendChild(img);
+
+        const bar = document.createElement('div');
+        bar.style.cssText = 'margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;';
+        const ok = document.createElement('button');
+        ok.className='ui primary button';
+        ok.textContent='✅ Valider';
+        const cancel = document.createElement('button');
+        cancel.className='ui button';
+        cancel.textContent='Annuler';
+        bar.appendChild(cancel);
+        bar.appendChild(ok);
+        overlay.appendChild(bar);
+
+        document.body.appendChild(overlay);
+
+        const cropper = new Cropper(img, {
+          aspectRatio: opts.aspectRatio ?? NaN,
+          viewMode: 1,
+          autoCropArea: 1
+        });
+
+        cancel.onclick = () => { overlay.remove(); reject(new Error('annulé')); };
+        ok.onclick = () => {
+          cropper.getCroppedCanvas({ width: opts.width, height: opts.height })
+            .toBlob(blob => {
+              overlay.remove();
+              if (!blob) return reject(new Error('blob vide'));
+              const f = new File([blob], opts.filename, { type: 'image/jpeg' });
+              resolve(f);
+            }, 'image/jpeg', 0.9);
+        };
       };
       reader.readAsDataURL(file);
     });
   }
-  previewFile('ci_recto', 'ci_recto_preview');
-  previewFile('ci_verso', 'ci_verso_preview');
 
-  // ====== Ajout produits ======
-  let index = 0;
+  // ---- CI : recto/verso (crop + upload)
+  function bindCi(inputId, kind, imgId, boxId){
+    const inp = document.getElementById(inputId);
+    const img = document.getElementById(imgId);
+    const box = document.getElementById(boxId);
+
+    inp.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (isBadHeic(file)) {
+        alert("HEIC refusé. Merci de régler l’appareil photo en JPEG (Format 'le plus compatible').");
+        inp.value = "";
+        return;
+      }
+
+      try {
+        const cropped = await openCropper(file, {
+          aspectRatio: 3/2,
+          width: 1200,
+          height: 800,
+          filename: kind + '.jpg'
+        });
+
+        const j = await postFile(urlCi, { kind }, 'ci', cropped);
+
+        img.src = j.url + '?v=' + Date.now();
+        box.style.display = 'block';
+      } catch (err) {
+        if (String(err.message).includes('annulé')) return;
+        alert("Erreur upload CI " + kind + " : " + err.message);
+      }
+    });
+  }
+
+  bindCi('ci_recto', 'recto', 'ci_recto_img', 'ci_recto_box');
+  bindCi('ci_verso',  'verso',  'ci_verso_img',  'ci_verso_box');
+
+  // ---- Produits
   const tbody = document.querySelector('#products-table tbody');
   const addBtn = document.getElementById('add-product-btn');
 
-  addBtn.addEventListener('click', addRow);
-  addRow();
+  function newRowKey(){
+    return 'rk_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+  }
 
-  function addRow() {
-    const i = index++;
+  function addRow(){
+    const rowKey = newRowKey();
     const tr = document.createElement('tr');
+
     tr.innerHTML = `
-      <td><input type="text" name="marque_modele[]" placeholder="iPhone 13 128 Go" required></td>
+      <td>
+        <input type="hidden" name="row_key[]" value="${rowKey}">
+        <input type="text" name="marque_modele[]" placeholder="iPhone 13 128 Go" required>
+      </td>
       <td><input type="text" name="imei[]" placeholder="IMEI (optionnel)"></td>
       <td><input type="number" step="0.01" min="0" name="prix_achat[]" placeholder="Prix" required></td>
       <td>
-        <input type="file" name="photos_${i}[]" accept="image/*" capture="environment" id="photo_input_${i}">
-        <img id="photo_preview_${i}" style="display:none;max-height:80px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
+        <div class="photos-wrap" data-rowkey="${rowKey}">
+          <input type="file" class="photo-input" accept="image/*" capture="environment">
+          <button type="button" class="ui tiny button add-photo">+ Photo</button>
+          <div class="ui tiny images photos-preview" style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:6px"></div>
+          <div class="ui tiny message" style="margin-top:.5rem">
+            Chaque photo est envoyée immédiatement (JPEG ≤ 1 Mo).
+          </div>
+        </div>
       </td>
       <td class="collapsing">
         <button type="button" class="ui tiny red icon button remove-product">
@@ -113,62 +222,67 @@
         </button>
       </td>
     `;
+
     tbody.appendChild(tr);
 
-    const input = tr.querySelector(`#photo_input_${i}`);
-    const img   = tr.querySelector(`#photo_preview_${i}`);
-    input.addEventListener('change', e => cropAndPreview(e.target.files[0], img));
+    const wrap = tr.querySelector('.photos-wrap');
+    const preview = tr.querySelector('.photos-preview');
+    const fileInput = tr.querySelector('.photo-input');
+
+    async function handlePhoto(file){
+      if (!file) return;
+
+      if (isBadHeic(file)) {
+        alert("HEIC refusé. Merci de régler l’appareil photo en JPEG (Format 'le plus compatible').");
+        return;
+      }
+
+      // Option : crop léger (4/3) + conversion jpeg
+      const cropped = await openCropper(file, {
+        aspectRatio: 4/3,
+        width: 1200,
+        height: 900,
+        filename: 'photo.jpg'
+      });
+
+      const j = await postFile(urlPhoto, { row_key: rowKey }, 'photo', cropped);
+
+      // thumb
+      const a = document.createElement('a');
+      a.href = j.url; a.target = '_blank'; a.rel='noopener';
+      const img = document.createElement('img');
+      img.src = j.url + '?v=' + Date.now();
+      img.style.height = '80px';
+      img.style.aspectRatio = '1/1';
+      img.style.objectFit = 'cover';
+      img.style.border = '1px solid #ddd';
+      img.style.borderRadius = '6px';
+      a.appendChild(img);
+      preview.appendChild(a);
+
+      // on mémorise EXACTEMENT les noms uploadés (pour le POST final)
+      const hid = document.createElement('input');
+      hid.type = 'hidden';
+      hid.name = `photos_uploaded[${rowKey}][]`;
+      hid.value = j.name;
+      wrap.appendChild(hid);
+    }
+
+    fileInput.addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      e.target.value = ""; // permet re-choix du même fichier
+      if (!f) return;
+      try { await handlePhoto(f); } catch(err) { alert("Erreur photo: " + err.message); }
+    });
+
+    // bouton "+ Photo" => déclenche le select file
+    wrap.querySelector('.add-photo').addEventListener('click', () => fileInput.click());
 
     tr.querySelector('.remove-product').addEventListener('click', () => tr.remove());
   }
 
-  // ====== CROP + prévisualisation locale ======
-  function cropAndPreview(file, previewImg) {
-    if (!file || !file.type.startsWith('image/')) return;
-
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-      const img = document.createElement('img');
-      img.src = ev.target.result;
-      img.style.maxWidth = '90%';
-      img.style.maxHeight = '80vh';
-      overlay.appendChild(img);
-      const btn = document.createElement('button');
-      btn.textContent = '✅ Valider recadrage';
-      btn.className = 'ui primary button';
-      btn.style.marginTop = '1rem';
-      overlay.appendChild(btn);
-      document.body.appendChild(overlay);
-
-      const cropper = new Cropper(img, { aspectRatio: 4/3, viewMode: 1, autoCropArea: 1 });
-
-      btn.onclick = () => {
-        cropper.getCroppedCanvas({width:1000,height:750}).toBlob(blob => {
-          overlay.remove();
-          const url = URL.createObjectURL(blob);
-          previewImg.src = url;
-          previewImg.style.display = 'block';
-        }, 'image/jpeg', 0.9);
-      };
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // ====== Alerte si HEIC détecté (bloqué) ======
-  document.addEventListener('change', e => {
-    const inp = e.target;
-    if (!inp || inp.type !== 'file') return;
-    const f = inp.files[0];
-    if (!f) return;
-    const name = f.name.toLowerCase();
-    const type = f.type.toLowerCase();
-    if (name.endsWith('.heic') || name.endsWith('.heif') || type.includes('heic')) {
-      alert("Format HEIC refusé. Merci de changer le réglage de l'appareil photo : Format -> Le plus compatible (JPEG).");
-      inp.value = "";
-    }
-  });
+  addBtn.addEventListener('click', addRow);
+  addRow(); // première ligne
 })();
 </script>
 {% endblock %}
