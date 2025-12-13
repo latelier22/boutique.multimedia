@@ -1,48 +1,26 @@
 {% extends '@!SyliusAdmin/layout.html.twig' %}
-
 {% block title %}Rachat multi{% endblock %}
 
 {% block content %}
 <div class="ui segment">
   <h2 class="ui header">Rachat multi</h2>
 
-  <form class="ui form" method="post" enctype="multipart/form-data">
+  <form class="ui form" method="post" enctype="multipart/form-data" id="multi-rachat-form">
     {# --- VENDEUR --- #}
     <h4 class="ui dividing header">Vendeur</h4>
     <div class="three fields">
-      <div class="field">
-        <label>Nom</label>
-        <input type="text" name="nom" required>
-      </div>
-      <div class="field">
-        <label>Prénom</label>
-        <input type="text" name="prenom" required>
-      </div>
-      <div class="field">
-        <label>Numéro de pièce d'identité</label>
-        <input type="text" name="numero_ci">
-      </div>
+      <div class="field"><label>Nom</label><input type="text" name="nom" required></div>
+      <div class="field"><label>Prénom</label><input type="text" name="prenom" required></div>
+      <div class="field"><label>Numéro CI</label><input type="text" name="numero_ci"></div>
     </div>
 
     <div class="three fields">
-      <div class="field">
-        <label>Téléphone</label>
-        <input type="text" name="telephone">
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input type="email" name="email">
-      </div>
-      <div class="field">
-        <label>Code postal</label>
-        <input type="text" name="code_postal">
-      </div>
+      <div class="field"><label>Téléphone</label><input type="text" name="telephone"></div>
+      <div class="field"><label>Email</label><input type="email" name="email"></div>
+      <div class="field"><label>Code postal</label><input type="text" name="code_postal"></div>
     </div>
 
-    <div class="field">
-      <label>Adresse</label>
-      <textarea name="adresse" rows="2"></textarea>
-    </div>
+    <div class="field"><label>Adresse</label><textarea name="adresse" rows="2"></textarea></div>
 
     <div class="field">
       <label>Date de cession</label>
@@ -54,15 +32,13 @@
     <div class="two fields">
       <div class="field">
         <label>Recto</label>
-        <input type="file" name="ci_recto" accept="image/*" id="ci_recto">
-        <img id="ci_recto_preview"
-             style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
+        <input type="file" name="ci_recto" accept="image/*" capture="environment" id="ci_recto">
+        <img id="ci_recto_preview" style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
       </div>
       <div class="field">
         <label>Verso</label>
-        <input type="file" name="ci_verso" accept="image/*" id="ci_verso">
-        <img id="ci_verso_preview"
-             style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
+        <input type="file" name="ci_verso" accept="image/*" capture="environment" id="ci_verso">
+        <img id="ci_verso_preview" style="display:none;max-width:220px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
       </div>
     </div>
 
@@ -71,16 +47,9 @@
 
     <table class="ui celled table" id="products-table">
       <thead>
-        <tr>
-          <th>Libellé</th>
-          <th>IMEI</th>
-          <th>Prix rachat (€)</th>
-          <th>Photos</th>
-          <th></th>
-        </tr>
+        <tr><th>Libellé</th><th>IMEI</th><th>Prix (€)</th><th>Photo</th><th></th></tr>
       </thead>
-      <tbody>
-      </tbody>
+      <tbody></tbody>
     </table>
 
     <button type="button" class="ui button" id="add-product-btn">
@@ -98,50 +67,45 @@
   </form>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
 (function(){
-  // Aperçu CI recto / verso
-  function bindPreview(inputId, imgId) {
-    const input = document.getElementById(inputId);
-    const img   = document.getElementById(imgId);
-    if (!input || !img) return;
-
-    input.addEventListener('change', (e) => {
+  // ====== Prévisualisation CI ======
+  function previewFile(inputId, imgId) {
+    const inp = document.getElementById(inputId);
+    const img = document.getElementById(imgId);
+    inp.addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = ev => {
         img.src = ev.target.result;
         img.style.display = 'block';
       };
       reader.readAsDataURL(file);
     });
   }
+  previewFile('ci_recto', 'ci_recto_preview');
+  previewFile('ci_verso', 'ci_verso_preview');
 
-  bindPreview('ci_recto', 'ci_recto_preview');
-  bindPreview('ci_verso', 'ci_verso_preview');
-
-  // Gestion des lignes produit
+  // ====== Ajout produits ======
   let index = 0;
   const tbody = document.querySelector('#products-table tbody');
   const addBtn = document.getElementById('add-product-btn');
+
+  addBtn.addEventListener('click', addRow);
+  addRow();
 
   function addRow() {
     const i = index++;
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td><input type="text" name="marque_modele[]" placeholder="iPhone 13 128 Go" required></td>
+      <td><input type="text" name="imei[]" placeholder="IMEI (optionnel)"></td>
+      <td><input type="number" step="0.01" min="0" name="prix_achat[]" placeholder="Prix" required></td>
       <td>
-        <input type="text" name="marque_modele[]" placeholder="iPhone 13 128 Go" required>
-      </td>
-      <td>
-        <input type="text" name="imei[]" placeholder="IMEI (optionnel)">
-      </td>
-      <td>
-        <input type="number" step="0.01" min="0" name="prix_achat[]" placeholder="Prix" required>
-      </td>
-      <td>
-        <input type="file" name="photos_${i}[]" multiple accept="image/*">
-        <div class="ui tiny images" id="photos_preview_${i}" style="margin-top:.5rem;"></div>
+        <input type="file" name="photos_${i}[]" accept="image/*" capture="environment" id="photo_input_${i}">
+        <img id="photo_preview_${i}" style="display:none;max-height:80px;margin-top:.5rem;border:1px solid #ddd;border-radius:4px;">
       </td>
       <td class="collapsing">
         <button type="button" class="ui tiny red icon button remove-product">
@@ -151,36 +115,60 @@
     `;
     tbody.appendChild(tr);
 
-    const photosInput = tr.querySelector(`input[name="photos_${i}[]"]`);
-    const previewDiv  = tr.querySelector(`#photos_preview_${i}`);
-    if (photosInput && previewDiv) {
-      photosInput.addEventListener('change', (e) => {
-        previewDiv.innerHTML = '';
-        Array.from(e.target.files || []).forEach((file) => {
-          if (!file.type.startsWith('image/')) return;
-          const r = new FileReader();
-          r.onload = (ev) => {
-            const img = document.createElement('img');
-            img.src = ev.target.result;
-            img.style.maxHeight = '80px';
-            img.style.borderRadius = '4px';
-            img.style.border = '1px solid #ddd';
-            img.style.marginRight = '4px';
-            previewDiv.appendChild(img);
-          };
-          r.readAsDataURL(file);
-        });
-      });
-    }
+    const input = tr.querySelector(`#photo_input_${i}`);
+    const img   = tr.querySelector(`#photo_preview_${i}`);
+    input.addEventListener('change', e => cropAndPreview(e.target.files[0], img));
 
-    const rmBtn = tr.querySelector('.remove-product');
-    rmBtn.addEventListener('click', () => {
-      tr.remove();
-    });
+    tr.querySelector('.remove-product').addEventListener('click', () => tr.remove());
   }
 
-  addBtn.addEventListener('click', addRow);
-  addRow(); // première ligne par défaut
+  // ====== CROP + prévisualisation locale ======
+  function cropAndPreview(file, previewImg) {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.style.maxWidth = '90%';
+      img.style.maxHeight = '80vh';
+      overlay.appendChild(img);
+      const btn = document.createElement('button');
+      btn.textContent = '✅ Valider recadrage';
+      btn.className = 'ui primary button';
+      btn.style.marginTop = '1rem';
+      overlay.appendChild(btn);
+      document.body.appendChild(overlay);
+
+      const cropper = new Cropper(img, { aspectRatio: 4/3, viewMode: 1, autoCropArea: 1 });
+
+      btn.onclick = () => {
+        cropper.getCroppedCanvas({width:1000,height:750}).toBlob(blob => {
+          overlay.remove();
+          const url = URL.createObjectURL(blob);
+          previewImg.src = url;
+          previewImg.style.display = 'block';
+        }, 'image/jpeg', 0.9);
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ====== Alerte si HEIC détecté (bloqué) ======
+  document.addEventListener('change', e => {
+    const inp = e.target;
+    if (!inp || inp.type !== 'file') return;
+    const f = inp.files[0];
+    if (!f) return;
+    const name = f.name.toLowerCase();
+    const type = f.type.toLowerCase();
+    if (name.endsWith('.heic') || name.endsWith('.heif') || type.includes('heic')) {
+      alert("Format HEIC refusé. Merci de changer le réglage de l'appareil photo : Format -> Le plus compatible (JPEG).");
+      inp.value = "";
+    }
+  });
 })();
 </script>
 {% endblock %}
