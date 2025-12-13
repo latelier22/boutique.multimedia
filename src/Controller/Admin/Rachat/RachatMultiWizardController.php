@@ -16,18 +16,17 @@ final class RachatMultiWizardController extends AbstractController
 {
     public function __construct(
         private EntityManagerInterface $em,
-        private HiboutikClient $hib, // on ne l’utilise pas encore, mais il est là si besoin
+        private HiboutikClient $hib,
     ) {}
 
     #[Route('', name: 'form', methods: ['GET', 'POST'])]
     public function form(Request $req): Response
     {
-        // GET → afficher le formulaire vide
         if ($req->isMethod('GET')) {
             return $this->render('@SyliusAdmin/Rachat/multi_wizard.html.twig');
         }
 
-        // POST → créer les rachats + rediriger vers la signature multi
+        // --- Champs client ---
         $nom        = trim((string)$req->request->get('nom', ''));
         $prenom     = trim((string)$req->request->get('prenom', ''));
         $numeroCi   = trim((string)$req->request->get('numero_ci', ''));
@@ -41,12 +40,12 @@ final class RachatMultiWizardController extends AbstractController
         if ($dateStr !== '') {
             try {
                 $dateCession = new \DateTimeImmutable($dateStr);
-            } catch (\Throwable $e) {
+            } catch (\Throwable) {
                 $dateCession = null;
             }
         }
 
-        // Tableaux des produits
+        // --- Tableaux produits ---
         $labels = $req->request->all('marque_modele');
         $imeis  = $req->request->all('imei');
         $prices = $req->request->all('prix_achat');
@@ -60,6 +59,15 @@ final class RachatMultiWizardController extends AbstractController
         /** @var UploadedFile|null $ciVerso */
         $ciVerso = $req->files->get('ci_verso');
 
+        // --- Validation format CI (on refuse HEIC etc) ---
+        try {
+            if ($ciRecto instanceof UploadedFile) $this->assertAllowedImage($ciRecto);
+            if ($ciVerso instanceof UploadedFile) $this->assertAllowedImage($ciVerso);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('admin_rachats_multi_wizard_form');
+        }
+
         $createdIds = [];
 
         foreach ($labels as $i => $lib) {
@@ -67,13 +75,12 @@ final class RachatMultiWizardController extends AbstractController
             $prix = (float) str_replace(',', '.', (string)($prices[$i] ?? 0));
 
             if ($lib === '' || $prix <= 0) {
-                continue; // on ignore les lignes vides
+                continue;
             }
 
             $imei = trim((string)($imeis[$i] ?? ''));
 
-            $r = new Rachat();
-            $r
+            $r = (new Rachat())
                 ->setMarqueModele($lib)
                 ->setImei($imei)
                 ->setPrixAchat(number_format($prix, 2, '.', ''))
@@ -92,7 +99,7 @@ final class RachatMultiWizardController extends AbstractController
             }
 
             $this->em->persist($r);
-            $this->em->flush(); // pour avoir l’ID
+            $this->em->flush(); // ID
 
             $base = $this->getVarPrivateDir($r->getId());
             @mkdir($base, 0775, true);
@@ -100,13 +107,22 @@ final class RachatMultiWizardController extends AbstractController
             // --- CI pour ce rachat ---
             $urls = [];
 
-            if ($ciRecto instanceof UploadedFile) {
-                $dst = $base . '/piece_identite_recto.jpg';
-                $this->shrinkToJpegUnder($ciRecto->getPathname(), $dst, 2000, 2000, 1_000_000);
-            }
-            if ($ciVerso instanceof UploadedFile) {
-                $dst = $base . '/piece_identite_verso.jpg';
-                $this->shrinkToJpegUnder($ciVerso->getPathname(), $dst, 2000, 2000, 1_000_000);
+            try {
+                if ($ciRecto instanceof UploadedFile) {
+                    $dst = $base . '/piece_identite_recto.jpg';
+                    $this->shrinkToJpegUnder($ciRecto->getPathname(), $dst, 2000, 2000, 1_000_000);
+                }
+                if ($ciVerso instanceof UploadedFile) {
+                    $dst = $base . '/piece_identite_verso.jpg';
+                    $this->shrinkToJpegUnder($ciVerso->getPathname(), $dst, 2000, 2000, 1_000_000);
+                }
+            } catch (\RuntimeException $e) {
+                // On supprime l’entité créée si on veut éviter les rachats “vides”
+                $this->em->remove($r);
+                $this->em->flush();
+
+                $this->addFlash('error', 'Pièce d’identité : ' . $e->getMessage());
+                return $this->redirectToRoute('admin_rachats_multi_wizard_form');
             }
 
             foreach (['recto', 'verso'] as $kind) {
@@ -122,7 +138,7 @@ final class RachatMultiWizardController extends AbstractController
                 $r->setPieceIdentiteUrl(json_encode($urls, JSON_UNESCAPED_SLASHES));
             }
 
-            // --- PHOTOS pour ce produit ---
+            // --- PHOTOS produit ---
             /** @var UploadedFile[] $photos */
             $photos = $req->files->all('photos_' . $i) ?? [];
             if (!is_array($photos)) $photos = [];
@@ -132,12 +148,25 @@ final class RachatMultiWizardController extends AbstractController
                 @mkdir($pdir, 0775, true);
 
                 $list = [];
+
                 foreach ($photos as $pf) {
                     if (!$pf instanceof UploadedFile) continue;
-                    $name = 'photo_' . $i . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(2)) . '.jpg';
-                    $dst  = $pdir . '/' . $name;
-                    $this->shrinkToJpegUnder($pf->getPathname(), $dst, 2000, 2000, 1_000_000);
-                    $list[] = $name;
+
+                    try {
+                        $this->assertAllowedImage($pf);
+
+                        $name = 'photo_' . $i . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(2)) . '.jpg';
+                        $dst  = $pdir . '/' . $name;
+                        $this->shrinkToJpegUnder($pf->getPathname(), $dst, 2000, 2000, 1_000_000);
+                        $list[] = $name;
+                    } catch (\RuntimeException $e) {
+                        // On n’annule pas tout : on prévient et on continue
+                        $this->addFlash(
+                            'warning',
+                            sprintf('Photo produit ligne %d ignorée : %s', $i + 1, $e->getMessage())
+                        );
+                        continue;
+                    }
                 }
 
                 if ($list) {
@@ -154,37 +183,74 @@ final class RachatMultiWizardController extends AbstractController
             return $this->redirectToRoute('admin_rachats_multi_wizard_form');
         }
 
-        // 👉 On réutilise ta route de signature multi que tu as déjà
         return $this->redirectToRoute('admin_rachats_multi_sign', [
             'ids' => implode(',', $createdIds),
         ]);
     }
 
-    // === helpers (copie allégée de ton RachatController) ===
+    // =======================
+    // Helpers
+    // =======================
 
     private function getVarPrivateDir(int $id): string
     {
         return $this->getParameter('kernel.project_dir') . "/var/private/rachats/$id";
     }
 
-    private function gdLoad(string $path): array
+    /**
+     * Autorise uniquement : JPG/JPEG, PNG, WEBP.
+     * Refuse explicitement HEIC/HEIF/PDF et tout le reste.
+     */
+    private function assertAllowedImage(UploadedFile $file): void
     {
-        $mime = strtolower((string) mime_content_type($path));
-        if (str_contains($mime, 'jpeg') || str_contains($mime, 'jpg')) return [imagecreatefromjpeg($path), 'jpg'];
-        if (str_contains($mime, 'png'))  return [imagecreatefrompng($path), 'png'];
-        if (str_contains($mime, 'webp') && function_exists('imagecreatefromwebp'))
-            return [imagecreatefromwebp($path), 'webp'];
-        throw new \RuntimeException('Type image non supporté (JPEG/PNG/WEBP).');
+        $path = $file->getPathname();
+        $type = @exif_imagetype($path);
+
+        $allowedTypes = [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP];
+
+        if (!$type || !in_array($type, $allowedTypes, true)) {
+            $name = $file->getClientOriginalName() ?: 'fichier';
+            $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            if (in_array($ext, ['heic', 'heif'], true)) {
+                throw new \RuntimeException("Format HEIC/HEIF refusé : $name. Merci d’envoyer une image JPG/PNG/WEBP.");
+            }
+            if ($ext === 'pdf') {
+                throw new \RuntimeException("PDF refusé : $name. Merci d’envoyer une image JPG/PNG/WEBP.");
+            }
+
+            throw new \RuntimeException("Format refusé : $name. Formats acceptés : JPG / PNG / WEBP.");
+        }
     }
 
-    private function fixJpegOrientation(string $path, $gd): \GdImage
+    private function gdLoad(string $path): array
+    {
+        $type = @exif_imagetype($path);
+        if (!$type) {
+            $info = @getimagesize($path);
+            $type = $info[2] ?? null;
+        }
+
+        return match ($type) {
+            IMAGETYPE_JPEG => [imagecreatefromjpeg($path), 'jpg'],
+            IMAGETYPE_PNG  => [imagecreatefrompng($path), 'png'],
+            IMAGETYPE_WEBP => function_exists('imagecreatefromwebp')
+                ? [imagecreatefromwebp($path), 'webp']
+                : throw new \RuntimeException('WEBP non supporté par GD sur ce serveur.'),
+            default => throw new \RuntimeException('Type image non supporté. Formats acceptés : JPG / PNG / WEBP.'),
+        };
+    }
+
+    private function fixJpegOrientation(string $path, \GdImage $gd): \GdImage
     {
         if (!function_exists('exif_read_data')) return $gd;
-        $mime = strtolower((string) mime_content_type($path));
-        if (!str_contains($mime, 'jpeg') && !str_contains($mime, 'jpg')) return $gd;
+
+        $type = @exif_imagetype($path);
+        if ($type !== IMAGETYPE_JPEG) return $gd;
 
         $exif = @exif_read_data($path);
         $o = (int)($exif['Orientation'] ?? 1);
+
         return match ($o) {
             3 => imagerotate($gd, 180, 0),
             6 => imagerotate($gd, -90, 0),
@@ -200,29 +266,46 @@ final class RachatMultiWizardController extends AbstractController
         int $maxH = 2000,
         int $maxBytes = 1_000_000
     ): string {
-        [$img, $kind] = $this->gdLoad($srcPath);
+        [$img] = $this->gdLoad($srcPath);
         $img = $this->fixJpegOrientation($srcPath, $img);
 
         $w = imagesx($img);
         $h = imagesy($img);
+
         $scale = min(1.0, $maxW / max(1, $w), $maxH / max(1, $h));
+
         if ($scale < 1.0) {
             $nw = max(1, (int)floor($w * $scale));
             $nh = max(1, (int)floor($h * $scale));
+
             $dst = imagecreatetruecolor($nw, $nh);
             imagecopyresampled($dst, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
+
             imagedestroy($img);
             $img = $dst;
+
+            $w = $nw;
+            $h = $nh;
         }
+
+        // Aplatissement (PNG/WebP transparents) sur fond blanc avant JPEG
+        $flatten = imagecreatetruecolor($w, $h);
+        $white = imagecolorallocate($flatten, 255, 255, 255);
+        imagefilledrectangle($flatten, 0, 0, $w, $h, $white);
+        imagecopy($flatten, $img, 0, 0, 0, 0, $w, $h);
+        imagedestroy($img);
+        $img = $flatten;
+
         $q = 85;
         do {
             imagejpeg($img, $dstPath, $q);
-            $size = filesize($dstPath) ?: $maxBytes + 1;
+            $size = filesize($dstPath) ?: ($maxBytes + 1);
             $q -= 7;
             if ($q < 40) break;
         } while ($size > $maxBytes);
-        imagerotate($img, 0, 0);
+
         imagedestroy($img);
+
         return $dstPath;
     }
 }

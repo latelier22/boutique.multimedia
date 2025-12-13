@@ -5,6 +5,7 @@
 
 /public/media/*
 !/public/media/
+/public/uploads/
 
 !/public/media/image/.gitkeep
 !/public/media/vendor-logo/

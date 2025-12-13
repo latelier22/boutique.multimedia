@@ -3,7 +3,9 @@
 {% block title %}Signature bon de cession multi{% endblock %}
 
 {% block content %}
-<h1>Signature – Bon de cession multi</h1>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+
+<h1 class="ui header">Signature – Bon de cession multi</h1>
 
 <p>Vendeur : <strong>{{ rachats[0].prenom }} {{ rachats[0].nom }}</strong></p>
 
@@ -14,59 +16,90 @@
   {% endfor %}
 </ul>
 
-<canvas id="signature-pad" style="border:1px solid #ccc;width:100%;max-width:500px;height:200px;"></canvas>
-<br>
-<button type="button" id="clear-btn" class="ui button">Effacer</button>
+<style>
+  /* Important pour mobile : empêche le scroll/zoom quand on signe */
+  #signature-pad {
+    width: 100%;
+    max-width: 520px;
+    height: 200px;
+    display: block;
+    border: 1px dashed #94a3b8;
+    border-radius: 8px;
+    background: #fff;
+    touch-action: none;
+  }
+  .sig-toolbar { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+</style>
 
-<form method="post" action="{{ path('admin_rachats_multi_sign_submit') }}">
-  <input type="hidden" name="ids" value="{{ ids_string }}">
-  <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+<canvas id="signature-pad"></canvas>
 
-  <button type="submit" class="ui primary button" onclick="
-    var canvas = document.getElementById('signature-pad');
-    document.getElementById('signature_dataurl').value = canvas.toDataURL('image/png');
-  ">
+<div class="sig-toolbar">
+  <button type="button" id="clear-btn" class="ui button">Effacer</button>
+
+  <button type="button" id="undo-btn" class="ui button">Annuler un trait</button>
+
+  <button type="submit" form="sig-form" class="ui primary button">
     ✅ Valider la signature et générer le PDF
   </button>
+</div>
+
+<form id="sig-form" method="post" action="{{ path('admin_rachats_multi_sign_submit') }}">
+  <input type="hidden" name="ids" value="{{ ids_string }}">
+  <input type="hidden" name="signature_dataurl" id="signature_dataurl">
 </form>
 
 <script>
-  // Signature ultra simple au doigt / souris
+(function(){
   const canvas = document.getElementById('signature-pad');
-  const ctx = canvas.getContext('2d');
-  let drawing = false, lastX = 0, lastY = 0;
+  const pad = new SignaturePad(canvas, {
+    minWidth: 0.9,
+    maxWidth: 2.8,
+    penColor: '#111',
+    backgroundColor: '#fff'
+  });
 
-  function resizeCanvas() {
+  function resizeCanvas(){
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const rect = canvas.getBoundingClientRect();
-    const temp = document.createElement('canvas');
-    temp.width = canvas.width;
-    temp.height = canvas.height;
-    temp.getContext('2d').drawImage(canvas, 0, 0);
 
-    canvas.width = rect.width;
-    canvas.height = 200;
-    ctx.drawImage(temp, 0, 0, rect.width, 200);
+    // on sauvegarde les traits existants
+    const data = pad.isEmpty() ? null : pad.toData();
+
+    canvas.width  = Math.floor(rect.width * ratio);
+    canvas.height = Math.floor(rect.height * ratio);
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    pad.clear();
+    if (data) pad.fromData(data);
   }
-  window.addEventListener('resize', resizeCanvas);
+
+  // resize au chargement + quand l'écran change
   resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
 
-  canvas.addEventListener('mousedown', e => {
-    drawing = true;
-    [lastX, lastY] = [e.offsetX, e.offsetY];
-  });
-  canvas.addEventListener('mouseup', () => drawing = false);
-  canvas.addEventListener('mouseout', () => drawing = false);
-  canvas.addEventListener('mousemove', e => {
-    if (!drawing) return;
-    ctx.beginPath();
-    ctx.moveTo(lastX, lastY);
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-    [lastX, lastY] = [e.offsetX, e.offsetY];
+  // si dispo, observe les changements de taille du conteneur
+  if (window.ResizeObserver) {
+    new ResizeObserver(resizeCanvas).observe(canvas);
+  }
+
+  document.getElementById('clear-btn').addEventListener('click', () => pad.clear());
+
+  document.getElementById('undo-btn').addEventListener('click', () => {
+    const d = pad.toData();
+    d.pop();
+    pad.fromData(d);
   });
 
-  document.getElementById('clear-btn').addEventListener('click', () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.getElementById('sig-form').addEventListener('submit', (e) => {
+    if (pad.isEmpty()) {
+      e.preventDefault();
+      alert('Signature vide.');
+      return;
+    }
+    document.getElementById('signature_dataurl').value = pad.toDataURL('image/png');
   });
+})();
 </script>
 {% endblock %}
