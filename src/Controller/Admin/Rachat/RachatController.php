@@ -1332,7 +1332,7 @@ public function encaissementBatch(Request $request, HiboutikClient $hib): Respon
     }
 
     // --- Upload CI (AJAX) ---
-    #[Route('/{id}/upload-ci', name: 'upload_ci', methods: ['POST'])]
+    #[Route('/{id<\d+>}/upload-ci', name: 'upload_ci', methods: ['POST'])]
     public function uploadCi(int $id, Request $req): JsonResponse
     {
         $r = $this->em->getRepository(Rachat::class)->find($id);
@@ -1589,26 +1589,43 @@ public function sendEmail(int $id, Request $req, CsrfTokenManagerInterface $csrf
 /**
  * Crée le produit Hiboutik pour un rachat (si pas encore fait)
  * et retourne son product_id Hiboutik.
+ * => Ajout : IMEI -> product_barcode (si présent & valide, sinon ignore sans crash)
  */
 private function ensureHiboutikProductForRachat(Rachat $r, int $defaultSupplierId = 3): int
 {
-    // Si déjà lié à un produit Hiboutik, on ne recrée pas
+    // ✅ si déjà lié : on peut quand même essayer de pousser l'IMEI en barcode
     if ($r->getHibProductId()) {
-        return (int) $r->getHibProductId();
+        $hibProductId = (int) $r->getHibProductId();
+
+        // 🟡 Option “prudente” : n’écrase pas un code-barres existant
+        $imei = trim((string) $r->getImei());
+        if ($imei !== '') {
+            $p = $this->hib->getProduct($hibProductId);
+            $currentBarcode = trim((string)($p['product_barcode'] ?? ''));
+            if ($currentBarcode === '') {
+                $resBarcode = $this->hib->trySetBarcodeFromImei($hibProductId, $imei);
+                // pas de crash : on log/flash warning si invalide
+                if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
+                    $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
+                }
+            }
+        }
+
+        return $hibProductId;
     }
 
     // Fournisseur : on force 3 si rien sur le rachat
     $supplierId = $r->getHibSupplierId() ?: $defaultSupplierId;
 
-    // Prix d’achat (format float propre)
+    // Prix d’achat
     $supplyPrice = (float) str_replace(',', '.', (string) $r->getPrixAchat());
 
-    // Payload minimaliste pour Hiboutik
+    // Payload minimaliste
     $payload = [
         'product_model'            => $r->getMarqueModele() ?: sprintf('Rachat #%d', $r->getId()),
         'product_supplier'         => $supplierId,
         'product_supply_price'     => $supplyPrice,
-        'product_price'            => $supplyPrice,     // tu ajusteras si tu veux un prix de vente différent
+        'product_price'            => $supplyPrice,
         'product_stock_management' => 1,
         'product_display_www'      => 0,
         'product_arch'             => 0,
@@ -1617,28 +1634,34 @@ private function ensureHiboutikProductForRachat(Rachat $r, int $defaultSupplierI
 
     $res = $this->hib->createProduct($payload);
 
-    // APRÈS (remplacer le bloc "récup ID" par ceci)
-$data = is_array($res) ? ($res['data'] ?? $res) : null;
+    // Récup ID Hiboutik
+    $data = is_array($res) ? ($res['data'] ?? $res) : null;
 
-$hibProductId = 0;
-if (is_array($data)) {
-    if (isset($data['product_id'])) {
-        $hibProductId = (int) $data['product_id'];
-    } elseif (isset($data[0]['product_id'])) {
-        $hibProductId = (int) $data[0]['product_id'];
+    $hibProductId = 0;
+    if (is_array($data)) {
+        if (isset($data['product_id'])) {
+            $hibProductId = (int) $data['product_id'];
+        } elseif (isset($data[0]['product_id'])) {
+            $hibProductId = (int) $data[0]['product_id'];
+        }
     }
-}
 
     if ($hibProductId <= 0) {
         throw new \RuntimeException('Impossible de récupérer le product_id Hiboutik après création du produit.');
     }
 
-    // On mémorise côté base locale
+    // Mémorise côté base locale
     $r->setHibProductId($hibProductId);
     if (!$r->getHibSupplierId()) {
         $r->setHibSupplierId($supplierId);
     }
     $this->em->flush();
+
+    // ✅ BARCODE : IMEI -> product_barcode (si vide => ne fait rien, si invalide => warning, pas de crash)
+    $resBarcode = $this->hib->trySetBarcodeFromImei($hibProductId, $r->getImei());
+    if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
+        $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
+    }
 
     return $hibProductId;
 }
