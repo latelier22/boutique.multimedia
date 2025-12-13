@@ -1,0 +1,105 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/pdf_multi.html.twig #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bon de cession multi – {{ ids_string }}</title>
+  <style>
+    body { font-family: DejaVu Sans, sans-serif; font-size: 11px; }
+    h1, h2, h3 { margin: 0 0 5px 0; }
+    .header, .footer { width:100%; }
+    .products { width:100%; border-collapse:collapse; margin-top:10px; }
+    .products th, .products td { border:1px solid #ccc; padding:4px; }
+    .photos { margin-top:5px; }
+    .photos img { max-width:120px; max-height:120px; margin-right:4px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  {% if company_logo_data_uri %}
+    <img src="{{ company_logo_data_uri }}" alt="Logo" style="max-height:60px;">
+  {% endif %}
+  <h1>Bon de cession – Multi-rachats</h1>
+  <p>Rachats : {{ ids_string }}</p>
+  <p>Date : {{ generated_at|date('d/m/Y H:i') }}</p>
+</div>
+
+<hr>
+
+<h2>Vendeur</h2>
+{% set first = rachats_items[0].r %}
+<p>
+  {{ first.prenom }} {{ first.nom }}<br>
+  {{ first.adresse }} {{ first.codePostal }}<br>
+  {% if first.telephone %}Tél : {{ first.telephone }}<br>{% endif %}
+  {% if first.email %}Email : {{ first.email }}{% endif %}
+</p>
+
+<h2>Appareils cédés</h2>
+<table class="products">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Modèle</th>
+      <th>IMEI / N° série</th>
+      <th>Prix rachat (€)</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% set total = 0 %}
+  {% for item in rachats_items %}
+    {% set r = item.r %}
+    {% set total = total + r.prixAchat %}
+    <tr>
+      <td>#{{ r.id }}</td>
+      <td>{{ r.marqueModele }}</td>
+      <td>{{ r.imei }}</td>
+      <td>{{ r.prixAchat }}</td>
+    </tr>
+  {% endfor %}
+  <tr>
+    <td colspan="3" style="text-align:right;"><strong>Total</strong></td>
+    <td><strong>{{ total }}</strong></td>
+  </tr>
+  </tbody>
+</table>
+
+{% for item in rachats_items %}
+  {% set r = item.r %}
+  {% if item.photos %}
+    <h3>Photos – Rachat #{{ r.id }} ({{ r.marqueModele }})</h3>
+    <div class="photos">
+      {% for p in item.photos %}
+        <img src="{{ p }}" alt="Photo {{ loop.index }} rachat {{ r.id }}">
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}
+
+{% if pieces_identite_data is defined and pieces_identite_data %}
+  <h2>Pièce d’identité</h2>
+  <div class="photos">
+    {% for ci in pieces_identite_data %}
+      <img src="{{ ci }}" alt="Pièce d’identité {{ loop.index }}">
+    {% endfor %}
+  </div>
+{% endif %}
+
+<h2>Signatures</h2>
+<p>
+  Signature vendeur :<br>
+  {% if seller_sign_data_uri %}
+    <img src="{{ seller_sign_data_uri }}" alt="Signature vendeur" style="max-height:80px;">
+  {% endif %}
+</p>
+
+<p>
+  Signature boutique :<br>
+  {% if company_sign_data_uri %}
+    <img src="{{ company_sign_data_uri }}" alt="Signature boutique" style="max-height:80px;">
+  {% endif %}
+</p>
+
+</body>
+</html>

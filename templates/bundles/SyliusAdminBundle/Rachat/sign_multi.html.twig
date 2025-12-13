@@ -1,0 +1,72 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/sign_multi.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Signature bon de cession multi{% endblock %}
+
+{% block content %}
+<h1>Signature – Bon de cession multi</h1>
+
+<p>Vendeur : <strong>{{ rachats[0].prenom }} {{ rachats[0].nom }}</strong></p>
+
+<p>Rachats concernés :</p>
+<ul>
+  {% for r in rachats %}
+    <li>#{{ r.id }} – {{ r.marqueModele }} – {{ r.prixAchat }} €</li>
+  {% endfor %}
+</ul>
+
+<canvas id="signature-pad" style="border:1px solid #ccc;width:100%;max-width:500px;height:200px;"></canvas>
+<br>
+<button type="button" id="clear-btn" class="ui button">Effacer</button>
+
+<form method="post" action="{{ path('admin_rachats_multi_sign_submit') }}">
+  <input type="hidden" name="ids" value="{{ ids_string }}">
+  <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+
+  <button type="submit" class="ui primary button" onclick="
+    var canvas = document.getElementById('signature-pad');
+    document.getElementById('signature_dataurl').value = canvas.toDataURL('image/png');
+  ">
+    ✅ Valider la signature et générer le PDF
+  </button>
+</form>
+
+<script>
+  // Signature ultra simple au doigt / souris
+  const canvas = document.getElementById('signature-pad');
+  const ctx = canvas.getContext('2d');
+  let drawing = false, lastX = 0, lastY = 0;
+
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const temp = document.createElement('canvas');
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    temp.getContext('2d').drawImage(canvas, 0, 0);
+
+    canvas.width = rect.width;
+    canvas.height = 200;
+    ctx.drawImage(temp, 0, 0, rect.width, 200);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  canvas.addEventListener('mousedown', e => {
+    drawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+  });
+  canvas.addEventListener('mouseup', () => drawing = false);
+  canvas.addEventListener('mouseout', () => drawing = false);
+  canvas.addEventListener('mousemove', e => {
+    if (!drawing) return;
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+  });
+
+  document.getElementById('clear-btn').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  });
+</script>
+{% endblock %}

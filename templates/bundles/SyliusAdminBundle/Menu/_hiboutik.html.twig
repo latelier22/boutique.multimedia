@@ -1,0 +1,27 @@
+{# Bloc HIBOUTIK dans le dashboard admin #}
+<h3 class="ui top attached header">
+    <i class="linkify icon"></i>
+    <div class="content">Hiboutik</div>
+</h3>
+
+<div class="ui attached segment">
+    <div class="ui grid">
+        <div class="center aligned doubling two column row">
+
+            <div class="column">
+                <a href="{{ path('admin_rachats_index') }}" class="ui basic big fluid button">
+                    <i class="clipboard list icon"></i>
+                    Rachats
+                </a>
+            </div>
+
+            <div class="column">
+                <a href="{{ path('admin_rachats_create') }}" class="ui basic big fluid button">
+                    <i class="plus circle icon"></i>
+                    Créer
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>

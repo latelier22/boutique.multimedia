@@ -20,9 +20,25 @@
     <div class="ui red message">Impossible d’obtenir l’URL du PDF.</div>
   {% endif %}
 
+  {# ⭐⭐⭐ BOUTON ENVOYER PAR EMAIL ⭐⭐⭐ #}
+    {% if r.email %}
+        <hr>
+        <form method="post" action="{{ path('admin_rachats_send_email', { id: r.id }) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('send_email_' ~ r.id) }}">
+            <button type="submit" class="btn btn-success">
+                Envoyer le bon de cession par email à {{ r.email }}
+            </button>
+        </form>
+    {% else %}
+        <p class="text-warning">
+            Aucune adresse email client renseignée, allez l’ajouter dans la fiche rachat pour pouvoir envoyer le PDF.
+        </p>
+    {% endif %}
+
   <div style="margin-top:10px; display:flex; gap:8px;">
     <a class="ui button" href="{{ edit_url }}">← Retour à l’édition</a>
     <a class="ui button" href="{{ list_url }}">↖︎ Retour à la liste</a>
   </div>
+
 </div>
 {% endblock %}

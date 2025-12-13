@@ -1,0 +1,29 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/multi_after.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Multi-achat créé{% endblock %}
+
+{% block content %}
+<h1>Multi-achat créé</h1>
+
+<p>Les rachats suivants ont été créés :</p>
+
+<ul>
+  {% for r in rachats %}
+    <li>
+      #{{ r.id }} – {{ r.marqueModele }} – {{ r.prixAchat }} €
+    </li>
+  {% endfor %}
+</ul>
+
+<p><strong>Total :</strong> {{ total }} €</p>
+
+<p>
+  <a href="{{ path('admin_rachats_index', { enabled: 1 }) }}" class="ui button">
+    ⬅ Retour à la liste
+  </a>
+
+  <a href="{{ sign_url }}" class="ui primary button">
+    ✍️ Signer le bon de cession multi
+  </a>
+</p>
+{% endblock %}

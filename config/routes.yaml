@@ -43,3 +43,6 @@ admin_export_taxons_csv:
     controller: App\Controller\Admin\TaxonExportController::exportTaxons
 
 
+admin_dashboard_rachat_statistics:
+    path: /admin/dashboard/rachats/stats
+    controller: App\Controller\Admin\Dashboard\RachatStatisticsController::renderRachatStatistics

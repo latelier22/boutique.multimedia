@@ -5,80 +5,264 @@
 {% block content %}
 <style>
   #bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none}
+  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none;font-size:0.9rem}
   .btn-secondary{background:#475569;border-color:#475569}
+  .btn-ghost{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#e5edff;color:#1e293b;cursor:pointer;text-decoration:none;font-size:0.9rem}
   .muted{opacity:.7}
   table{width:100%;border-collapse:collapse;background:#fff}
   th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
   thead th{position:sticky;top:0;background:#0d6efd;color:#fff;z-index:1}
-  .actions a{margin-right:6px}
+  .actions{white-space:normal;}
+  .actions a,
+  .actions button,
+  .actions form{display:inline-block;margin-right:6px;margin-bottom:4px}
   .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
   .pill-ok{background:#dcfce7;color:#166534}
   .pill-off{background:#fee2e2;color:#991b1b}
   .nowrap{white-space:nowrap}
+  th.select-col, td.select-col { width: 40px; text-align:center; }
+
+  /* ─────────── RESPONSIVE MOBILE ─────────── */
+  @media (max-width: 768px) {
+    #bar{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    table#rachats,
+    table#rachats thead,
+    table#rachats tbody,
+    table#rachats th,
+    table#rachats td,
+    table#rachats tr{
+      display:block;
+    }
+
+    table#rachats thead{
+      display:none;
+    }
+
+    table#rachats tbody{
+      padding:0;
+    }
+
+    table#rachats tr{
+      margin-bottom:12px;
+      border:1px solid #e5e7eb;
+      border-radius:8px;
+      padding:8px;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+
+    table#rachats td{
+      border-bottom:none;
+      padding:4px 8px;
+    }
+
+    table#rachats td::before{
+      content: attr(data-label);
+      display:block;
+      font-weight:600;
+      font-size:0.75rem;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      color:#64748b;
+      margin-bottom:2px;
+    }
+
+    td.select-col{
+      text-align:left;
+    }
+    td.select-col::before{
+      content:"";
+    }
+
+    .actions{
+      margin-top:4px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+    }
+
+    .actions a,
+    .actions button{
+      font-size:0.8rem;
+    }
+  }
 </style>
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
 
-{# Barre d’actions minimale #}
-<div id="bar">
-  <a class="ui primary button" href="{{ path('admin_rachats_create') }}">➕ Créer (Quick)</a>
+{# FORM GLOBAL : ids[] + actions (masquer/révéler/payer) #}
+<form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
+  <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
 
-  {% set viewingDisabled = enabled == 0 %}
-  <a class="ui button {{ viewingDisabled ? '' : 'primary' }}"
-     href="{{ path('admin_rachats_index', { enabled: 1 }) }}">👀 Actifs</a>
-  <a class="ui button {{ viewingDisabled ? 'primary' : '' }}"
-     href="{{ path('admin_rachats_index', { enabled: 0 }) }}">🙈 Masqués</a>
-</div>
+  {# Barre d’actions #}
+  <div id="bar">
+    <a class="ui primary button" href="{{ path('admin_rachats_create') }}">➕ Créer (Quick)</a>
+    {# <a class="ui button" href="{{ path('admin_rachats_multi') }}">🧾 Multi-achat</a> #}
+    <a href="{{ path('admin_rachats_multi_wizard_form') }}" class="ui teal button">
+  <i class="users icon"></i> rachats multi
+</a>
 
-{# TABLEAU ÉPURÉ : Modèle, ID, Date cession, Nom, Prénom, Tél, Email, PDF, CI, Actions #}
-<table id="rachats">
-  <thead>
-    <tr>
-      <th>Modèle</th>
-      <th class="nowrap">ID</th>
-      <th class="nowrap">Date cession</th>
-      <th>Nom</th>
-      <th>Prénom</th>
-      <th class="nowrap">Téléphone</th>
-      <th>Email</th>
-      <th class="nowrap">PDF</th>
-      <th class="nowrap">Pièce ID</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in rows %}
-    <tr data-id="{{ row.id }}">
-      <td>{{ row.marque_modele ?: '—' }}</td>
-      <td class="nowrap">{{ row.id }}</td>
-      <td class="nowrap">{{ row.date_cession ?: '—' }}</td>
-      <td>{{ row.nom ?: '—' }}</td>
-      <td>{{ row.prenom ?: '—' }}</td>
-      <td class="nowrap">{{ row.telephone ?: '—' }}</td>
-      <td>{{ row.email ?: '—' }}</td>
+    {% set viewingDisabled = enabled == 0 %}
+    <a class="ui button {{ viewingDisabled ? '' : 'primary' }}"
+       href="{{ path('admin_rachats_index', { enabled: 1 }) }}">👀 Actifs</a>
+    <a class="ui button {{ viewingDisabled ? 'primary' : '' }}"
+       href="{{ path('admin_rachats_index', { enabled: 0 }) }}">🙈 Masqués</a>
 
-      {# PDF : icône cliquable si présent #}
-      <td class="nowrap">
-        {% if row.pdf_url %}
-          <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
-        {% else %}—{% endif %}
-      </td>
+    {# Masquer / Révéler sélection (enabled) #}
+    <button type="submit" name="val" value="0" class="btn btn-secondary">
+      🙈 Masquer sélection
+    </button>
+    <button type="submit" name="val" value="1" class="btn">
+      👀 Révéler sélection
+    </button>
 
-      {# CI : petite icône si on a quelque chose en DB #}
-      <td class="nowrap">
-        {% if row.piece_identite_url %}
-          <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
-        {% else %}—{% endif %}
-      </td>
+    {# Zone paiement en lot #}
+    <span class="muted">|</span>
 
-      {# Actions : Voir + Éditer #}
-      <td class="actions">
-        <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
-        <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
-      </td>
-    </tr>
-  {% else %}
-    <tr><td colspan="10"><em>Aucun rachat.</em></td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+    <label class="muted">Paiement :
+      <select name="method" id="method_select">
+        <option value="ESP" selected>ESP (Espèces)</option>
+        <option value="CB">CB</option>
+        <option value="VIR">Virement</option>
+        <option value="CHQ">Chèque</option>
+        <option value="AUTRE">Autre</option>
+      </select>
+    </label>
+
+    <input type="text"
+           name="other_label"
+           placeholder="Libellé si AUTRE"
+           style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5f5;max-width:180px;">
+
+    <button type="submit"
+            formaction="{{ path('admin_rachats_encaissement_batch') }}"
+            class="btn-ghost">
+      💶 Encaisser sélection
+    </button>
+
+    <a class="ui primary button" href="{{ path('admin_till_index') }}">VOIR CAISSE</a>
+  </div>
+
+  {# TABLEAU : sélection, Modèle, ID, Date cession, Nom, Prénom, Tél, Email, PDF, CI, Payé ?, Actions #}
+  <table id="rachats">
+    <thead>
+      <tr>
+        <th class="select-col">
+          <input type="checkbox" id="check_all" title="Tout sélectionner">
+        </th>
+        <th class="nowrap">ID</th>
+        <th>Modèle</th>
+        <th>Prix rachat</th>
+        <th class="nowrap">Date cession</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th class="nowrap">Téléphone</th>
+        <th>Email</th>
+        <th class="nowrap">PDF</th>
+        <th class="nowrap">Pièce ID</th>
+        <th class="nowrap">Payé ?</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in rows %}
+      <tr data-id="{{ row.id }}">
+        {# case à cocher pour les actions multiples #}
+        <td class="select-col" data-label="">
+          <input type="checkbox" name="ids[]" value="{{ row.id }}">
+        </td>
+
+        <td class="nowrap" data-label="ID">{{ row.id }}</td>
+        <td data-label="Modèle">{{ row.marque_modele ?: '—' }}</td>
+        <td data-label="Prix rachat">{{ row.prix_achat ?: '—' }}</td>
+        <td class="nowrap" data-label="Date cession">{{ row.date_cession ?: '—' }}</td>
+        <td data-label="Nom">{{ row.nom ?: '—' }}</td>
+        <td data-label="Prénom">{{ row.prenom ?: '—' }}</td>
+        <td class="nowrap" data-label="Téléphone">{{ row.telephone ?: '—' }}</td>
+        <td data-label="Email">{{ row.email ?: '—' }}</td>
+
+        {# PDF #}
+        <td class="nowrap" data-label="PDF">
+          {% if row.pdf_url %}
+            <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
+          {% else %}—{% endif %}
+        </td>
+
+        {# Pièce ID #}
+        <td class="nowrap" data-label="Pièce ID">
+          {% if row.piece_identite_url %}
+            <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
+          {% else %}—{% endif %}
+        </td>
+
+        {# Payé ? (paidMethod / paidAt viennent des colonnes du contrôleur) #}
+        <td class="nowrap" data-label="Payé ?">
+          {% if row.paidAt %}
+            <span class="pill pill-ok">
+              ✔ {{ row.paidMethod ?: 'ESP' }}<br>
+              <span class="muted">{{ row.paidAt }}</span>
+            </span>
+          {% else %}
+            <span class="pill pill-off">Non payé</span>
+          {% endif %}
+        </td>
+
+        {# Actions : Voir, Éditer, Autre rachat, Arrivage, Réceptionner, Encaisser / Annuler #}
+        <td class="actions" data-label="Actions">
+          <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
+          <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
+
+          {% if row.__autre_url is defined %}
+            <a href="{{ row.__autre_url }}" class="btn">Autre rachat</a>
+          {% endif %}
+
+         
+          {% if not row.paidAt %}
+            {# Encaissement rapide en ESP #}
+            <button type="submit"
+                    class="btn-ghost"
+                    formaction="{{ path('admin_rachats_encaissement_one', { id: row.id }) }}"
+                    name="method"
+                    value="ESP">
+              💶 ESP
+            </button>
+          {% else %}
+            {# Annulation paiement #}
+            <button type="submit"
+                    class="btn-ghost"
+                    formaction="{{ path('admin_rachats_annuler_encaissement_one', { id: row.id }) }}"
+                    onclick="return confirm('Annuler le paiement de ce rachat ?');">
+              ❌ Annuler paiement
+            </button>
+          {% endif %}
+        {# 📦 Créer produit Hiboutik + ajout à l’arrivage (POST sur une action du contrôleur) #}
+<button type="submit"
+        class="btn-ghost"
+        formaction="{{ path('admin_rachats_create_hib_product_arrivage', { id: row.id }) }}">
+  📦 Produit + arrivage
+</button>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="13"><em>Aucun rachat.</em></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const checkAll = document.getElementById('check_all');
+  if (!checkAll) return;
+
+  checkAll.addEventListener('change', function (e) {
+    const checked = e.target.checked;
+    document
+      .querySelectorAll('input[name="ids[]"]')
+      .forEach(cb => { cb.checked = checked; });
+  });
+});
+</script>
 {% endblock %}
