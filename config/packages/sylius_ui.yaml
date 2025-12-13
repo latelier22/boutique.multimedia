@@ -167,6 +167,28 @@ sonata_block:
 
 sylius_ui:
     events:
+        sylius.admin.layout.sidebar:
+            blocks:
+                # top_legacy:
+                #     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
+                #     priority: 25
+                #     context:
+                #         event: sylius.admin.layout.sidebar_top
+                # logo:
+                #     template: "@SyliusAdmin/_logo.html.twig"
+                #     priority: 20
+                
+                hiboutik:
+                    template: '@SyliusAdmin/Menu/hiboutik.html.twig'
+                    priority: 1000   # tout en haut
+                menu:
+                    template: "@SyliusAdmin/_menu.html.twig"
+                    priority: 10
+                down_legacy:
+                    template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
+                    priority: 5
+                    context:
+                        event: sylius.admin.layout.sidebar_down
         sylius.shop.layout.topbar:
             blocks:
                 before_switchers_legacy:

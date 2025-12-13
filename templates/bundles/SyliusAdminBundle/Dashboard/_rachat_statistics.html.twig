@@ -1,0 +1,173 @@
+{% import "@SyliusAdmin/Common/Macro/money.html.twig" as money %}
+{% set labels = sales_summary.intervals %}
+{% set values = sales_summary.sales %}
+
+<div class="ui grid">
+  <div class="column">
+    <div class="stats">
+      <div class="ui top attached action header">
+      <div class="ui segment">
+    <h4 class="ui header">Export comptable des rachats</h4>
+
+    <form method="get" action="{{ path('admin_dashboard_rachats_export') }}" class="ui form">
+        <div class="fields">
+            <div class="field">
+                <label>Période</label>
+                <select name="period" class="ui dropdown">
+                    <option value="month">Mensuelle</option>
+                    <option value="year">Annuelle</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Année</label>
+                {% set currentYear = "now"|date("Y") %}
+                <select name="year" class="ui dropdown">
+                    {% for y in (currentYear-3)..(currentYear+1) %}
+                        <option value="{{ y }}">{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Mois (si mensuel)</label>
+                <select name="month" class="ui dropdown">
+                    {% for m in 1..12 %}
+                        <option value="{{ m }}">{{ '%02d'|format(m) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="ui button">
+            Exporter pour le comptable (CSV)
+        </button>
+    </form>
+
+    <small>Le CSV ne contient aucune donnée personnelle des vendeurs.</small>
+</div>
+
+        <i class="chart bar icon"></i>
+        Rachats
+
+        <div class="ui buttons" style="margin-left: 1rem;">
+            <button class="ui basic button active green" data-rachat-stats="week" data-url="{{ path('admin_dashboard_rachats_stats') }}">15 derniers jours</button>
+            <button class="ui basic button" data-rachat-stats="month" data-url="{{ path('admin_dashboard_rachats_stats') }}">Mois courant</button>
+            <button class="ui basic button" data-rachat-stats="year" data-url="{{ path('admin_dashboard_rachats_stats') }}">Année {{ "now"|date("Y") }}</button>
+            <button class="ui basic button" data-rachat-stats="last12" data-url="{{ path('admin_dashboard_rachats_stats') }}">12 derniers mois</button>
+        </div>
+      </div>
+
+      <div class="ui attached segment spaceless">
+        <div class="stats-grid">
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-total" class="value" style="padding-bottom:10px;">
+                {{ statistics.total_sales }} €
+              </div>
+              <div class="label">Total</div>
+            </div>
+          </div>
+
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-count" class="value" style="padding-bottom:10px;">
+                {{ statistics.number_of_new_orders }}
+              </div>
+              <div class="label">Opérations</div>
+            </div>
+          </div>
+
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-avg" class="value" style="padding-bottom:10px;">
+                {{ statistics.average_order_value }} €
+              </div>
+              <div class="label">Prix moyen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui bottom attached segment stats-graph" style="padding:0 1rem 1rem 1rem;height:260px;position:relative;">
+        <div class="ui inverted dimmer stats-loader"><div class="ui loader"></div></div>
+        <canvas
+          id="rachat-stats-graph"
+          style="width:100%;height:100%;display:block;"
+          data-labels="{{ labels|json_encode() }}"
+          data-values="{{ values|json_encode() }}">
+        </canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('rachat-stats-graph');
+  const loader = document.querySelector('.stats-loader');
+  if (!canvas) return;
+  let chart;
+
+  function drawChart(labels, values) {
+    const ctx = canvas.getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Montant des rachats (€)',
+          data: values,
+          backgroundColor: '#21ba45', // vert
+          borderColor: '#16ab39',
+          borderWidth: 1,
+          barThickness: 22,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid:{color:'rgba(0,0,0,0.05)'} },
+          x: { grid:{display:false} }
+        }
+      }
+    });
+  }
+
+  drawChart(JSON.parse(canvas.dataset.labels), JSON.parse(canvas.dataset.values));
+
+  document.querySelectorAll('[data-rachat-stats]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const interval = btn.dataset.rachatStats;
+      const url = btn.dataset.url + '?interval=' + interval;
+
+      // ✅ bouton actif vert
+      document.querySelectorAll('[data-rachat-stats]').forEach(b => b.classList.remove('green', 'active'));
+      btn.classList.add('green', 'active');
+
+      loader.classList.add('active');
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        console.log('[RachatStats]', interval, data);
+
+        document.getElementById('rachat-total').textContent = data.summary.total_sales + ' €';
+        document.getElementById('rachat-count').textContent = data.summary.number_of_new_orders;
+        document.getElementById('rachat-avg').textContent = data.summary.average_order_value + ' €';
+
+        drawChart(data.series.intervals, data.series.sales);
+      } catch (e) {
+        console.error('Erreur stats:', e);
+      } finally {
+        setTimeout(() => loader.classList.remove('active'), 300);
+      }
+    });
+  });
+});
+</script>

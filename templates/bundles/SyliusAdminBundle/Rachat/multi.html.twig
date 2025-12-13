@@ -1,0 +1,95 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Procédure multi rachats{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+  <h2 class="ui header">Procédure multi rachats</h2>
+
+  <p>Total rachats sélectionnés : <strong>{{ rachats|length }}</strong></p>
+  <p>Montant total : <strong>{{ total|number_format(2, ',', ' ') }} €</strong></p>
+
+  <h4 class="ui dividing header">Rachats concernés</h4>
+  <table class="ui celled table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Modèle</th>
+        <th>IMEI</th>
+        <th>Prix rachat</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in rachats %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td>{{ r.marqueModele }}</td>
+        <td>{{ r.imei }}</td>
+        <td>{{ r.prixAchat }} €</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h4 class="ui dividing header">Pièce d'identité (appliquée au vendeur principal)</h4>
+  <p>Vendeur : <strong>{{ main.prenom }} {{ main.nom }}</strong></p>
+
+  <form method="post" enctype="multipart/form-data" class="ui form">
+    {# on renvoie les ids au POST suivant #}
+    {% for id in ids %}
+      <input type="hidden" name="ids[]" value="{{ id }}">
+    {% endfor %}
+
+    <div class="two fields">
+      <div class="field">
+        <label>Recto pièce d'identité</label>
+        <input type="file" name="ci_recto" accept="image/*">
+        {% if ci.recto %}
+          <div style="margin-top:.5rem">
+            <div class="ui tiny header">Recto actuel</div>
+            <img src="{{ ci.recto }}" style="max-width:180px;border:1px solid #ccc;border-radius:6px">
+          </div>
+        {% endif %}
+      </div>
+      <div class="field">
+        <label>Verso pièce d'identité</label>
+        <input type="file" name="ci_verso" accept="image/*">
+        {% if ci.verso %}
+          <div style="margin-top:.5rem">
+            <div class="ui tiny header">Verso actuel</div>
+            <img src="{{ ci.verso }}" style="max-width:180px;border:1px solid #ccc;border-radius:6px">
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <h4 class="ui dividing header">Paiement</h4>
+    <div class="three fields">
+      <div class="field">
+        <label>Méthode de paiement</label>
+        <select name="method" class="ui dropdown">
+          <option value="ESP" selected>ESP (Espèces)</option>
+          <option value="CB">CB</option>
+          <option value="VIR">Virement</option>
+          <option value="CHQ">Chèque</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Libellé si "AUTRE"</label>
+        <input type="text" name="other_label" placeholder="Précision méthode">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <div>Montant : <strong>{{ total|number_format(2, ',', ' ') }} €</strong></div>
+      </div>
+    </div>
+
+    <input type="hidden" name="do_multi" value="1">
+
+    <button type="submit" class="ui primary button">
+      💶 Encaisser & générer le bon multi
+    </button>
+    <a href="{{ path('admin_rachats_index') }}" class="ui button">Annuler</a>
+  </form>
+</div>
+{% endblock %}

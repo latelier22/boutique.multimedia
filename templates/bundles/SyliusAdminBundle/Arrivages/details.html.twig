@@ -1,0 +1,37 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Détails arrivage #{{ id }}{% endblock %}
+
+{% block content %}
+<h2 class="ui header">🧾 Détails de l’arrivage #{{ id }}</h2>
+
+<table class="ui celled table">
+  <thead>
+    <tr>
+      <th>ID Ligne</th>
+      <th>Produit</th>
+      <th>Taille</th>
+      <th>Quantité</th>
+      <th>Prix achat</th>
+      <th>Numéro série</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for d in details %}
+    <tr>
+      <td>{{ d.inventory_input_detail_id ?? '—' }}</td>
+      <td>{{ d.product_id ?? '—' }}</td>
+      <td>{{ d.product_size ?? '—' }}</td>
+      <td>{{ d.quantity ?? '—' }}</td>
+      <td>{{ d.product_price ?? '—' }}</td>
+      <td>{{ d.product_serial_number ?? '—' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="center aligned">Aucune ligne trouvée</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<a href="{{ path('admin_arrivages_index') }}" class="ui button">
+  <i class="arrow left icon"></i> Retour
+</a>
+{% endblock %}

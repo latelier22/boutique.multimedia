@@ -128,157 +128,97 @@
 </div>
 
 {# ======================= JS ======================= #}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
 (function(){
   const csrf  = '{{ csrf_token("rachat_edit_" ~ rachat.id) }}';
   const uploadCiUrl     = '{{ path("admin_rachats_upload_ci", { id: rachat.id }) }}';
-  const uploadPhotosUrl = '{{ path("admin_rachats_upload_photos", { id: rachat.id }) }}';
 
-  // IDs réels générés par Symfony
-  const rectoId  = '{{ form.pieceIdentiteRectoFile.vars.id|e('js') }}';
-  const versoId  = '{{ form.pieceIdentiteVersoFile.vars.id|e('js') }}';
-  const photosId = '{{ form.photoFiles.vars.id|e('js') }}';
-
-  const rectoInput  = document.getElementById(rectoId);
-  const versoInput  = document.getElementById(versoId);
-  const photosInput = document.getElementById(photosId);
-
+  const rectoInput  = document.getElementById('{{ form.pieceIdentiteRectoFile.vars.id|e('js') }}');
+  const versoInput  = document.getElementById('{{ form.pieceIdentiteVersoFile.vars.id|e('js') }}');
   const ciSaved     = document.getElementById('ci-saved');
   const ciSavedList = document.getElementById('ci-saved-list');
 
-  // Galerie + placeholder
-  function getGallery(){
-    let g = document.getElementById('photos-gallery');
-    if (!g) {
-      g = document.createElement('div');
-      g.id = 'photos-gallery';
-      g.className = 'ui small images';
-      g.style.display = 'flex';
-      g.style.flexWrap = 'wrap';
-      g.style.gap = '10px';
-      const ph = document.getElementById('photos-placeholder');
-      if (ph && ph.parentNode) ph.parentNode.insertBefore(g, ph);
-      else document.body.appendChild(g);
+  // --- aperçu recto/verso existants
+  {% if rachat.pieceIdentiteUrl %}
+  try {
+    const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
+    for (const k of ['recto','verso']) {
+      if (saved[k]) addSavedCiThumb(k, saved[k]);
     }
-    return g;
-  }
-  function hidePlaceholder(){
-    const ph = document.getElementById('photos-placeholder');
-    if (ph) ph.style.display = 'none';
-  }
-  function showPlaceholderIfEmpty(){
-    const g = getGallery();
-    const ph = document.getElementById('photos-placeholder');
-    if (ph) ph.style.display = g.children.length ? 'none' : 'block';
-  }
-  function addThumbToGallery(url){
-    const gallery = getGallery();
-    hidePlaceholder();
-    const a = document.createElement('a');
-    a.href = url; a.target='_blank'; a.rel='noopener'; a.className='image';
-    const img = document.createElement('img');
-    img.src = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
-    img.style.height='120px';
-    img.style.aspectRatio='1/1';
-    img.style.objectFit='cover';
-    img.style.borderRadius='6px';
-    img.style.border='1px solid #e5e7eb';
-    a.appendChild(img);
-    gallery.appendChild(a);
-  }
+  } catch(e){}
+  {% endif %}
 
+  // --- fonction affichage vignettes
   function addSavedCiThumb(kind, url) {
-    if (!ciSaved || !ciSavedList) return;
     ciSaved.style.display = 'block';
     const prev = ciSavedList.querySelector('[data-kind="'+kind+'"]');
     if (prev) prev.remove();
     const wrap = document.createElement('div');
     wrap.dataset.kind = kind;
-    wrap.style.border = '1px dashed #cbd5e1';
-    wrap.style.borderRadius = '8px';
-    wrap.style.padding = '8px';
-    wrap.style.width = '240px';
-    wrap.innerHTML = `
-      <div style="font-weight:600;color:#374151;margin-bottom:6px">Pièce ${kind}</div>
-      <img src="${url}" style="max-width:100%;height:auto;display:block" />
-      <a class="ui mini button" href="${url}" target="_blank" rel="noopener">🔗 Ouvrir</a>
-    `;
+    wrap.style = 'border:1px dashed #ccc;border-radius:6px;padding:8px;width:240px;';
+    wrap.innerHTML = `<div style="font-weight:600">${kind}</div>
+                      <img src="${url}?v=${Date.now()}" style="max-width:100%;border-radius:6px">
+                      <a class="ui mini button" target="_blank" href="${url}">🔗 Ouvrir</a>`;
     ciSavedList.appendChild(wrap);
   }
 
-  // ====== UPLOAD CI (Recto/Verso) ======
+  // --- CROP + ENVOI ---
+  function cropAndUpload(file, kind) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.style.maxWidth = '90%';
+      img.style.maxHeight = '80vh';
+      overlay.appendChild(img);
+      const btn = document.createElement('button');
+      btn.textContent = '✅ Valider recadrage';
+      btn.className = 'ui primary button';
+      btn.style.marginTop = '1rem';
+      overlay.appendChild(btn);
+      document.body.appendChild(overlay);
+
+      const cropper = new Cropper(img, { aspectRatio: 3/2, viewMode: 1, autoCropArea: 1 });
+
+      btn.onclick = () => {
+        cropper.getCroppedCanvas({width:1200,height:800}).toBlob(async blob => {
+          overlay.remove();
+          // ✅ corrige ici : on fabrique un vrai File
+          const croppedFile = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
+          await uploadCi(croppedFile, kind);
+        }, 'image/jpeg', 0.9);
+      };
+    };
+    reader.readAsDataURL(file);
+  }
+
   async function uploadCi(file, kind) {
-    if (!file) return;
-    const preview = document.getElementById(`ci-${kind}-preview`);
-    const img = document.getElementById(`ci-${kind}-img`);
-    if (preview && img) {
-      preview.style.display = 'block';
-      const reader = new FileReader();
-      reader.onload = e => { img.src = e.target.result; };
-      reader.readAsDataURL(file);
-    }
     const fd = new FormData();
     fd.append('_token', csrf);
-    fd.append('ci', file);
     fd.append('kind', kind);
+    fd.append('ci', file, file.name); // 👈 important : nom explicite
     try {
       const res = await fetch(uploadCiUrl, { method: 'POST', body: fd });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || res.statusText);
       addSavedCiThumb(kind, j.url);
-    } catch (e) {
-      alert('Erreur upload ' + kind + ' : ' + e.message);
-      console.error(e);
-    }
-  }
-  if (rectoInput) rectoInput.addEventListener('change', () => uploadCi(rectoInput.files[0], 'recto'));
-  if (versoInput) versoInput.addEventListener('change', () => uploadCi(versoInput.files[0], 'verso'));
-
-  // ====== UPLOAD PHOTOS PRODUIT ======
-  async function uploadPhotos(files) {
-    const fd = new FormData();
-    fd.append('_token', csrf);
-    for (const f of files) fd.append('photos[]', f);
-
-    try {
-      const res = await fetch(uploadPhotosUrl, { method: 'POST', body: fd });
-      const j = await res.json();
-      if (!res.ok || !j.ok) throw new Error(j.error || res.statusText);
-
-      const gallery = getGallery();
-      gallery.innerHTML = '';
-      hidePlaceholder();
-      (j.all || []).slice(0, 24).forEach(u => addThumbToGallery(u));
-      showPlaceholderIfEmpty();
-    } catch (e) {
-      alert('Erreur upload photos : ' + e.message);
-      console.error(e);
+    } catch(e) {
+      console.error('Erreur upload', e);
+      alert('Erreur upload '+kind+' : '+e.message);
     }
   }
 
-  if (photosInput) {
-    photosInput.addEventListener('change', async () => {
-      const files = Array.from(photosInput.files || []);
-      if (!files.length) return;
+  if (rectoInput) rectoInput.addEventListener('change', e => cropAndUpload(e.target.files[0], 'recto'));
+  if (versoInput) versoInput.addEventListener('change', e => cropAndUpload(e.target.files[0], 'verso'));
+})();
 
-      // Aperçu local immédiat
-      const gallery = getGallery();
-      gallery.innerHTML = '';
-      hidePlaceholder();
-      for (const f of files) {
-        if (!f.type || !f.type.startsWith('image/')) continue;
-        const reader = new FileReader();
-        reader.onload = e => addThumbToGallery(e.target.result);
-        reader.readAsDataURL(f);
-      }
 
-      await uploadPhotos(files);
-      photosInput.value = '';
-      showPlaceholderIfEmpty();
-    });
-  }
-
-  // ====== BOUTON SIGNER ======
+// ====== BOUTON SIGNER ======
   const btn = document.getElementById('btn-save-and-sign');
   const go  = document.getElementById('go-sign');
   const frm = document.getElementById('rachat-form');
@@ -289,20 +229,7 @@
       frm.submit();
     });
   }
-
-  // ====== Bloc "Pièce d'identité enregistrée" si déjà en DB ======
-  {% if rachat.pieceIdentiteUrl %}
-  try {
-    const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
-    if (Array.isArray(saved)) {
-      if (saved[0]) addSavedCiThumb('recto', saved[0]);
-      if (saved[1]) addSavedCiThumb('verso', saved[1]);
-    } else if (saved && typeof saved === 'object') {
-      if (saved.recto) addSavedCiThumb('recto', saved.recto);
-      if (saved.verso) addSavedCiThumb('verso', saved.verso);
-    }
-  } catch(e) {}
-  {% endif %}
-})();
 </script>
+
+
 {% endblock %}

@@ -20,6 +20,10 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
+use App\Service\HiboutikInventoryClient;
+
 
 #[Route('/admin/rachats', name: 'admin_rachats_')]
 final class RachatController extends AbstractController
@@ -27,6 +31,8 @@ final class RachatController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private HiboutikClient $hib,
+        private MailerInterface $mailer, // 👈 AJOUT
+        private HiboutikInventoryClient $inventory, // 👈 AJOUT
     ) {}
 
     // ========== LISTE ==========
@@ -80,29 +86,36 @@ final class RachatController extends AbstractController
                 }
             }
             $row['__photos_first'] = null;
-            $row['__photos_count'] = 0;
-            if (!empty($row['photos_json'])) {
-                $arr = json_decode($row['photos_json'], true);
-                if (is_array($arr) && $arr) {
-                    $row['__photos_count'] = count($arr);
-                    $row['__photos_first'] = $this->generateUrl('admin_rachats_photo', [
-                        'id'   => (int)($row['id'] ?? 0),
-                        'file' => basename((string)$arr[0]),
-                    ]);
-                }
-            }
-            $row['__edit_url'] = $this->generateUrl('admin_rachats_edit', ['id' => $row['id'] ?? '']);
+$row['__photos_count'] = 0;
+if (!empty($row['photos_json'])) {
+    $arr = json_decode($row['photos_json'], true);
+    if (is_array($arr) && $arr) {
+        $row['__photos_count'] = count($arr);
+        $row['__photos_first'] = $this->generateUrl('admin_rachats_photo', [
+            'id'   => (int)($row['id'] ?? 0),
+            'file' => basename((string)$arr[0]),
+        ]);
+    }
+}
+
+$row['__edit_url']  = $this->generateUrl('admin_rachats_edit',  ['id' => $row['id'] ?? '']);
+$row['__autre_url'] = $this->generateUrl('admin_rachats_autre', ['id' => $row['id'] ?? '']);
+
 
             $reshaped = [];
             foreach ($columns as $c) {
                 $reshaped[$c] = $row[$c] ?? '';
             }
             $reshaped['__photos_first'] = $row['__photos_first'];
-            $reshaped['__photos_count'] = $row['__photos_count'];
-            $reshaped['__edit_url']     = $row['__edit_url'];
-            $row = $reshaped;
+$reshaped['__photos_count'] = $row['__photos_count'];
+$reshaped['__edit_url']     = $row['__edit_url'];
+$reshaped['__autre_url']    = $row['__autre_url'];
+$row = $reshaped;
+
         }
         unset($row);
+
+        // dump($rows,$columns);
 
         return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
             'columns' => $columns,
@@ -213,6 +226,528 @@ final class RachatController extends AbstractController
             'form'   => $form->createView(),
         ]);
     }
+
+    // // ========== DELETE ==========
+    // #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    // public function delete(int $id, Request $request): Response
+    // {
+    //     $r = $this->em->getRepository(Rachat::class)->find($id);
+    //     if (!$r) throw $this->createNotFoundException('Rachat introuvable');
+
+        
+
+    //     return $this->render('@SyliusAdmin/Rachat/index.html.twig', []);
+    // }
+
+
+// --- Procédure multi-achat ---
+// dans RachatController
+
+// src/Controller/Admin/Rachat/RachatController.php
+
+
+
+#[Route('/multi', name: 'multi', methods: ['GET', 'POST'])]
+public function multi(Request $req, RachatPdfGenerator $pdfGen, HiboutikClient $hib): Response
+{
+    // 1) Récup des IDs (venant de la liste : checkboxes ids[])
+    $ids = $req->request->all('ids');
+    if (!is_array($ids) || !$ids) {
+        $this->addFlash('error', 'Aucun rachat sélectionné pour la procédure multi.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    $repo = $this->em->getRepository(Rachat::class);
+    $rachats = [];
+    foreach ($ids as $id) {
+        if ($r = $repo->find((int)$id)) {
+            $rachats[] = $r;
+        }
+    }
+
+    if (!$rachats) {
+        $this->addFlash('error', 'Rachats introuvables.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // Rachat de référence pour la pièce d’identité + adresse vendeur
+    /** @var Rachat $main */
+    $main = $rachats[0];
+
+    // ------------- ÉTAPE 1 : affichage du formulaire multi (avec CI) -------------
+    // On affiche le formulaire tant qu’on n’a pas reçu "do_multi"
+    if (!$req->isMethod('POST') || !$req->request->get('do_multi')) {
+        // On regarde si une CI existe déjà pour préafficher
+        $ci = ['recto' => null, 'verso' => null];
+        if ($main->getPieceIdentiteUrl()) {
+            $raw = json_decode($main->getPieceIdentiteUrl(), true);
+            if (is_array($raw)) {
+                if (array_is_list($raw)) {
+                    $ci['recto'] = $raw[0] ?? null;
+                    $ci['verso'] = $raw[1] ?? null;
+                } else {
+                    $ci['recto'] = $raw['recto'] ?? null;
+                    $ci['verso'] = $raw['verso'] ?? null;
+                }
+            }
+        }
+
+        // Total pour info
+        $total = 0.0;
+        foreach ($rachats as $r) {
+            $total += (float) str_replace(',', '.', (string)$r->getPrixAchat());
+        }
+
+        return $this->render('@SyliusAdmin/Rachat/multi.html.twig', [
+            'rachats' => $rachats,
+            'main'    => $main,
+            'ids'     => array_map('intval', $ids),
+            'ci'      => $ci,
+            'total'   => $total,
+        ]);
+    }
+
+    // ------------- ÉTAPE 2 : traitement CI + paiement + PDF multi -------------
+
+    // 2.a) Gestion de la pièce d’identité recto/verso envoyée en multi
+    /** @var UploadedFile|null $recto */
+    $recto = $req->files->get('ci_recto');
+    /** @var UploadedFile|null $verso */
+    $verso = $req->files->get('ci_verso');
+
+    $base = $this->getVarPrivateDir($main->getId());
+    @mkdir($base, 0775, true);
+
+    $urls = [];
+    if ($recto instanceof UploadedFile) {
+        $dst = sprintf('%s/piece_identite_recto.jpg', $base);
+        $this->shrinkToJpegUnder($recto->getPathname(), $dst, 2000, 2000, 1_000_000);
+    }
+    if ($verso instanceof UploadedFile) {
+        $dst = sprintf('%s/piece_identite_verso.jpg', $base);
+        $this->shrinkToJpegUnder($verso->getPathname(), $dst, 2000, 2000, 1_000_000);
+    }
+
+    // Reconstruction des URLs recto/verso (comme dans uploadCi / ciPage)
+    foreach (['recto', 'verso'] as $kind) {
+        $p = sprintf('%s/piece_identite_%s.jpg', $base, $kind);
+        if (is_file($p)) {
+            $urls[$kind] = $this->generateUrl('admin_rachats_ci', [
+                'id'   => $main->getId(),
+                'kind' => $kind,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+    }
+    if ($urls) {
+        $main->setPieceIdentiteUrl(json_encode($urls, JSON_UNESCAPED_SLASHES));
+    }
+
+    // 2.b) Paiement multi (un seul mouvement de caisse avec tous les IDs)
+    $method     = (string)$req->request->get('method', 'ESP');
+    $otherLabel = (string)$req->request->get('other_label', '');
+
+    $meta     = $this->hib->getDefaultStoreMeta();
+    $storeId  = (int)($meta['store_id']      ?? 1);
+    $currency = (string)($meta['currency_code'] ?? 'EUR');
+
+    $total = 0.0;
+    $libProduits = [];
+foreach ($rachats as $r) {
+    $price = (float) str_replace(',', '.', (string)$r->getPrixAchat());
+    $total += $price;
+
+    $libProduits[] = sprintf(
+        '%s %s€',
+        (string)$r->getMarqueModele(),
+        number_format($price, 2, ',', ' ')
+    );
+}
+
+$idsStr         = implode(',', array_map(fn($r) => $r->getId(), $rachats));
+$libProduitsStr = implode(' / ', $libProduits);
+
+$comment = sprintf(
+    'RACHATS MULTI (%s) total %s€ / %s / %s %s',
+    $idsStr,
+    number_format($total, 2, ',', ' '),
+    $libProduitsStr,
+    (string)$main->getNom(),
+    (string)$main->getPrenom()
+);
+
+    if ($method) {
+        $suffix = ' — ' . $method;
+        if (strtoupper($method) === 'AUTRE' && $otherLabel) {
+            $suffix .= ' (' . $otherLabel . ')';
+        }
+        $comment .= $suffix;
+    }
+
+    $res = $hib->tillCashOut($storeId, $total, $currency, $comment);
+    $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
+
+    if (!$okHib) {
+        $this->addFlash('error', 'Erreur Hiboutik lors de l’encaissement multi.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // On marque chaque rachat comme payé
+    $now = new \DateTimeImmutable();
+    foreach ($rachats as $r) {
+        $r->setPaidMethod($method ?: 'ESP');
+        $r->setPaidAt($now);
+    }
+    $this->em->flush();
+
+    // 2.c) PDF multi (tu appelles ta méthode generateMulti)
+    $store = $this->hib->getStores()[0] ?? [];
+    $addr  = $store['store_address'] ?? [];
+    $shop = [
+        'name'    => $store['store_name'] ?? '',
+        'address' => $addr['address'] ?? '',
+        'zip'     => $addr['zippostal_code'] ?? '',
+        'city'    => $addr['city'] ?? '',
+        'phone'   => $addr['phone'] ?? '',
+        'email'   => $addr['email'] ?? '',
+        'site'    => 'https://shop.multimedia-services.fr',
+    ];
+
+    // Photos par rachat → data URIs pour le pdf_multi
+    $photosByRachat = [];
+    foreach ($rachats as $r) {
+        $photosByRachat[$r->getId()] = [];
+        if (!$r->getPhotosJson()) continue;
+        $names = json_decode($r->getPhotosJson(), true) ?: [];
+        $baseR = $this->getVarPrivateDir($r->getId());
+        foreach (array_slice($names, 0, 4) as $name) {
+            $p = $baseR . '/photos/' . basename((string)$name);
+            $u = $this->fileToDataUri($p);
+            if ($u) $photosByRachat[$r->getId()][] = $u;
+        }
+    }
+
+    // CI convertie en data URIs pour le PDF
+    $piecesIdentiteData = [];
+    foreach (['recto','verso'] as $kind) {
+        $p = sprintf('%s/piece_identite_%s.jpg', $base, $kind);
+        $u = $this->fileToDataUri($p);
+        if ($u) $piecesIdentiteData[] = $u;
+    }
+
+    $ts       = (new \DateTimeImmutable())->format('Ymd_His');
+    $filename = sprintf('rachat-multi-%s.pdf', $ts);
+
+    $resPdf = $pdfGen->generateMulti([
+        'rachats'              => $rachats,
+        'main'                 => $main,
+        'shop'                 => $shop,
+        'generated_at'         => new \DateTimeImmutable(),
+        'pieces_identite_data' => $piecesIdentiteData,
+        'photos_by_rachat'     => $photosByRachat,
+        'total'                => $total,
+    ], $filename);
+
+    $this->addFlash('success', 'Procédure multi effectuée. Total encaissé : '.number_format($total,2,',',' ').' €');
+
+    // 👉 Lien vers la page de signature multi (si tu en as une) ou vers le PDF
+    return $this->redirect($resPdf['url']);
+}
+
+
+// ========== SIGN MULTI (affichage) ==========
+#[Route('/multi/sign', name: 'multi_sign', methods: ['GET'])]
+public function multiSign(Request $req): Response
+{
+    $idsParam = (string) $req->query->get('ids', '');
+    $ids = array_filter(array_map('intval', explode(',', $idsParam)));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun rachat sélectionné pour le bon multi.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    $repo = $this->em->getRepository(Rachat::class);
+    /** @var Rachat[] $rachats */
+    $rachats = [];
+    foreach ($ids as $id) {
+        if ($r = $repo->find($id)) {
+            $rachats[] = $r;
+        }
+    }
+
+    if (!$rachats) {
+        $this->addFlash('error', 'Rachats introuvables pour le bon multi.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // Vérifier que c’est bien le même vendeur pour tous
+    $first = $rachats[0];
+    $nomRef    = (string) $first->getNom();
+    $prenomRef = (string) $first->getPrenom();
+
+    foreach ($rachats as $r) {
+        if ((string)$r->getNom() !== $nomRef || (string)$r->getPrenom() !== $prenomRef) {
+            $this->addFlash('error', 'Bon multi impossible : tous les rachats doivent avoir le même vendeur.');
+            return $this->redirectToRoute('admin_rachats_index');
+        }
+    }
+
+    // Infos boutique
+    $store = $this->hib->getStores()[0] ?? [];
+    $addr  = $store['store_address'] ?? [];
+    $shop = [
+        'name'              => $store['store_name'] ?? '',
+        'company'           => $addr['company'] ?? '',
+        'address'           => $addr['address'] ?? '',
+        'zip'               => $addr['zippostal_code'] ?? '',
+        'city'              => $addr['city'] ?? '',
+        'country'           => $addr['country'] ?? '',
+        'tax_number'        => $addr['tax_number'] ?? '',
+        'company_number'    => $addr['company_number'] ?? '',
+        'legal_status'      => $addr['legal_status'] ?? '',
+        'non_assujetti_tva' => (string)($addr['non_assujetti_tva'] ?? ''),
+        'code_naf'          => $addr['code_naf'] ?? '',
+        'phone'             => $addr['phone'] ?? '',
+        'email'             => $addr['email'] ?? '',
+        'site'              => 'https://shop.multimedia-services.fr',
+    ];
+
+    // On utilise la même page de signature que le simple, mais adaptée au multi
+    return $this->render('@SyliusAdmin/Rachat/sign_multi.html.twig', [
+        'rachats'               => $rachats,
+        'ids'                   => $ids,
+        'ids_string'            => implode(',', $ids),
+        'shop'                  => $shop,
+        'company_logo_data_uri' => $this->companyLogoDataUri(),
+        'company_sign_data_uri' => $this->companySignDataUri(),
+        'generated_at'          => new \DateTimeImmutable(),
+    ]);
+}
+
+// ========== SIGN MULTI SUBMIT ==========
+#[Route('/multi/sign/submit', name: 'multi_sign_submit', methods: ['POST'])]
+public function multiSignSubmit(Request $req, RachatPdfGenerator $pdfGen): Response
+{
+    $idsParam = (string) $req->request->get('ids', '');
+    $ids = array_filter(array_map('intval', explode(',', $idsParam)));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun rachat pour le bon multi.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    $repo = $this->em->getRepository(Rachat::class);
+    /** @var Rachat[] $rachats */
+    $rachats = [];
+    foreach ($ids as $id) {
+        if ($r = $repo->find($id)) {
+            $rachats[] = $r;
+        }
+    }
+
+    if (!$rachats) {
+        $this->addFlash('error', 'Rachats introuvables.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // Vérif même vendeur
+    $first = $rachats[0];
+    $nomRef    = (string) $first->getNom();
+    $prenomRef = (string) $first->getPrenom();
+    foreach ($rachats as $r) {
+        if ((string)$r->getNom() !== $nomRef || (string)$r->getPrenom() !== $prenomRef) {
+            $this->addFlash('error', 'Bon multi : vendeurs différents.');
+            return $this->redirectToRoute('admin_rachats_index');
+        }
+    }
+
+    // Récup DataURL de la signature
+    $dataUrl = (string)$req->request->get('signature_dataurl', '');
+    if (!str_starts_with($dataUrl, 'data:image/png;base64,')) {
+        $this->addFlash('error', 'Signature manquante.');
+        return $this->redirectToRoute('admin_rachats_multi_sign', [
+            'ids' => implode(',', $ids),
+        ]);
+    }
+    $png = base64_decode(substr($dataUrl, strpos($dataUrl, ',') + 1));
+
+    $projectDir = $this->getParameter('kernel.project_dir');
+
+    // On enregistre la même signature pour tous les rachats (ou seulement le 1er, au choix)
+    foreach ($rachats as $r) {
+        $pub = $projectDir . "/public/uploads/rachats/" . $r->getId();
+        @mkdir($pub, 0775, true);
+        file_put_contents("$pub/signature.png", $png);
+        $r->setSignatureUrl("/uploads/rachats/" . $r->getId() . "/signature.png");
+    }
+
+    // Infos boutique
+    $store = $this->hib->getStores()[0] ?? [];
+    $addr  = $store['store_address'] ?? [];
+    $shop = [
+        'name'              => $store['store_name'] ?? '',
+        'company'           => $addr['company'] ?? '',
+        'address'           => $addr['address'] ?? '',
+        'zip'               => $addr['zippostal_code'] ?? '',
+        'city'              => $addr['city'] ?? '',
+        'country'           => $addr['country'] ?? '',
+        'tax_number'        => $addr['tax_number'] ?? '',
+        'company_number'    => $addr['company_number'] ?? '',
+        'legal_status'      => $addr['legal_status'] ?? '',
+        'non_assujetti_tva' => (string)($addr['non_assujetti_tva'] ?? ''),
+        'code_naf'          => $addr['code_naf'] ?? '',
+        'phone'             => $addr['phone'] ?? '',
+        'email'             => $addr['email'] ?? '',
+        'site'              => 'https://shop.multimedia-services.fr',
+    ];
+
+    // CI : on prend la CI du premier rachat
+    $baseFirst = $this->getVarPrivateDir($first->getId());
+    $piecesIdentiteData = [];
+    foreach (['recto', 'verso'] as $kind) {
+        $p = sprintf('%s/piece_identite_%s.jpg', $baseFirst, $kind);
+        if (is_file($p)) {
+            $u = $this->fileToDataUri($p);
+            if ($u) $piecesIdentiteData[] = $u;
+        }
+    }
+
+    // Signature vendeur en data URI (on prend celle du premier)
+    $sellerSigPath = $projectDir . '/public' . $first->getSignatureUrl();
+    $sellerSigData = is_file($sellerSigPath) ? $this->fileToDataUri($sellerSigPath) : null;
+
+    // 📷 Photos par produit → on construit une liste [ [r, photos[]], ... ]
+    $items = [];
+    foreach ($rachats as $r) {
+        $base = $this->getVarPrivateDir($r->getId());
+        $photosData = [];
+        if ($r->getPhotosJson()) {
+            foreach (array_slice(json_decode($r->getPhotosJson(), true) ?: [], 0, 4) as $name) {
+                $p = $base . '/photos/' . basename((string)$name);
+                $u = $this->fileToDataUri($p);
+                if ($u) $photosData[] = $u;
+            }
+        }
+
+        $items[] = [
+            'r'      => $r,
+            'photos' => $photosData,
+        ];
+    }
+
+    $idsStr = implode('-', $ids);
+    $ts = (new \DateTimeImmutable())->format('Ymd_His');
+    $filename = sprintf('rachat-multi-%s-%s.pdf', $idsStr, $ts);
+
+    // 🔥 Appel au nouveau template PDF multi
+    $res = $pdfGen->generateMulti([
+        'rachats_items'         => $items,
+        'generated_at'          => new \DateTimeImmutable(),
+        'shop'                  => $shop,
+        'company_logo_data_uri' => $this->companyLogoDataUri(),
+        'company_sign_data_uri' => $this->companySignDataUri(),
+        'pieces_identite_data'  => $piecesIdentiteData,
+        'seller_sign_data_uri'  => $sellerSigData,
+        'ids_string'            => implode(', ', $ids),
+    ], $filename);
+
+    $pdfUrl = (string)($res['url'] ?? '');
+
+    // On enregistre la même URL de PDF pour tous les rachats concernés
+    foreach ($rachats as $r) {
+        $r->setPdfUrl($pdfUrl);
+    }
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Bon de cession multi généré pour les rachats %s.',
+        implode(', ', $ids)
+    ));
+
+    return $this->render('@SyliusAdmin/Rachat/after_sign_multi.html.twig', [
+        'ids'      => $ids,
+        'pdf_url'  => $pdfUrl,
+        'list_url' => $this->generateUrl('admin_rachats_index'),
+    ]);
+}
+
+
+    // ========== AUTRE RACHAT (DUPLICATION VENDEUR SEUL) ==========
+#[Route('/{id}/autre', name: 'autre', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function autre(int $id): Response
+{
+    $repo = $this->em->getRepository(Rachat::class);
+    /** @var Rachat|null $orig */
+    $orig = $repo->find($id);
+    if (!$orig) {
+        throw $this->createNotFoundException('Rachat introuvable');
+    }
+
+    $nouveau = new Rachat();
+
+    // 🔁 INFOS VENDEUR UNIQUEMENT
+    $nouveau
+        ->setNom($orig->getNom())
+        ->setPrenom($orig->getPrenom())
+        ->setNumeroCi($orig->getNumeroCi())
+        ->setTelephone($orig->getTelephone())
+        ->setEmail($orig->getEmail())
+        ->setAdresse($orig->getAdresse())
+        ->setCodePostal($orig->getCodePostal())
+        ->setHibSupplierId($orig->getHibSupplierId())
+        // si tu as une ville ou autre champ vendeur, rajoute ici
+        ->setEnabled(true)
+        ->setCreatedAt(new \DateTimeImmutable());
+
+    // ❌ ON NE COPIE PAS :
+    // - marqueModele
+    // - imei
+    // - prixAchat
+    // - hibProductId
+    // - date_cession
+    // - pdfUrl
+    // - signatureUrl
+    // - photosJson
+    // - paidMethod / paidAt
+    // etc.
+
+    $this->em->persist($nouveau);
+    $this->em->flush();
+
+    // ✅ DUPLIQUER ÉVENTUELLEMENT LES FICHIERS DE PIÈCE D’IDENTITÉ
+    $oldBase = $this->getVarPrivateDir($orig->getId());
+    $newBase = $this->getVarPrivateDir($nouveau->getId());
+    @mkdir($newBase, 0775, true);
+
+    $ciUrls = [];
+    foreach (['recto', 'verso'] as $kind) {
+        $oldPath = sprintf('%s/piece_identite_%s.jpg', $oldBase, $kind);
+        if (is_file($oldPath)) {
+            @copy($oldPath, sprintf('%s/piece_identite_%s.jpg', $newBase, $kind));
+            $ciUrls[$kind] = $this->generateUrl('admin_rachats_ci', [
+                'id'   => $nouveau->getId(),
+                'kind' => $kind,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+        }
+    }
+    if ($ciUrls) {
+        $nouveau->setPieceIdentiteUrl(json_encode($ciUrls, JSON_UNESCAPED_SLASHES));
+        $this->em->flush();
+    }
+
+    $this->addFlash('success', sprintf(
+        'Nouveau rachat créé pour le vendeur %s %s.',
+        (string)$nouveau->getPrenom(),
+        (string)$nouveau->getNom()
+    ));
+
+    // 👉 On envoie directement sur l’édition du nouveau rachat
+    return $this->redirectToRoute('admin_rachats_edit', ['id' => $nouveau->getId()]);
+}
+
+
+
+
 
     // ========== SIGN (affichage) ==========
     #[Route('/{id}/sign', name: 'sign', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -369,6 +904,7 @@ final class RachatController extends AbstractController
         $this->em->flush();
 
         return $this->render('@SyliusAdmin/Rachat/after_sign.html.twig', [
+            'r'        => $r,                               // 👈 AJOUT
             'pdf_url'  => (string)($res['url'] ?? ''),
             'edit_url' => $this->generateUrl('admin_rachats_edit', ['id' => $id]),
             'list_url' => $this->generateUrl('admin_rachats_index'),
@@ -527,48 +1063,218 @@ final class RachatController extends AbstractController
         return $this->render('@SyliusAdmin/Rachat/quick.html.twig');
     }
 
-    // --- Encaissement en lot ---
-    #[Route('/encaissement', name: 'encaissement_batch', methods: ['POST'])]
-    public function encaissementBatch(Request $request, HiboutikClient $hib): Response
-    {
-        $ids = $request->request->all('ids');
-        $method = (string)$request->request->get('method');
-        $labelAutre = (string)$request->request->get('other_label');
-        $backEnabled = $request->request->getInt('_back_enabled', 1);
 
-        if (!$ids) {
-            $this->addFlash('error', 'Sélection requise');
-            return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
-        }
+// --- Annuler encaissement unitaire ---
+#[Route('/{id}/annuler-encaissement', name: 'annuler_encaissement_one', methods: ['POST'])]
+public function annulerEncaissementOne(int $id, HiboutikClient $hib): Response
+{
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
 
-        $storeId  = 1;
-        $currency = 'EUR';
-        $repo = $this->em->getRepository(Rachat::class);
+    if (!$r->getPaidAt()) {
+        $this->addFlash('error', 'Ce rachat n’est pas marqué comme payé.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
 
-        foreach ($ids as $id) {
-            $r = $repo->find((int)$id);
-            if (!$r) continue;
+    // Montant à rentrer en caisse (IN)
+    $amount = (float) str_replace(',', '.', (string) $r->getPrixAchat());
 
-            $amount = (float) str_replace(',', '.', (string) $r->getPrixAchat());
-            $comment = sprintf('RACHAT %d / %s / %s %s', $r->getId(), (string)$r->getMarqueModele(), (string)$r->getNom(), (string)$r->getPrenom());
-            if ($method) {
-                $suffix = ' — ' . $method;
-                if (strtoupper($method) === 'AUTRE' && $labelAutre) $suffix .= ' (' . $labelAutre . ')';
-                $comment .= $suffix;
-            }
+    // Store + devise à partir de Hiboutik
+    $meta    = $this->hib->getDefaultStoreMeta();
+    $storeId = (int)($meta['store_id']      ?? 1);
+    $currency= (string)($meta['currency_code'] ?? 'EUR');
 
-            $res = $hib->tillCashOut($storeId, $amount, $currency, $comment);
-            $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
-            if ($okHib) {
-                $r->setPaidMethod($method ?: 'ESP');
-                $r->setPaidAt(new \DateTimeImmutable());
-            }
-        }
+    $comment = sprintf(
+        'ANNULATION RACHAT %d / %s / %s %s',
+        $r->getId(),
+        (string)$r->getMarqueModele(),
+        (string)$r->getNom(),
+        (string)$r->getPrenom()
+    );
 
+    $res   = $hib->tillCashIn($storeId, $amount, $currency, $comment);
+    $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
+
+    if ($okHib) {
+        $r->setPaidMethod(null);
+        $r->setPaidAt(null);
         $this->em->flush();
-        $this->addFlash('success', 'Encaissement effectué.');
+        $this->addFlash('success', 'Paiement annulé pour le rachat n°' . $r->getId() . '.');
+    } else {
+        // pour debug rapide si ça coince encore :
+        // dump($res); die;
+        $this->addFlash('error', 'Erreur Hiboutik lors de l’annulation du paiement.');
+    }
+
+    return $this->redirectToRoute('admin_rachats_index');
+}
+
+
+#[Route('/{id}/add-to-monthly-arrivage', name: 'add_to_monthly_arrivage', methods: ['POST'])]
+    public function addToMonthlyArrivage(int $id): Response
+    {
+        /** @var Rachat|null $rachat */
+        $rachat = $this->em->getRepository(Rachat::class)->find($id);
+        if (!$rachat) {
+            $this->addFlash('error', 'Rachat introuvable.');
+            return $this->redirectToRoute('admin_rachats_index');
+        }
+
+        $hibProductId = (int) $rachat->getHibProductId();
+        if (!$hibProductId) {
+            $this->addFlash('error', sprintf(
+                'Rachat #%d : aucun produit Hiboutik lié.',
+                $rachat->getId()
+            ));
+            return $this->redirectToRoute('admin_rachats_index');
+        }
+
+        $storeMeta = $this->hib->getDefaultStoreMeta();
+        $storeId   = (int)($storeMeta['store_id'] ?? 1);
+
+        // On récupère ou on crée l’arrivage mensuel côté Hiboutik
+        $input = $this->inventory->getOrCreateMonthlyRachatInput($storeId, 3);
+        if (!($input['ok'] ?? false) || empty($input['id'])) {
+            $this->addFlash('error', 'Impossible de récupérer/créer l’arrivage mensuel dans Hiboutik.');
+            return $this->redirectToRoute('admin_rachats_index');
+        }
+
+        $inventoryInputId = (int) $input['id'];
+        $unitPrice = (float) str_replace(',', '.', (string)$rachat->getPrixAchat());
+
+        $res = $this->hib->addProductToInventoryInput(
+    $inventoryInputId,
+    $hibProductId,
+    1
+);
+
+
+        if (!($res['ok'] ?? false)) {
+            $this->addFlash('error', sprintf(
+                'Erreur Hiboutik en ajoutant le produit à l’arrivage mensuel (input #%d).',
+                $inventoryInputId
+            ));
+        } else {
+            $this->addFlash('success', sprintf(
+                'Rachat #%d ajouté à l’arrivage mensuel #%d.',
+                $rachat->getId(),
+                $inventoryInputId
+            ));
+        }
+
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => 1]);
+    }
+
+
+
+
+    
+    // --- Encaissement en lot ---
+   #[Route('/encaissement', name: 'encaissement_batch', methods: ['POST'])]
+public function encaissementBatch(Request $request, HiboutikClient $hib): Response
+{
+    $ids         = $request->request->all('ids');
+    $method      = (string) $request->request->get('method');
+    $labelAutre  = (string) $request->request->get('other_label');
+    $backEnabled = $request->request->getInt('_back_enabled', 1);
+
+    if (!$ids) {
+        $this->addFlash('error', 'Sélection requise');
         return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
     }
+
+    $repo = $this->em->getRepository(Rachat::class);
+
+    $rachats      = [];
+    $idsClean     = [];
+    $total        = 0.0;
+    $libProduits  = [];
+    $first        = null;
+
+    foreach ($ids as $id) {
+        /** @var Rachat|null $r */
+        $r = $repo->find((int) $id);
+        if (!$r) {
+            continue;
+        }
+
+        $rachats[]  = $r;
+        $idsClean[] = $r->getId();
+
+        $price = (float) str_replace(',', '.', (string) $r->getPrixAchat());
+        $total += $price;
+
+        // libelle + prix pour le commentaire
+        $libProduits[] = sprintf(
+            '%s %s€',
+            (string) $r->getMarqueModele(),
+            number_format($price, 2, ',', ' ')
+        );
+
+        if ($first === null) {
+            $first = $r;
+        }
+    }
+
+    if (!$rachats || !$first) {
+        $this->addFlash('error', 'Rachats introuvables.');
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+    }
+
+    // Construire le commentaire comme AVANT :
+    // RACHATS (276,277) total 2,00€ / a 1,00€ / b 1,00€ / le corre cyrille
+    $idsStr         = implode(',', $idsClean);
+    $libProduitsStr = implode(' / ', $libProduits);
+
+    $comment = sprintf(
+        'RACHATS MULTI (%s) total %s€ / %s / %s %s',
+        $idsStr,
+        number_format($total, 2, ',', ' '),
+        $libProduitsStr,
+        (string) $first->getNom(),
+        (string) $first->getPrenom()
+    );
+
+    if ($method) {
+        $suffix = ' — ' . $method;
+        if (strtoupper($method) === 'AUTRE' && $labelAutre) {
+            $suffix .= ' (' . $labelAutre . ')';
+        }
+        $comment .= $suffix;
+    }
+
+    // UN SEUL mouvement de caisse pour le total
+    $storeId  = 1;
+    $currency = 'EUR';
+
+    $res   = $hib->tillCashOut($storeId, $total, $currency, $comment);
+    $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
+
+    if (!$okHib) {
+        $this->addFlash('error', 'Erreur Hiboutik lors de l’encaissement multiple.');
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+    }
+
+    // On marque TOUS les rachats comme payés
+    $now = new \DateTimeImmutable();
+    foreach ($rachats as $r) {
+        $r->setPaidMethod($method ?: 'ESP');
+        $r->setPaidAt($now);
+    }
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Encaissement multiple effectué : %s€ pour les rachats (%s).',
+        number_format($total, 2, ',', ' '),
+        $idsStr
+    ));
+
+    return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+}
+
 
     // --- Encaissement unitaire ---
     #[Route('/{id}/encaissement', name: 'encaissement_one', methods: ['POST'])]
@@ -804,4 +1510,196 @@ public function ciPage(int $id): Response
         'ci' => $ci,
     ]);
 }
+
+
+// ========== ENVOI EMAIL APRES SIGNATURE ==========
+// ========== ENVOI EMAIL APRES SIGNATURE ==========
+#[Route('/{id}/send-email', name: 'send_email', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function sendEmail(int $id, Request $req, CsrfTokenManagerInterface $csrf): Response
+{
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // ✅ CSRF
+    $token = new CsrfToken('send_email_' . $id, (string)$req->request->get('_token'));
+    if (!$csrf->isTokenValid($token)) {
+        $this->addFlash('error', 'Token CSRF invalide.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $id]);
+    }
+
+    if (!$r->getEmail()) {
+        $this->addFlash('error', 'Aucune adresse email client renseignée.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $id]);
+    }
+
+    $pdfUrl = (string)$r->getPdfUrl();
+    if ($pdfUrl === '') {
+        $this->addFlash('error', 'Aucun PDF généré pour ce rachat.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $id]);
+    }
+
+    // ✅ Chemin local du PDF à partir de l’URL ou du chemin stocké
+    $projectDir = $this->getParameter('kernel.project_dir');
+    $pathPart   = parse_url($pdfUrl, PHP_URL_PATH) ?: $pdfUrl;
+    $pdfPath    = $projectDir . '/public' . $pathPart;
+
+    if (!is_file($pdfPath)) {
+        $this->addFlash('error', 'Le fichier PDF est introuvable sur le serveur.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $id]);
+    }
+
+    // ✅ Infos boutique
+    $store    = $this->hib->getStores()[0] ?? [];
+    $addr     = $store['store_address'] ?? [];
+    $shopName = $store['store_name'] ?? 'Votre boutique';
+
+    // ✅ From FIXE : ton compte OVH (qui correspond au MAILER_DSN)
+    $from = 'contact@multimedia-services.fr';
+
+    $email = (new Email())
+        ->from($from)
+        ->to($r->getEmail())
+        ->replyTo($addr['email'] ?? $from)
+        ->subject(sprintf('Bon de cession n°%d', $r->getId()))
+        ->text(sprintf(
+            "Bonjour %s %s,\n\nVeuillez trouver en pièce jointe votre bon de cession pour le rachat de votre appareil %s.\n\nCordialement,\n%s",
+            (string)$r->getPrenom(),
+            (string)$r->getNom(),
+            (string)$r->getMarqueModele(),
+            (string)$shopName,
+        ))
+        ->attachFromPath($pdfPath, basename($pdfPath), 'application/pdf');
+
+    try {
+        $this->mailer->send($email);
+        $this->addFlash('success', 'Email envoyé au client à l’adresse : ' . $r->getEmail());
+    } catch (\Throwable $e) {
+        $this->addFlash('error', 'Erreur lors de l’envoi de l’email : ' . $e->getMessage());
+        // Si tu veux loguer :
+        // $this->get('logger')->error('Erreur envoi mail rachat', ['exception' => $e]);
+    }
+
+    // Retour sur la page après signature
+    return $this->redirectToRoute('admin_rachats_index', ['id' => $id]);
+}
+
+/**
+ * Crée le produit Hiboutik pour un rachat (si pas encore fait)
+ * et retourne son product_id Hiboutik.
+ */
+private function ensureHiboutikProductForRachat(Rachat $r, int $defaultSupplierId = 3): int
+{
+    // Si déjà lié à un produit Hiboutik, on ne recrée pas
+    if ($r->getHibProductId()) {
+        return (int) $r->getHibProductId();
+    }
+
+    // Fournisseur : on force 3 si rien sur le rachat
+    $supplierId = $r->getHibSupplierId() ?: $defaultSupplierId;
+
+    // Prix d’achat (format float propre)
+    $supplyPrice = (float) str_replace(',', '.', (string) $r->getPrixAchat());
+
+    // Payload minimaliste pour Hiboutik
+    $payload = [
+        'product_model'            => $r->getMarqueModele() ?: sprintf('Rachat #%d', $r->getId()),
+        'product_supplier'         => $supplierId,
+        'product_supply_price'     => $supplyPrice,
+        'product_price'            => $supplyPrice,     // tu ajusteras si tu veux un prix de vente différent
+        'product_stock_management' => 1,
+        'product_display_www'      => 0,
+        'product_arch'             => 0,
+        'products_ref_ext'         => 'RACHAT-'.$r->getId(),
+    ];
+
+    $res = $this->hib->createProduct($payload);
+
+    // APRÈS (remplacer le bloc "récup ID" par ceci)
+$data = is_array($res) ? ($res['data'] ?? $res) : null;
+
+$hibProductId = 0;
+if (is_array($data)) {
+    if (isset($data['product_id'])) {
+        $hibProductId = (int) $data['product_id'];
+    } elseif (isset($data[0]['product_id'])) {
+        $hibProductId = (int) $data[0]['product_id'];
+    }
+}
+
+    if ($hibProductId <= 0) {
+        throw new \RuntimeException('Impossible de récupérer le product_id Hiboutik après création du produit.');
+    }
+
+    // On mémorise côté base locale
+    $r->setHibProductId($hibProductId);
+    if (!$r->getHibSupplierId()) {
+        $r->setHibSupplierId($supplierId);
+    }
+    $this->em->flush();
+
+    return $hibProductId;
+}
+
+
+#[Route('/{id}/hib-product-arrivage', name: 'create_hib_product_arrivage', methods: ['POST'])]
+public function createHibProductAndAddToArrivage(int $id): Response
+{
+    /** @var Rachat|null $rachat */
+    $rachat = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$rachat) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    try {
+        // 1️⃣ Créer (ou récupérer) le produit Hiboutik
+        $hibProductId = $this->ensureHiboutikProductForRachat($rachat, 3);
+    } catch (\Throwable $e) {
+        $this->addFlash('error', 'Erreur lors de la création du produit Hiboutik : '.$e->getMessage());
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
+    }
+
+    // 2️⃣ Récupérer / créer l’arrivage mensuel dans Hiboutik
+    $meta    = $this->hib->getDefaultStoreMeta();
+    $storeId = (int)($meta['store_id'] ?? 1);
+
+    $input = $this->inventory->getOrCreateMonthlyRachatInput($storeId, 3);
+    if (!($input['ok'] ?? false) || empty($input['id'])) {
+        $this->addFlash('error', 'Impossible de récupérer/créer l’arrivage mensuel Hiboutik.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
+    }
+
+    $inventoryInputId = (int) $input['id'];
+    $unitPrice        = (float) str_replace(',', '.', (string)$rachat->getPrixAchat());
+
+    // 3️⃣ Ajouter la ligne produit dans l’arrivage (👉 via HiboutikClient)
+    $resLine = $this->hib->addProductToInventoryInput(
+        $inventoryInputId,
+        $hibProductId,
+        1,
+    );
+
+    if (!($resLine['ok'] ?? false)) {
+        dd($resLine);
+        $this->addFlash('error', sprintf(
+            'Produit Hiboutik %d créé mais erreur lors de l’ajout à l’arrivage #%d.',
+            $hibProductId,
+            $inventoryInputId
+        ));
+    } else {
+        $this->addFlash('success', sprintf(
+            'Rachat #%d ➜ produit Hiboutik %d, ajouté à l’arrivage mensuel #%d.',
+            $rachat->getId(),
+            $hibProductId,
+            $inventoryInputId
+        ));
+    }
+
+    return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
+}
+
+
 }

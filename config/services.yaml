@@ -104,4 +104,14 @@ services:
         tags: ['twig.extension']
 
 
-      
+    # App\Menu\Admin\HiboutikMenuListener:
+    #     tags:
+    #         - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
+
+    
+    App\Service\HiboutikInventoryClient:
+        parent: App\Service\HiboutikClient
+
+    # ⚠️ Toute sous-classe hérite automatiquement des args du parent
+    App\Service\HiboutikTillClient:
+        parent: App\Service\HiboutikClient

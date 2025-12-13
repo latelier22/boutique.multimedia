@@ -1,0 +1,65 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Bon de cession multi{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+  <h2 class="ui header">Bon de cession multi</h2>
+
+  <p>
+    Le bon de cession multi a été généré pour les rachats :
+    <strong>{{ ids|join(', ') }}</strong>.
+  </p>
+
+  {% if pdf_url %}
+    <p>
+      <a href="{{ pdf_url }}" target="_blank" class="ui primary button">
+        <i class="file pdf icon"></i>
+        Ouvrir le PDF
+      </a>
+    </p>
+  {% endif %}
+
+  <h3 class="ui dividing header">Encaissement de ces rachats</h3>
+
+  <form class="ui form" method="post"
+        action="{{ path('admin_rachats_encaissement_batch') }}">
+    {# on repasse tous les IDs au batch d’encaissement #}
+    {% for id in ids %}
+      <input type="hidden" name="ids[]" value="{{ id }}">
+    {% endfor %}
+    <input type="hidden" name="_back_enabled" value="1">
+
+    <div class="fields">
+      <div class="field">
+        <label>Moyen de paiement</label>
+        <select name="method" class="ui dropdown" required>
+          <option value="ESP">Espèces</option>
+          <option value="CB">Carte bancaire</option>
+          <option value="CHQ">Chèque</option>
+          <option value="VIR">Virement</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Libellé si "Autre"</label>
+        <input type="text" name="other_label"
+               placeholder="Ex : Lydia, PayPal…">
+      </div>
+      <div class="field" style="padding-top: 1.9em;">
+        <button type="submit" class="ui green button">
+          <i class="cash register icon"></i>
+          Encaisser ces rachats
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div class="ui divider"></div>
+
+  <a href="{{ list_url }}" class="ui button">
+    <i class="left arrow icon"></i>
+    Retour à la liste des rachats
+  </a>
+</div>
+{% endblock %}

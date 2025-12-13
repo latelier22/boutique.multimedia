@@ -1,0 +1,22 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/_menu_rachats.html.twig #}
+<div class="ui secondary pointing menu" style="margin-bottom:1rem">
+    <a href="{{ path('admin_rachats_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_' ? 'active' : '' }}">
+        📱 Rachats
+    </a>
+
+    <a href="{{ path('admin_till_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_till_' ? 'active' : '' }}">
+        💶 Caisse
+    </a>
+
+    <a href="{{ path('admin_arrivages_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_arrivages_' ? 'active' : '' }}">
+        📦 Arrivages
+    </a>
+
+    <a href="{{ path('admin_vendors_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_vendors_' ? 'active' : '' }}">
+        👤 Vendeurs
+    </a>
+</div>

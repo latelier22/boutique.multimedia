@@ -2,6 +2,7 @@
 {% block title %}Éditer vendeur #{{ id }}{% endblock %}
 
 {% block content %}
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
 <h2>Éditer vendeur #{{ id }}</h2>
 <div style="max-width:700px">
   {{ form_start(form, {attr:{class:'ui form'}}) }}

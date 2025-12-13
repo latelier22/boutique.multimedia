@@ -1,0 +1,67 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Mouvements de caisse Hiboutik{% endblock %}
+
+{% block content %}
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+<h1 class="ui header">
+  💶 Mouvements de caisse – {{ month }}/{{ year }}
+</h1>
+
+<form method="get" action="{{ path('admin_till_index') }}" class="ui form" style="margin-bottom: 1em;">
+  <div class="fields">
+    <div class="field">
+      <label>Mois</label>
+      <select name="month" class="ui dropdown">
+        {% for m in 1..12 %}
+          <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ "%02d"|format(m) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Année</label>
+      <select name="year" class="ui dropdown">
+        {% for y in currentYear-2..currentYear %}
+          <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field" style="align-self: flex-end;">
+      <button type="submit" class="ui blue button">
+        <i class="search icon"></i> Voir
+      </button>
+    </div>
+  </div>
+</form>
+
+<table class="ui celled table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Date</th>
+      <th>Vendeur</th>
+      <th>Sortie (💸)</th>
+      <th>Entrée (💰)</th>
+      <th>Commentaires</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for t in movements %}
+    <tr>
+      <td>{{ t.till_id }}</td>
+      <td>{{ t.date_till }}</td>
+      <td>{{ t.vendor_id ?? '—' }}</td>
+      <td>{{ t.withdrawal ?? '0.00' }}</td>
+      <td>{{ t.deposit ?? '0.00' }}</td>
+      <td>{{ t.comments ?? '' }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="center aligned">Aucun mouvement trouvé pour ce mois.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+
+
+{% endblock %}
