@@ -1,0 +1,38 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Tablette{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+  <h2 class="ui header">Tablette – en attente…</h2>
+  <pre id="dbg" style="white-space:pre-wrap;background:#f6f6f6;padding:10px;"></pre>
+</div>
+
+<script>
+(function(){
+
+  const dbg = document.getElementById('dbg');
+  const device = "{{ device|default('TAB1') }}";
+  const token = "{{ token }}";
+
+  function log(m){ dbg.textContent += m + "\n"; console.log('[TAB]', m); }
+
+  const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+  const wsUrl = `${proto}://${location.host}/ws-tablet?device=${encodeURIComponent(device)}&token=${encodeURIComponent(token)}`;
+
+  log("WS connecting: " + wsUrl);
+
+  const ws = new WebSocket(wsUrl);
+  ws.onopen = () => log("WS open");
+  ws.onerror = (e) => log("WS error");
+  ws.onclose = (e) => log("WS close " + e.code + " " + e.reason);
+
+  ws.onmessage = (e) => {
+    log("WS msg: " + e.data);
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.url) location.href = msg.url;
+    } catch(err) {}
+  };
+})();
+</script>
+{% endblock %}

@@ -12,6 +12,9 @@ security:
     password_hashers:
         Sylius\Component\User\Model\UserInterface: argon2i
     firewalls:
+        tablet:
+            pattern: ^/(?:[a-z]{2}_[A-Z]{2}/)?tablet
+            security: false
         admin:
             switch_user: true
             context: admin
@@ -67,7 +70,8 @@ security:
         shop:
             switch_user: { role: ROLE_ALLOWED_TO_SWITCH }
             context: shop
-            pattern: "%sylius.security.shop_regex%"
+            # pattern: "%sylius.security.shop_regex%"
+            pattern: ^/(?:[a-z]{2}_[A-Z]{2}/)?(?!tablet)
             provider: sylius_shop_user_provider
             form_login:
                 success_handler: sylius.authentication.success_handler

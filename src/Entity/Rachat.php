@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Revendeur;
 
 /**
  * @ORM\Entity()
@@ -102,6 +103,23 @@ class Rachat
 
     /** @ORM\Column(name="paid_at", type="datetime_immutable", nullable=true) */
     private ?\DateTimeImmutable $paidAt = null;
+
+
+    /**
+ * @ORM\ManyToOne(targetEntity=Revendeur::class)
+ * @ORM\JoinColumn(name="revendeur_id", referencedColumnName="id", nullable=true, onDelete="SET NULL")
+ */
+private ?Revendeur $revendeur = null;
+
+public function getRevendeur(): ?Revendeur
+{
+    return $this->revendeur;
+}
+public function setRevendeur(?Revendeur $v): self
+{
+    $this->revendeur = $v;
+    return $this;
+}
 
     public function isEnabled(): bool
     {
@@ -398,4 +416,6 @@ class Rachat
         $this->colonne4 = $v;
         return $this;
     }
+
+
 }

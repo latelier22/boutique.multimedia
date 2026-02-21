@@ -1,0 +1,141 @@
+{# templates/bundles/SyliusAdminBundle/Revendeurs/edit.html.twig #}
+{# id “safe” selon ce que fournit ton controller/Sylius #}
+
+
+
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Modifier revendeur #{{ v.id }}{% endblock %}
+
+{% block content %}
+{# ID SAFE : null / "" -> 0 #}
+  {% set revId = ((v.id ?: 0) + 0) %}
+    {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+   
+
+    <h1 class="ui header">✏️ Revendeur #{{ v.id }}</h1>
+
+    <div class="ui segment">
+        <div class="ui grid">
+            <div class="ten wide column">
+                {% include '@SyliusAdmin/Revendeurs/_form.html.twig' with {
+                    v: v,
+                    token_id: 'revendeur_form_edit_' ~ v.id
+                } %}
+            </div>
+
+            <div class="six wide column">
+                <div class="ui segment">
+                    <h4 class="ui header">Hiboutik</h4>
+
+                    <div style="margin-bottom:10px;">
+                        <div><strong>ref_ext :</strong> {{ v.refExt ?: '—' }}</div>
+                        <div><strong>supplier_id :</strong> {{ v.hibSupplierId ?: '—' }}</div>
+                    </div>
+
+                    <form method="post"
+                          action="{{ path('admin_revendeurs_sync_hiboutik', {id: v.id}) }}"
+                          onsubmit="return confirm('Synchroniser ce revendeur dans Hiboutik ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('revendeur_sync_' ~ v.id) }}">
+                        <button class="ui blue button" type="submit">
+                            <i class="sync icon"></i> Sync Hiboutik
+                        </button>
+                    </form>
+
+                    {% if v.hibSupplierId %}
+                        <div style="margin-top:10px;">
+                            <a class="ui basic button" href="{{ path('admin_vendors_edit', {id: v.hibSupplierId}) }}">
+                                <i class="external alternate icon"></i> Ouvrir fournisseur Hiboutik
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="ui segment">
+                    <h4 class="ui header">Raccourcis</h4>
+                    <a class="ui basic button" href="{{ path('admin_revendeurs_index') }}">
+                        <i class="list icon"></i> Liste revendeurs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# --- CI Revendeur --- #}
+<div class="ui segment">
+    <h4 class="ui dividing header">Pièce d’identité (revendeur)</h4>
+
+    {% set revId = v.id|default(0) %}
+    {% if revId <= 0 %}
+      <div class="ui message">Revendeur non enregistré (id manquant).</div>
+    {% else %}
+      <div class="ui two column stackable grid">
+        <div class="column">
+          <div class="ui small header">Recto</div>
+
+          {% if ci.recto %}
+            <a href="#" class="ci-thumb" data-full="{{ ci.recto }}">
+              <img class="ui bordered image" style="max-width:160px;height:auto" src="{{ ci.recto }}">
+            </a>
+          {% else %}
+            <div class="ui message">Aucun recto</div>
+          {% endif %}
+
+          <form class="ui form" method="post" enctype="multipart/form-data"
+                action="{{ path('admin_revendeurs_upload_ci', {id: revId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('revendeur_ci_' ~ revId) }}">
+            <input type="hidden" name="kind" value="recto">
+            <div class="field">
+              <input type="file" name="ci" accept="image/*" required>
+            </div>
+            <button class="ui button" type="submit">Remplacer recto</button>
+          </form>
+        </div>
+
+        <div class="column">
+          <div class="ui small header">Verso</div>
+
+          {% if ci.verso %}
+            <a href="#" class="ci-thumb" data-full="{{ ci.verso }}">
+              <img class="ui bordered image" style="max-width:160px;height:auto" src="{{ ci.verso }}">
+            </a>
+          {% else %}
+            <div class="ui message">Aucun verso</div>
+          {% endif %}
+
+          <form class="ui form" method="post" enctype="multipart/form-data"
+                action="{{ path('admin_revendeurs_upload_ci', {id: revId}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('revendeur_ci_' ~ revId) }}">
+            <input type="hidden" name="kind" value="verso">
+            <div class="field">
+              <input type="file" name="ci" accept="image/*" required>
+            </div>
+            <button class="ui button" type="submit">Remplacer verso</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="ui modal" id="ciModal">
+    <i class="close icon"></i>
+    <div class="image content" style="justify-content:center;">
+      <img id="ciModalImg" class="ui image" src="" style="max-width:95vw;max-height:85vh;">
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.ci-thumb').forEach(function(a){
+      a.addEventListener('click', function(e){
+        e.preventDefault();
+        var url = a.getAttribute('data-full');
+        document.getElementById('ciModalImg').src = url;
+        if (window.jQuery && jQuery.fn.modal) jQuery('#ciModal').modal('show');
+        else window.open(url, '_blank');
+      });
+    });
+  });
+  </script>
+
+{% endblock %}

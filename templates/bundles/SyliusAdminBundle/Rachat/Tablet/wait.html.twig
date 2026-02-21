@@ -1,0 +1,31 @@
+{% extends '@SyliusAdmin/layout.html.twig' %}
+
+{% block content %}
+  <div class="ui segment">
+    <h2 class="ui header">Tablette – en attente de signature…</h2>
+    <p>Ne pas fermer cet écran.</p>
+  </div>
+
+  <script>
+    // Si tu as déjà Mercure, tu as généralement une URL hub dispo côté front
+    // Exemple: window.MERCURE_HUB_URL injectée, ou via config twig.
+    const device = "{{ device }}";
+    const topic = `${window.location.origin}/mercure/tablet/${device}`;
+
+    const url = new URL(window.MERCURE_HUB_URL);
+    url.searchParams.append('topic', topic);
+
+    const es = new EventSource(url, { withCredentials: true });
+
+    es.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.url) window.location.href = msg.url;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    es.onerror = (e) => console.error("mercure error", e);
+  </script>
+{% endblock %}

@@ -9,15 +9,25 @@
 #             path: "%kernel.logs_dir%/%kernel.environment%.log"
 #             level: debug
 
+
 monolog:
     handlers:
         main:
             type: stream
             path: "%kernel.logs_dir%/prod.log"
-            level: debug
-            
+            level: info
+            channels: ["!event", "!php"]
+
+        php_errors:
+            type: stream
+            path: "%kernel.logs_dir%/php-error.log"
+            level: error
+            channels: ["php"]
+
         error_log:
             type: stream
             path: "%kernel.logs_dir%/prod-error.log"
             level: error
-            channels: ["!event"] 
+            channels: ["!event"]
+
+

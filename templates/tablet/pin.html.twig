@@ -1,0 +1,262 @@
+{# templates/tablet/pin.html.twig #}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Tablette — PIN</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#121826;
+      --muted:#8aa0b6;
+      --text:#e8f0ff;
+      --btn:#1b2636;
+      --btn2:#243248;
+      --danger:#ff4d4d;
+      --ok:#19c37d;
+    }
+
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .card{
+      width:min(520px, 96vw);
+      background: var(--card);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+
+    .title{
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 6px 0;
+    }
+    .subtitle{
+      margin:0 0 14px 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .dots{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      margin: 10px 0 14px;
+    }
+    .dot{
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.08);
+    }
+    .dot.on{ background: rgba(255,255,255,.92); }
+
+    .error{
+      display:none;
+      margin: 10px 0 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,77,77,.10);
+      color: #ffd1d1;
+      border: 1px solid rgba(255,77,77,.35);
+      font-size: 14px;
+    }
+    .error.show{display:block;}
+
+    .pad{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .key{
+      border:0;
+      border-radius: 14px;
+      padding: 18px 0;
+      font-size: 26px;
+      font-weight: 700;
+      background: var(--btn);
+      color: var(--text);
+      cursor:pointer;
+      touch-action: manipulation;
+      user-select:none;
+    }
+    .key:active{ transform: translateY(1px); background: var(--btn2); }
+
+    .key.secondary{
+      background: rgba(255,255,255,.08);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .shake{
+      animation: shake .35s;
+    }
+    @keyframes shake{
+      0%{transform:translateX(0)}
+      20%{transform:translateX(-10px)}
+      40%{transform:translateX(10px)}
+      60%{transform:translateX(-8px)}
+      80%{transform:translateX(8px)}
+      100%{transform:translateX(0)}
+    }
+
+    .hint{
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card" id="card">
+    <h1 class="title">Déverrouillage tablette</h1>
+    <p class="subtitle">Saisis le code à 4 chiffres. Validation automatique.</p>
+
+    <div class="dots" aria-label="Saisie PIN">
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+      <div class="dot" id="d4"></div>
+    </div>
+
+    <div class="error {% if error %}show{% endif %}" id="errorBox">
+      {{ error ?: 'PIN incorrect' }}
+    </div>
+
+    <div class="pad" aria-label="Pavé numérique">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+
+      <button class="key secondary" id="back">⌫</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key secondary" id="clear">C</button>
+    </div>
+
+    <p class="hint">Astuce : la touche ⌫ efface 1 chiffre, C efface tout.</p>
+
+    {# form invisible : POST auto #}
+    <form id="pinForm" method="post" action="{{ path('tablet_unlock') }}" style="display:none;">
+      <input type="hidden" name="pin" id="pinInput" value="">
+    </form>
+  </div>
+
+  <script>
+  (function(){
+    const card   = document.getElementById('card');
+    const form   = document.getElementById('pinForm');
+    const pinInp = document.getElementById('pinInput');
+    const errBox = document.getElementById('errorBox');
+
+    const dots = [
+      document.getElementById('d1'),
+      document.getElementById('d2'),
+      document.getElementById('d3'),
+      document.getElementById('d4'),
+    ];
+
+    let pin = "";
+
+    function render(){
+      for(let i=0;i<4;i++){
+        dots[i].classList.toggle('on', i < pin.length);
+      }
+    }
+
+    function reset(withShake){
+      pin = "";
+      pinInp.value = "";
+      render();
+
+      if(withShake){
+        errBox.classList.add('show');
+        card.classList.remove('shake'); // reset anim
+        void card.offsetWidth;          // reflow
+        card.classList.add('shake');
+      }
+    }
+
+    function submitIfReady(){
+      if(pin.length !== 4) return;
+
+      // POST normal => ton controller renverra soit redirect /tablet/wait, soit re-render pin avec error
+      pinInp.value = pin;
+      form.submit();
+    }
+
+    // Si on arrive avec error twig => on secoue + on reset
+    {% if error %}
+      reset(true);
+    {% else %}
+      render();
+    {% endif %}
+
+    function addDigit(d){
+      if(pin.length >= 4) return;
+      pin += d;
+      errBox.classList.remove('show');
+      render();
+      submitIfReady();
+    }
+
+    function backspace(){
+      if(pin.length === 0) return;
+      pin = pin.slice(0, -1);
+      render();
+    }
+
+    document.querySelectorAll('button[data-k]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        addDigit(btn.getAttribute('data-k'));
+      });
+    });
+
+    document.getElementById('back').addEventListener('click', (e)=>{
+      e.preventDefault();
+      backspace();
+    });
+
+    document.getElementById('clear').addEventListener('click', (e)=>{
+      e.preventDefault();
+      reset(false);
+      errBox.classList.remove('show');
+    });
+
+    // Bonus : clavier physique si jamais
+    window.addEventListener('keydown', (e)=>{
+      if(e.key >= '0' && e.key <= '9'){ addDigit(e.key); }
+      else if(e.key === 'Backspace'){ backspace(); }
+      else if(e.key === 'Escape'){ reset(false); errBox.classList.remove('show'); }
+    });
+  })();
+  </script>
+</body>
+</html>
