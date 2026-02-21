@@ -2,6 +2,8 @@
 
 namespace App\Controller\Admin\Rachat;
 
+use App\Service\RevendeurHiboutikSync;
+use App\Entity\Revendeur;
 use App\Entity\Rachat;
 use App\Form\RachatType;
 use App\Service\HiboutikClient;
@@ -22,7 +24,15 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use App\Service\HiboutikInventoryClient;
+
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
+
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
+
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 
 
 #[Route('/admin/rachats', name: 'admin_rachats_')]
@@ -31,98 +41,217 @@ final class RachatController extends AbstractController
     public function __construct(
         private EntityManagerInterface $em,
         private HiboutikClient $hib,
-        private MailerInterface $mailer, // 👈 AJOUT
-        private HiboutikInventoryClient $inventory, // 👈 AJOUT
+        private MailerInterface $mailer, 
+        private RevendeurHiboutikSync $sync
     ) {}
 
-    // ========== LISTE ==========
-    #[Route('', name: 'index', methods: ['GET', 'POST'])]
-    public function index(Request $request): Response
-    {
-        if ($request->isMethod('POST')) {
-            return $this->redirectToRoute('admin_rachats_index', $request->request->all());
-        }
-
-        $columns = [
-            'id',
-            'enabled',
-            'date_cession',
-            'pdf_url',
-            'marque_modele',
-            'imei',
-            'prix_achat',
-            'nom',
-            'prenom',
-            'numero_ci',
-            'piece_identite_url',
-            'telephone',
-            'email',
-            'adresse',
-            'code_postal',
-            'hib_supplier_id',
-            'hib_product_id',
-            'paidMethod',
-            'paidAt',
-            'photos_json',
-            'created_at',
-        ];
-        $enabled = $request->query->getInt('enabled', 1);
-
-        $rows = $this->em->getRepository(Rachat::class)
-            ->createQueryBuilder('r')
-            ->andWhere('r.enabled = :e')->setParameter('e', (bool)$enabled)
-            ->orderBy('r.id', 'DESC')->getQuery()->getArrayResult();
-
-        foreach ($rows as &$row) {
-            foreach ($row as $k => $v) {
-                if ($v instanceof \DateTimeInterface) {
-                    $row[$k] = $v->format('d-m-Y');
-                } elseif (is_array($v)) {
-                    $row[$k] = json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                } elseif ($v === null) {
-                    $row[$k] = '';
-                } else {
-                    $row[$k] = (string)$v;
-                }
-            }
-            $row['__photos_first'] = null;
-$row['__photos_count'] = 0;
-if (!empty($row['photos_json'])) {
-    $arr = json_decode($row['photos_json'], true);
-    if (is_array($arr) && $arr) {
-        $row['__photos_count'] = count($arr);
-        $row['__photos_first'] = $this->generateUrl('admin_rachats_photo', [
-            'id'   => (int)($row['id'] ?? 0),
-            'file' => basename((string)$arr[0]),
-        ]);
-    }
+#[Route('/tablet', name: 'tablet', methods: ['GET'])]
+public function tabletWait(Request $req): Response
+{
+    $device = (string)($req->query->get('device', 'TAB1'));
+    return $this->render('@SyliusAdmin/Rachat/tablet_wait.html.twig', [
+        'device' => $device,
+        'token'  => $this->getParameter('tablet_socket_token'),
+    ]);
 }
 
-$row['__edit_url']  = $this->generateUrl('admin_rachats_edit',  ['id' => $row['id'] ?? '']);
-$row['__autre_url'] = $this->generateUrl('admin_rachats_autre', ['id' => $row['id'] ?? '']);
 
+#[Route('/{id}/tablet-link', name: 'tablet_link', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function tabletLink(int $id, Request $req, CacheItemPoolInterface $cache): JsonResponse
+{
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) return $this->json(['ok'=>false,'error'=>'Rachat introuvable'], 404);
 
-            $reshaped = [];
-            foreach ($columns as $c) {
-                $reshaped[$c] = $row[$c] ?? '';
-            }
-            $reshaped['__photos_first'] = $row['__photos_first'];
-$reshaped['__photos_count'] = $row['__photos_count'];
-$reshaped['__edit_url']     = $row['__edit_url'];
-$reshaped['__autre_url']    = $row['__autre_url'];
-$row = $reshaped;
+    // token one-shot 5 min
+    $token = bin2hex(random_bytes(16));
+    $key = 'tablet_sign_' . $id . '_' . $token;
 
-        }
-        unset($row);
+    $item = $cache->getItem($key);
+    $item->set(1);
+    $item->expiresAfter(300);
+    $cache->save($item);
 
-        // dump($rows,$columns);
+    // ✅ URL publique tablette (token en query string)
+    $base = $this->generateUrl('tablet_sign', ['id' => $id], UrlGeneratorInterface::ABSOLUTE_URL);
+    $url  = $base . '?token=' . urlencode($token);
 
-        return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
-            'columns' => $columns,
-            'rows'    => $rows,
-            'enabled' => $enabled,
-        ]);
+    return $this->json(['ok'=>true,'url'=>$url, 'token'=>$token]);
+}
+
+#[Route('/tablet/push', name: 'tablet_push', methods: ['POST'])]
+public function tabletPush(Request $req, CacheItemPoolInterface $cache): JsonResponse
+{
+    $device = (string)$req->request->get('device', 'TAB1');
+    $url    = (string)$req->request->get('url', '');
+    if ($url === '') return $this->json(['ok'=>false,'error'=>'missing url'], 400);
+
+    $key = 'tablet_next_' . preg_replace('/[^A-Z0-9_\-]/i', '', $device);
+
+    $item = $cache->getItem($key);
+    $item->set($url);
+    $item->expiresAfter(300); // 5 minutes
+    $cache->save($item);
+
+    return $this->json(['ok'=>true, 'device'=>$device, 'key'=>$key, 'url'=>$url]);
+}
+
+#[Route('/tablet/next', name: 'tablet_next', methods: ['GET'])]
+public function tabletNext(Request $req, CacheItemPoolInterface $cache): JsonResponse
+{
+    $device = (string)$req->query->get('device', 'TAB1');
+    $key = 'tablet_next_' . preg_replace('/[^A-Z0-9_\-]/i', '', $device);
+
+    $item = $cache->getItem($key);
+    if (!$item->isHit()) {
+        return $this->json(['ok'=>true, 'nextUrl'=>null]);
     }
+
+    $url = (string)$item->get();
+    $cache->deleteItem($key); // ✅ consume
+
+    return $this->json(['ok'=>true, 'nextUrl'=>$url]);
+}
+
+  // ========== LISTE ==========
+#[Route('', name: 'index', methods: ['GET', 'POST'])]
+public function index(Request $request): Response
+{
+    if ($request->isMethod('POST')) {
+        // garde ton pattern "POST -> redirect GET" pour garder les params
+        return $this->redirectToRoute('admin_rachats_index', $request->request->all());
+    }
+
+    $enabled = $request->query->getInt('enabled', 1);
+
+    $columns = [
+        'id',
+        'enabled',
+        'date_cession',
+        'pdf_url',
+        'marque_modele',
+        'imei',
+        'prix_achat',
+        'nom',
+        'prenom',
+        'numero_ci',
+        'piece_identite_url',
+        'telephone',
+        'email',
+        'adresse',
+        'code_postal',
+        'hib_supplier_id',
+        'hib_product_id',
+        'paidMethod',
+        'paidAt',
+        'photos_json',
+        'created_at',
+
+        // ✅ AJOUTS
+        'revendeur_id',
+        'vendorProcessedAt',
+    ];
+
+    $qb = $this->em->getRepository(Rachat::class)->createQueryBuilder('r')
+    ->leftJoin('r.revendeur', 'rev')
+    ->addSelect('rev')
+    ->andWhere('r.enabled = :e')->setParameter('e', (bool)$enabled)
+    ->orderBy('r.id', 'DESC');
+
+$rows = $qb->getQuery()->getArrayResult();
+
+foreach ($rows as &$row) {
+
+    // --- id SAFE (évite id vide)
+    $idInt = (int)($row['id'] ?? 0);
+    if ($idInt <= 0) {
+        // si jamais un enregistrement foireux remonte, on l’ignore
+        continue;
+    }
+    $row['id'] = (string)$idInt;
+
+    // --- dates / null / arrays -> strings
+    foreach ($row as $k => $v) {
+        if ($v instanceof \DateTimeInterface) {
+            $row[$k] = $v->format('d-m-Y');
+        } elseif (is_array($v)) {
+            // on garde l’array relation dans $row['revendeur'] tel quel
+            // (pas de json_encode ici)
+        } elseif ($v === null) {
+            $row[$k] = '';
+        } else {
+            $row[$k] = (string)$v;
+        }
+    }
+
+    // --- Revendeur id (si joint)
+$revId = 0;
+if (isset($row['revendeur']) && is_array($row['revendeur'])) {
+    $revId = (int)($row['revendeur']['id'] ?? 0);
+}
+
+// ✅ champ stable pour Twig
+$row['revendeur_id'] = $revId;
+
+// ✅ URLs revendeur (APRES avoir $revId)
+$row['__revendeur_show_url'] = $revId > 0
+    ? $this->generateUrl('admin_revendeurs_show', ['id' => $revId])
+    : null;
+
+$row['__revendeur_edit_url'] = $revId > 0
+    ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId])
+    : null;
+
+    // --- URLs SAFE
+    $row['__edit_url']  = $this->generateUrl('admin_rachats_edit',  ['id' => $idInt]);
+    $row['__autre_url'] = $this->generateUrl('admin_rachats_autre', ['id' => $idInt]);
+
+    $row['__revendeur_edit_url'] = $revId > 0
+        ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId])
+        : null;
+
+    // --- photos preview (comme tu fais)
+    $row['__photos_first'] = null;
+    $row['__photos_count'] = 0;
+    if (!empty($row['photos_json'])) {
+        $arr = json_decode((string)$row['photos_json'], true);
+        if (is_array($arr) && $arr) {
+            $row['__photos_count'] = count($arr);
+            $row['__photos_first'] = $this->generateUrl('admin_rachats_photo', [
+                'id'   => $idInt,
+                'file' => basename((string)$arr[0]),
+            ]);
+        }
+    }
+
+    
+ 
+
+
+    // --- reshape final (garde tes colonnes existantes)
+    $reshaped = [];
+    foreach ($columns as $c) {
+        $reshaped[$c] = $row[$c] ?? '';
+    }
+    $reshaped['__photos_first'] = $row['__photos_first'];
+    $reshaped['__photos_count'] = $row['__photos_count'];
+    $reshaped['__edit_url']     = $row['__edit_url'];
+    $reshaped['__autre_url']    = $row['__autre_url'];
+    $reshaped['__revendeur_id'] = $row['__revendeur_id'];
+    $reshaped['__revendeur_show_url'] = $row['__revendeur_show_url'] ?? null;
+    $reshaped['__revendeur_edit_url'] = $row['__revendeur_edit_url'] ?? null;   
+
+
+    $row = $reshaped;
+}
+unset($row);
+
+    return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
+        'columns' => $columns,
+        'rows'    => $rows,
+        'enabled' => $enabled,
+    ]);
+}
+
 
     // ========== CREATE ==========
     #[Route('/new', name: 'create', methods: ['GET', 'POST'])]
@@ -224,6 +353,7 @@ $row = $reshaped;
         return $this->render('@SyliusAdmin/Rachat/edit.html.twig', [
             'rachat' => $r,
             'form'   => $form->createView(),
+            'tablet_socket_token' => $this->getParameter('tablet_socket_token'),
         ]);
     }
 
@@ -1142,11 +1272,11 @@ public function annulerEncaissementOne(int $id, HiboutikClient $hib): Response
             return $this->redirectToRoute('admin_rachats_index');
         }
 
-        $inventoryInputId = (int) $input['id'];
+        $hibInputId = (int) $input['id'];
         $unitPrice = (float) str_replace(',', '.', (string)$rachat->getPrixAchat());
 
         $res = $this->hib->addProductToInventoryInput(
-    $inventoryInputId,
+    $hibInputId,
     $hibProductId,
     1
 );
@@ -1155,13 +1285,13 @@ public function annulerEncaissementOne(int $id, HiboutikClient $hib): Response
         if (!($res['ok'] ?? false)) {
             $this->addFlash('error', sprintf(
                 'Erreur Hiboutik en ajoutant le produit à l’arrivage mensuel (input #%d).',
-                $inventoryInputId
+                $hibInputId
             ));
         } else {
             $this->addFlash('success', sprintf(
                 'Rachat #%d ajouté à l’arrivage mensuel #%d.',
                 $rachat->getId(),
-                $inventoryInputId
+                $hibInputId
             ));
         }
 
@@ -1695,12 +1825,12 @@ public function createHibProductAndAddToArrivage(int $id): Response
         return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
     }
 
-    $inventoryInputId = (int) $input['id'];
+    $hibInputId = (int) $input['id'];
     $unitPrice        = (float) str_replace(',', '.', (string)$rachat->getPrixAchat());
 
     // 3️⃣ Ajouter la ligne produit dans l’arrivage (👉 via HiboutikClient)
     $resLine = $this->hib->addProductToInventoryInput(
-        $inventoryInputId,
+        $hibInputId,
         $hibProductId,
         1,
     );
@@ -1710,18 +1840,335 @@ public function createHibProductAndAddToArrivage(int $id): Response
         $this->addFlash('error', sprintf(
             'Produit Hiboutik %d créé mais erreur lors de l’ajout à l’arrivage #%d.',
             $hibProductId,
-            $inventoryInputId
+            $hibInputId
         ));
     } else {
         $this->addFlash('success', sprintf(
             'Rachat #%d ➜ produit Hiboutik %d, ajouté à l’arrivage mensuel #%d.',
             $rachat->getId(),
             $hibProductId,
-            $inventoryInputId
+            $hibInputId
         ));
     }
 
     return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
+}
+
+#[Route('/{id}/process-revendeur', name: 'process_revendeur', methods: ['POST'], requirements: ['id' => '\d+'])]
+public function processRevendeur(
+    int $id,
+    Request $req,
+    CsrfTokenManagerInterface $csrf
+): Response
+{
+    $token = new CsrfToken('process_revendeur_' . $id, (string) $req->request->get('_token'));
+    if (!$csrf->isTokenValid($token)) {
+        $this->addFlash('error', 'Token CSRF invalide.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    /** @var Rachat|null $r */
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirectToRoute('admin_rachats_index');
+    }
+
+    // ✅ url de retour : peut venir en QUERY (formaction) ou POST => get() couvre les deux
+    $return = (string) $req->get('_return', '');
+    $backEnabled = (int) $req->get('_back_enabled', 1);
+
+    // ✅ Si déjà lié
+    if ($r->getRevendeur()) {
+        $this->addFlash('success', 'Revendeur déjà lié à ce rachat.');
+
+        if ($return !== '' && str_starts_with($return, '/admin/rachats')) {
+            return $this->redirect($return);
+        }
+
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+    }
+
+    // 1) Trouver ou créer Revendeur local
+    $revRepo = $this->em->getRepository(Revendeur::class);
+
+    $nom    = trim((string) $r->getNom());
+    $prenom = trim((string) $r->getPrenom());
+    $tel    = trim((string) $r->getTelephone());
+    $email  = trim((string) $r->getEmail());
+
+    $rev = null;
+    if ($email !== '') {
+        $rev = $revRepo->findOneBy(['email' => $email]);
+    }
+    if (!$rev && $tel !== '') {
+        $rev = $revRepo->findOneBy(['telephone' => $tel]);
+    }
+    if (!$rev && ($nom !== '' || $prenom !== '')) {
+        $rev = $revRepo->findOneBy(['nom' => $nom ?: null, 'prenom' => $prenom ?: null]);
+    }
+
+    if (!$rev) {
+        $rev = new Revendeur();
+    }
+
+    // Adresse rachat -> adresse1/adresse2
+    $addr  = trim((string) $r->getAdresse());
+    $lines = $addr !== '' ? preg_split("/\R+/", $addr) : [];
+    $a1 = trim((string) ($lines[0] ?? ''));
+    $a2 = trim((string) ($lines[1] ?? ''));
+
+    $rev->setNom($nom ?: null);
+    $rev->setPrenom($prenom ?: null);
+    $rev->setTelephone($tel ?: null);
+    $rev->setEmail($email ?: null);
+
+    $rev->setAdresse1($a1 ?: null);
+    $rev->setAdresse2($a2 ?: null);
+    $rev->setCodePostal($r->getCodePostal() ?: null);
+
+    if (method_exists($rev, 'setVille')) {
+        $rev->setVille(null);
+    }
+    $rev->setPays('France');
+
+    $this->em->persist($rev);
+    $this->em->flush(); // id dispo
+
+    // 2) Sync Hiboutik
+    $supplierId = $this->sync->ensureSupplier($rev);
+
+    // 3) Lier le rachat
+    $r->setRevendeur($rev);
+    $r->setHibSupplierId($supplierId);
+
+    if (method_exists($r, 'setVendorProcessedAt')) {
+        $r->setVendorProcessedAt(new \DateTimeImmutable());
+    }
+
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Revendeur OK : #%d → supplier Hiboutik #%d.',
+        (int) $rev->getId(),
+        (int) $supplierId
+    ));
+
+    // ✅ retour sur la liste au bon endroit
+    if ($return !== '' && str_starts_with($return, '/admin/rachats')) {
+        return $this->redirect($return);
+    }
+
+    return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+}
+
+
+#[Route('/{id}/apply-revendeur', name: 'apply_revendeur', methods: ['POST'], requirements: ['id'=>'\d+'])]
+public function applyRevendeur(
+    int $id,
+    Request $req,
+    CsrfTokenManagerInterface $csrf
+): JsonResponse {
+    $token = new CsrfToken('apply_revendeur_'.$id, (string)$req->request->get('_token'));
+    if (!$csrf->isTokenValid($token)) {
+        return $this->json(['ok'=>false,'error'=>'CSRF'], 400);
+    }
+
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) return $this->json(['ok'=>false,'error'=>'Rachat introuvable'], 404);
+
+    $revId = (int)$req->request->get('revendeur_id', 0);
+    $rev = $this->em->getRepository(Revendeur::class)->find($revId);
+    if (!$rev) return $this->json(['ok'=>false,'error'=>'Revendeur introuvable'], 404);
+
+    // 1) Lier
+    $r->setRevendeur($rev);
+    $supplierId = $this->sync->ensureSupplier($rev);
+$r->setHibSupplierId($supplierId);
+
+if (method_exists($r, 'setVendorProcessedAt')) {
+    $r->setVendorProcessedAt(new \DateTimeImmutable());
+}
+
+    // 2) Remplir les champs rachat depuis revendeur
+    $r->setNom($rev->getNom());
+    $r->setPrenom($rev->getPrenom());
+    $r->setTelephone($rev->getTelephone());
+    $r->setEmail($rev->getEmail());
+    $r->setCodePostal($rev->getCodePostal());
+
+    // Adresse compacte (ligne1 + ligne2) -> champ texte rachat.adresse
+    $addr = trim(implode("\n", array_filter([trim((string)$rev->getAdresse1()), trim((string)$rev->getAdresse2())])));
+    $r->setAdresse($addr ?: null);
+
+    // 3) Copier la CI (recto/verso) depuis le DERNIER rachat du même revendeur (si existe)
+    //    seulement si le rachat courant n’a pas déjà une CI
+    $ci = ['recto'=>null, 'verso'=>null];
+    $hasCi = (string)$r->getPieceIdentiteUrl() !== '';
+    if (!$hasCi) {
+        $ci = $this->copyCiFromLatestRachatOfRevendeur($rev, $r->getId());
+        if ($ci['recto'] || $ci['verso']) {
+            $r->setPieceIdentiteUrl(json_encode(array_filter($ci), JSON_UNESCAPED_SLASHES));
+        }
+    }
+
+    $this->em->flush();
+
+    return $this->json([
+        'ok' => true,
+        'revendeur_id' => $rev->getId(),
+        'filled' => [
+            'nom' => $r->getNom() ?? '',
+            'prenom' => $r->getPrenom() ?? '',
+            'telephone' => $r->getTelephone() ?? '',
+            'email' => $r->getEmail() ?? '',
+            'adresse' => $r->getAdresse() ?? '',
+            'code_postal' => $r->getCodePostal() ?? '',
+        ],
+        'ci' => $ci,
+    ]);
+}
+
+private function copyCiFromLatestRachatOfRevendeur(Revendeur $rev, int $currentRachatId): array
+{
+    $repo = $this->em->getRepository(Rachat::class);
+
+    // On cherche les rachats du revendeur (les plus récents d’abord)
+    $candidates = $repo->createQueryBuilder('r')
+        ->andWhere('r.revendeur = :rev')->setParameter('rev', $rev)
+        ->andWhere('r.id != :id')->setParameter('id', $currentRachatId)
+        ->orderBy('r.id', 'DESC')
+        ->setMaxResults(20)
+        ->getQuery()->getResult();
+
+    $baseTarget = $this->getVarPrivateDir($currentRachatId);
+    @mkdir($baseTarget, 0775, true);
+
+    foreach ($candidates as $src) {
+        /** @var Rachat $src */
+        $baseSrc = $this->getVarPrivateDir((int)$src->getId());
+
+        $out = ['recto'=>null,'verso'=>null];
+        foreach (['recto','verso'] as $k) {
+            $pSrc = $baseSrc."/piece_identite_{$k}.jpg";
+            if (is_file($pSrc)) {
+                @copy($pSrc, $baseTarget."/piece_identite_{$k}.jpg");
+                $out[$k] = $this->generateUrl('admin_rachats_ci', [
+                    'id' => $currentRachatId,
+                    'kind' => $k
+                ], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+        }
+        if ($out['recto'] || $out['verso']) {
+            return $out;
+        }
+    }
+
+    return ['recto'=>null,'verso'=>null];
+}
+
+
+#[Route('/arrivage/create', name: 'arrivage_create_batch', methods: ['POST'])]
+public function arrivageCreateBatch(Request $req): Response
+{
+    $ids = $req->request->all('ids');
+    $label = trim((string)$req->request->get('arrivage_label', 'Arrivage'));
+    $backEnabled = (int)$req->request->get('_back_enabled', 1);
+
+    if (!$ids) {
+        $this->addFlash('error', 'Sélection requise pour créer un arrivage.');
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+    }
+
+    // ⚠️ Ton API attend stock_id (pas store_id)
+    $meta = $this->hib->getDefaultStoreMeta();
+    $stockId = (int)($meta['stock_id'] ?? $meta['store_id'] ?? 1);
+
+    $repo = $this->em->getRepository(\App\Entity\Rachat::class);
+
+    // ✅ On groupe par supplier (plus propre Hiboutik)
+    $groups = []; // supplierId => [Rachat...]
+
+    foreach ($ids as $id) {
+        $r = $repo->find((int)$id);
+        if (!$r) continue;
+
+        // supplier
+        $supplierId = (int)($r->getHibSupplierId() ?: 0);
+        if ($supplierId <= 0) {
+            // si revendeur lié, on garantit un supplier Hiboutik
+            if ($r->getRevendeur()) {
+                $supplierId = (int)$this->sync->ensureSupplier($r->getRevendeur());
+                $r->setHibSupplierId($supplierId);
+            } else {
+                $supplierId = 3; // fallback
+                $r->setHibSupplierId($supplierId);
+            }
+        }
+
+        // produit Hiboutik (existant ou créé)
+        $hibProductId = (int)$this->ensureHiboutikProductForRachat($r, $supplierId);
+        if ($hibProductId <= 0) continue;
+
+        $groups[$supplierId][] = ['r' => $r, 'hibProductId' => $hibProductId];
+    }
+
+    if (!$groups) {
+        $this->addFlash('error', 'Rachats introuvables / produits Hiboutik non créés.');
+        return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
+    }
+
+    $created = [];
+
+    foreach ($groups as $supplierId => $items) {
+
+    // ✅ prendre un rachat de référence pour nom/prénom
+    $r0 = $items[0]['r'];
+
+    $nom = $r0->getRevendeur()?->getNom() ?? $r0->getNom() ?? '';
+    $prenom = $r0->getRevendeur()?->getPrenom() ?? $r0->getPrenom() ?? '';
+
+    $isMulti = count($items) > 1;
+
+    // ✅ récupère OU crée l’arrivage du jour pour CE supplier
+    $resDaily = $this->inventory->ensureDailyRachatInput(
+        $stockId,
+        (int)$supplierId,
+        (string)$nom,
+        (string)$prenom,
+        $isMulti
+    );
+
+    if (!($resDaily['ok'] ?? false) || empty($resDaily['id'])) {
+        $this->addFlash('error', "Création/récup arrivage du jour impossible (supplier #$supplierId).");
+        continue;
+    }
+
+    $hibInputId = (int)$resDaily['id'];
+    $added = 0;
+
+    foreach ($items as $it) {
+        $res = $this->hib->addProductToInventoryInput($hibInputId, (int)$it['hibProductId'], 1);
+        if (($res['ok'] ?? false)) $added++;
+    }
+
+    $created[] = sprintf(
+        "#%d (%d ligne(s)) %s",
+        $hibInputId,
+        $added,
+        ($resDaily['created'] ?? false) ? '(créé)' : '(existant)'
+    );
+}
+
+    $this->em->flush();
+
+    if ($created) {
+        $this->addFlash('success', 'Arrivage(s) créé(s) : ' . implode(' / ', $created));
+    } else {
+        $this->addFlash('error', 'Aucun arrivage n’a pu être créé.');
+    }
+
+    return $this->redirectToRoute('admin_rachats_index', ['enabled' => $backEnabled]);
 }
 
 

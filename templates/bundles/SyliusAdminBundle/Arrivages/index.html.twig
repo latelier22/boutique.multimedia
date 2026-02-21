@@ -30,12 +30,23 @@
       <td>{{ a.inventory_input_supplier_id ?? '—' }}</td>
       <td>{{ a.inventory_input_date ?? '—' }}</td>
       <td>
-        <form method="post" action="{{ path('admin_arrivages_validate', {id: a.inventory_input_id}) }}" style="display:inline;">
-          <button class="ui blue mini button"><i class="check icon"></i> Valider</button>
-        </form>
-        <a href="{{ path('admin_arrivages_details', {id: a.inventory_input_id}) }}" class="ui grey mini button">
-          <i class="eye icon"></i> Détails
-        </a>
+      {% set id = a.inventory_input_id|default(0) %}
+
+<form method="post"
+      action="{{ (id > 0) ? path('admin_arrivages_validate', { id: id }) : '#' }}"
+      style="display:inline;">
+  <button class="ui blue mini button" {% if id <= 0 %}disabled{% endif %}>
+    <i class="check icon"></i> Valider
+  </button>
+</form>
+
+{% if id > 0 %}
+  <a href="{{ path('admin_arrivages_details', { id: id }) }}" class="ui grey mini button">
+    <i class="eye icon"></i> Détails
+  </a>
+{% else %}
+  <span class="ui tiny grey label">ID manquant</span>
+{% endif %}
       </td>
     </tr>
   {% else %}

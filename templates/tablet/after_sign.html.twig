@@ -1,0 +1,33 @@
+{# templates/tablet/after_sign.html.twig #}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signature enregistrée</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
+    .box{max-width:700px;margin:0 auto;border:1px solid #ddd;border-radius:12px;padding:18px}
+    a.btn{display:inline-block;padding:12px 14px;border-radius:10px;text-decoration:none;border:1px solid #111}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>✅ Signature enregistrée</h1>
+
+    <p>Rachat n° <strong>{{ r.id }}</strong></p>
+
+    {% if pdf_url %}
+      <p>
+        <a class="btn" href="{{ pdf_url }}" target="_blank" rel="noopener">Ouvrir le PDF</a>
+      </p>
+    {% else %}
+      <p>PDF non disponible.</p>
+    {% endif %}
+
+    <p style="margin-top:20px;">
+      <a class="btn" href="{{ path('tablet_wait') }}">Retour écran tablette</a>
+    </p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,107 @@
+{# templates/bundles/SyliusAdminBundle/Revendeurs/index.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Revendeurs{% endblock %}
+
+{% block content %}
+    {# Menu existant côté Rachat pour cohérence #}
+    {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+    <h1 class="ui header">🧾 Revendeurs</h1>
+
+    <div class="ui segment">
+        <a class="ui green button" href="{{ path('admin_revendeurs_new') }}">
+            <i class="plus icon"></i> Créer un revendeur
+        </a>
+    </div>
+
+    <table class="ui celled table">
+        <thead>
+        <tr>
+            <th style="width:80px;">ID</th>
+            <th>Nom / Prénom</th>
+            <th>Contact</th>
+            <th>Adresse</th>
+            <th style="width:160px;">Hiboutik</th>
+            <th style="width:220px;">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for v in rows %}
+            <tr>
+                <td>#{{ v.id }}</td>
+                <td>
+                    <div><strong>{{ v.prenom ?: '' }} {{ v.nom ?: '' }}</strong></div>
+                    {% if v.refExt %}
+                        <div class="ui tiny basic label">ref_ext: {{ v.refExt }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if v.telephone %}
+                        <div><i class="phone icon"></i> {{ v.telephone }}</div>
+                    {% endif %}
+                    {% if v.email %}
+                        <div><i class="mail icon"></i> {{ v.email }}</div>
+                    {% endif %}
+                    {% if not v.telephone and not v.email %}
+                        <span class="ui small text grey">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if v.adresse1 %}<div>{{ v.adresse1 }}</div>{% endif %}
+                    {% if v.adresse2 %}<div>{{ v.adresse2 }}</div>{% endif %}
+                    {% set cpv = (v.codePostal ?: '') ~ ' ' ~ (v.ville ?: '') %}
+                    {% if cpv|trim %}<div>{{ cpv|trim }}</div>{% endif %}
+                    {% if v.pays %}<div class="ui small text grey">{{ v.pays }}</div>{% endif %}
+
+                    {% if not v.adresse1 and not v.adresse2 and not v.codePostal and not v.ville and not v.pays %}
+                        <span class="ui small text grey">—</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if v.hibSupplierId %}
+                        <div class="ui green label">
+                            <i class="check icon"></i>
+                            supplier_id {{ v.hibSupplierId }}
+                        </div>
+                        <div style="margin-top:6px;">
+                            {# lien vers ta page vendors hiboutik existante #}
+                            <a class="ui tiny basic button" href="{{ path('admin_vendors_edit', {id: v.hibSupplierId}) }}">
+                                Ouvrir fournisseur
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="ui orange label">
+                            <i class="warning icon"></i>
+                            Non lié
+                        </div>
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="ui small button" href="{{ path('admin_revendeurs_edit', {id: v.id}) }}">
+                        <i class="edit icon"></i> Modifier
+                    </a>
+
+                    <form method="post"
+                          action="{{ path('admin_revendeurs_sync_hiboutik', {id: v.id}) }}"
+                          style="display:inline-block; margin-left:6px;"
+                          onsubmit="return confirm('Synchroniser ce revendeur dans Hiboutik ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('revendeur_sync_' ~ v.id) }}">
+                        <button class="ui small blue button" type="submit">
+                            <i class="sync icon"></i> Sync Hiboutik
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="6" class="center aligned">
+                    <div class="ui message">
+                        Aucun revendeur pour l’instant.
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

@@ -5,6 +5,81 @@
 <div class="ui segment">
   <h2 class="ui header">Rachat #{{ rachat.id ?? '—' }}</h2>
 
+  {# ================= REVendeur (STATUT + ACTION) ================= #}
+  {% set revendeur = attribute(rachat, 'revendeur') is defined ? rachat.revendeur : null %}
+  {% set revendeurId = revendeur ? revendeur.id : (attribute(rachat, 'revendeurId') is defined ? rachat.revendeurId : null) %}
+  {% set treated = revendeurId is not empty %}
+
+  <div class="ui secondary segment" style="margin-top: .8rem;">
+    <div class="ui grid middle aligned">
+      <div class="ten wide column">
+        <div class="ui small header" style="margin-bottom:.4rem;">
+          <i class="user icon"></i> Revendeur
+        </div>
+
+        {% if treated %}
+          <div class="ui green label">
+            <i class="check icon"></i> Traité
+          </div>
+          <span style="margin-left:.5rem;color:#666;">
+            Revendeur #{{ revendeurId }}
+          </span>
+        {% else %}
+          <div class="ui grey label">
+            <i class="clock outline icon"></i> Non traité
+          </div>
+          <span style="margin-left:.5rem;color:#666;">
+            Aucun revendeur lié
+          </span>
+        {% endif %}
+
+        {% if rachat.hibSupplierId %}
+          <div style="margin-top:.4rem;">
+            <span class="ui tiny label">
+              Hiboutik supplier_id : {{ rachat.hibSupplierId }}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="six wide column right aligned">
+        {% if treated %}
+         <a class="ui button" href="{{ path('admin_revendeurs_show', {id: rachat.revendeur.id}) }}">
+    Voir revendeur
+  </a>
+          <a class="ui small basic button"
+             href="{{ path('admin_revendeurs_edit', {id: revendeurId}) }}">
+            <i class="user icon"></i> Voir revendeur
+          </a>
+    
+ 
+
+
+          {% if rachat.hibSupplierId %}
+            <a class="ui small basic button"
+               href="{{ path('admin_vendors_edit', {id: rachat.hibSupplierId}) }}">
+              <i class="warehouse icon"></i> Voir vendor Hiboutik
+            </a>
+          {% endif %}
+        {% else %}
+          {% if rachat.id %}
+            <form method="post"
+                  action="{{ path('admin_rachats_process_revendeur', {id: rachat.id}) }}"
+                  style="display:inline-block"
+                  onsubmit="return confirm('Créer/relier le revendeur pour ce rachat ?');">
+              <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ rachat.id) }}">
+              <button class="ui small blue button" type="submit">
+                <i class="user plus icon"></i> Créer / lier
+              </button>
+            </form>
+          {% else %}
+            <div class="ui tiny message">Enregistrez d’abord pour créer le revendeur.</div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {{ form_start(form, { attr: { class: 'ui form', id: 'rachat-form' } }) }}
 
   <div class="two fields">
@@ -17,7 +92,15 @@
     <div class="field">{{ form_row(form.prixAchat) }}</div>
     <div class="field">{{ form_row(form.dateCession) }}</div>
   </div>
+<div class="ui segment">
+  <div class="field">
+    <label>Revendeur existant (recherche)</label>
+    <input type="text" id="rev-search" placeholder="Tape nom, téléphone ou email…">
+    <div id="rev-results" class="ui very relaxed list" style="margin-top: .5em;"></div>
+  </div>
 
+  <input type="hidden" id="apply_revendeur_token" value="{{ csrf_token('apply_revendeur_' ~ rachat.id) }}">
+</div>
   <div class="three fields">
     <div class="field">{{ form_row(form.nom) }}</div>
     <div class="field">{{ form_row(form.prenom) }}</div>
@@ -31,10 +114,7 @@
 
   <div class="field">{{ form_row(form.adresse) }}</div>
 
-  <div class="two fields">
-    <button class="ui primary button" type="submit">Enregistrer</button>
-    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
-  </div>
+  
 
   <h4 class="ui dividing header">Pièce d'identité — Upload AJAX immédiat</h4>
   <div class="two fields">
@@ -109,6 +189,11 @@
   {% endif %}
 {% endif %}
 
+<div class="two fields">
+    <button class="ui primary button" type="submit">Enregistrer</button>
+    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
+  </div>
+
 {# ========= Actions bas de page ========= #}
 <div class="ui right aligned basic segment">
   <a class="ui button" href="{{ path('admin_rachats_index') }}"><i class="left arrow icon"></i> Retour</a>
@@ -117,6 +202,22 @@
     <button type="button" id="btn-save-and-sign" class="ui primary button">
       <i class="edit outline icon"></i> Signer
     </button>
+
+    {# ✅ NOUVEAU : ouvrir sur tablette #}
+  <button type="button" id="btn-open-on-tablet" class="ui teal button">
+    <i class="tablet alternate icon"></i> Ouvrir sur tablette
+  </button>
+  <div class="ui message">
+  <strong>DEBUG TOKEN:</strong>
+  <code id="dbg-token">{{ tablet_socket_token }}</code>
+</div>
+
+<button type="button" class="btn btn-primary" id="btn-tablet-sign"
+        data-id="{{ rachat.id }}"
+        data-device="TAB1">
+  Signer sur tablette
+</button>
+
     {% if rachat.pdfUrl %}
       <a class="ui button" target="_blank" href="{{ rachat.pdfUrl }}"><i class="file pdf icon"></i> Ouvrir le PDF</a>
     {% endif %}
@@ -188,7 +289,6 @@
       btn.onclick = () => {
         cropper.getCroppedCanvas({width:1200,height:800}).toBlob(async blob => {
           overlay.remove();
-          // ✅ corrige ici : on fabrique un vrai File
           const croppedFile = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
           await uploadCi(croppedFile, kind);
         }, 'image/jpeg', 0.9);
@@ -201,7 +301,7 @@
     const fd = new FormData();
     fd.append('_token', csrf);
     fd.append('kind', kind);
-    fd.append('ci', file, file.name); // 👈 important : nom explicite
+    fd.append('ci', file, file.name);
     try {
       const res = await fetch(uploadCiUrl, { method: 'POST', body: fd });
       const j = await res.json();
@@ -217,18 +317,146 @@
   if (versoInput) versoInput.addEventListener('change', e => cropAndUpload(e.target.files[0], 'verso'));
 })();
 
-
 // ====== BOUTON SIGNER ======
-  const btn = document.getElementById('btn-save-and-sign');
-  const go  = document.getElementById('go-sign');
-  const frm = document.getElementById('rachat-form');
-  if (btn && go && frm) {
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      go.value = '1';
-      frm.submit();
+const btn = document.getElementById('btn-save-and-sign');
+const go  = document.getElementById('go-sign');
+const frm = document.getElementById('rachat-form');
+if (btn && go && frm) {
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    go.value = '1';
+    frm.submit();
+  });
+}
+</script>
+
+<script>
+(async () => {
+  const inp = document.getElementById('rev-search');
+  const results = document.getElementById('rev-results');
+  const token = document.getElementById('apply_revendeur_token').value;
+
+  let t = null;
+  inp.addEventListener('input', () => {
+    clearTimeout(t);
+    const q = inp.value.trim();
+    if (q.length < 2) { results.innerHTML=''; return; }
+
+    t = setTimeout(async () => {
+      const res = await fetch(`/admin/revendeurs/search?q=${encodeURIComponent(q)}`);
+      const list = await res.json();
+
+      results.innerHTML = list.map(v => `
+        <div class="item" style="cursor:pointer" data-id="${v.id}">
+          <i class="user icon"></i>
+          <div class="content"><div class="header">${v.label}</div></div>
+        </div>
+      `).join('');
+
+      results.querySelectorAll('.item').forEach(el => {
+        el.addEventListener('click', async () => {
+          const revId = el.getAttribute('data-id');
+          const fd = new FormData();
+          fd.append('_token', token);
+          fd.append('revendeur_id', revId);
+
+          const r = await fetch(`/admin/rachats/{{ rachat.id }}/apply-revendeur`, {
+            method: 'POST',
+            body: fd
+          });
+          const data = await r.json();
+          if (!data.ok) { alert(data.error || 'Erreur'); return; }
+
+          // Remplir les champs du formulaire (adapte les IDs selon ton RachatType)
+          document.querySelector('[name="rachat[nom]"]').value = data.filled.nom;
+          document.querySelector('[name="rachat[prenom]"]').value = data.filled.prenom;
+          document.querySelector('[name="rachat[telephone]"]').value = data.filled.telephone;
+          document.querySelector('[name="rachat[email]"]').value = data.filled.email;
+          document.querySelector('[name="rachat[adresse]"]').value = data.filled.adresse;
+          document.querySelector('[name="rachat[code_postal]"]').value = data.filled.code_postal;
+
+          // Si tu as des previews CI dans la page, tu peux les mettre à jour ici :
+          // data.ci.recto / data.ci.verso
+
+          results.innerHTML = '';
+          inp.value = '';
+        });
+      });
+    }, 250);
+  });
+})();
+
+
+
+
+</script>
+
+
+<script>
+(function(){
+  const btn = document.getElementById('btn-open-on-tablet');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const signUrl = "{{ path('admin_rachats_sign', {id: rachat.id}) }}";
+    const token   = "{{ tablet_socket_token }}"; // celui injecté par Symfony
+
+    const payload = new URLSearchParams();
+    payload.append('device', 'TAB1');
+    payload.append('url', signUrl);
+    payload.append('token', token);
+
+    const res = await fetch('/ws-tablet-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: payload.toString(),
     });
-  }
+
+    const data = await res.json();
+    console.log("TOKEN SYMFONY =", "{{ tablet_socket_token }}");
+    console.log('[TABLET] push', data);
+
+    if (!data.ok) {
+      alert("Push KO: " + (data.error || ''));
+      return;
+    }
+    alert("OK tablette !");
+  });
+})();
+</script>
+
+<script>
+(async () => {
+  const btn = document.getElementById('btn-tablet-sign');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const id = btn.dataset.id;
+    const device = btn.dataset.device || 'TAB1';
+
+    // 1) créer lien public tablette
+    const res = await fetch(`/admin/rachats/${id}/tablet-link`, {
+      method: 'POST',
+      headers: {'X-Requested-With':'XMLHttpRequest'},
+    });
+    const j = await res.json();
+    console.log('Lien tablette =', j.url);
+
+    // 2) push vers tablette (WS service)
+    const push = await fetch(`/ws-tablet-push`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: new URLSearchParams({
+        device,
+        url: new URL(j.url).pathname + new URL(j.url).search,
+        token: '{{ tablet_socket_token|e('js') }}'
+      })
+    });
+
+    const pj = await push.json();
+    console.log('[TABLET] push', pj);
+  });
+})();
 </script>
 
 

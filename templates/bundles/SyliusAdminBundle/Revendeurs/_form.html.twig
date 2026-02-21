@@ -1,0 +1,61 @@
+{# templates/bundles/SyliusAdminBundle/Revendeurs/_form.html.twig #}
+<form method="post" class="ui form">
+    <input type="hidden" name="_token" value="{{ csrf_token(token_id) }}">
+
+    <div class="two fields">
+        <div class="field">
+            <label>Prénom</label>
+            <input type="text" name="prenom" value="{{ v.prenom ?? '' }}" placeholder="Prénom">
+        </div>
+        <div class="field">
+            <label>Nom</label>
+            <input type="text" name="nom" value="{{ v.nom ?? '' }}" placeholder="Nom">
+        </div>
+    </div>
+
+    <div class="two fields">
+        <div class="field">
+            <label>Téléphone</label>
+            <input type="text" name="telephone" value="{{ v.telephone ?? '' }}" placeholder="06...">
+        </div>
+        <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" value="{{ v.email ?? '' }}" placeholder="client@email.tld">
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Adresse (ligne 1)</label>
+        <input type="text" name="adresse1" value="{{ v.adresse1 ?? '' }}" placeholder="N° et rue">
+    </div>
+
+    <div class="field">
+        <label>Adresse (ligne 2)</label>
+        <input type="text" name="adresse2" value="{{ v.adresse2 ?? '' }}" placeholder="Complément (bâtiment, étage...)">
+    </div>
+
+    <div class="three fields">
+        <div class="field">
+            <label>Code postal</label>
+            <input type="text" name="code_postal" value="{{ v.codePostal ?? '' }}" placeholder="22600">
+        </div>
+        <div class="field">
+            <label>Ville</label>
+            <input type="text" name="ville" value="{{ v.ville ?? '' }}" placeholder="Loudéac">
+        </div>
+        <div class="field">
+            <label>Pays</label>
+            <input type="text" name="pays" value="{{ v.pays ?? 'France' }}" placeholder="France">
+        </div>
+    </div>
+
+    <div class="ui divider"></div>
+
+    <button class="ui green button" type="submit">
+        <i class="save icon"></i> Enregistrer
+    </button>
+
+    <a class="ui button" href="{{ path('admin_revendeurs_index') }}">
+        <i class="arrow left icon"></i> Retour
+    </a>
+</form>

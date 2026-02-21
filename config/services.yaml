@@ -7,6 +7,9 @@ parameters:
   hiboutik.key:     '%env(string:HIBOUTIK_API_KEY)%'
   hiboutik.debug:   true
   $logger:     '@logger'
+  tablet_socket_token: '%env(TABLET_SOCKET_TOKEN)%'
+  tablet_pin: '%env(TABLET_PIN)%'
+  tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
 
 services:
    
@@ -109,8 +112,7 @@ services:
     #         - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
 
     
-    App\Service\HiboutikInventoryClient:
-        parent: App\Service\HiboutikClient
+  
 
     # ⚠️ Toute sous-classe hérite automatiquement des args du parent
     App\Service\HiboutikTillClient:
