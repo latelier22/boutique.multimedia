@@ -78,40 +78,6 @@ public function tabletLink(int $id, Request $req, CacheItemPoolInterface $cache)
     return $this->json(['ok'=>true,'url'=>$url, 'token'=>$token]);
 }
 
-#[Route('/tablet/push', name: 'tablet_push', methods: ['POST'])]
-public function tabletPush(Request $req, CacheItemPoolInterface $cache): JsonResponse
-{
-    $device = (string)$req->request->get('device', 'TAB1');
-    $url    = (string)$req->request->get('url', '');
-    if ($url === '') return $this->json(['ok'=>false,'error'=>'missing url'], 400);
-
-    $key = 'tablet_next_' . preg_replace('/[^A-Z0-9_\-]/i', '', $device);
-
-    $item = $cache->getItem($key);
-    $item->set($url);
-    $item->expiresAfter(300); // 5 minutes
-    $cache->save($item);
-
-    return $this->json(['ok'=>true, 'device'=>$device, 'key'=>$key, 'url'=>$url]);
-}
-
-#[Route('/tablet/next', name: 'tablet_next', methods: ['GET'])]
-public function tabletNext(Request $req, CacheItemPoolInterface $cache): JsonResponse
-{
-    $device = (string)$req->query->get('device', 'TAB1');
-    $key = 'tablet_next_' . preg_replace('/[^A-Z0-9_\-]/i', '', $device);
-
-    $item = $cache->getItem($key);
-    if (!$item->isHit()) {
-        return $this->json(['ok'=>true, 'nextUrl'=>null]);
-    }
-
-    $url = (string)$item->get();
-    $cache->deleteItem($key); // ✅ consume
-
-    return $this->json(['ok'=>true, 'nextUrl'=>$url]);
-}
-
   // ========== LISTE ==========
 #[Route('', name: 'index', methods: ['GET', 'POST'])]
 public function index(Request $request): Response
