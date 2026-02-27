@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+
 
 final class TabletController extends AbstractController
 {
@@ -253,4 +255,42 @@ final class TabletController extends AbstractController
         $bin  = @file_get_contents($path);
         return $bin ? 'data:' . $mime . ';base64,' . base64_encode($bin) : null;
     }
+
+
+
+
+#[Route('/tablet/products', name: 'tablet_products', methods: ['GET'])]
+public function products(Request $request): JsonResponse
+{
+    if (!$this->isUnlocked($request)) {
+        return new JsonResponse(['ok' => false, 'error' => 'locked'], 403);
+    }
+
+    $cacheKey = 'tablet_products_v1';
+    $item = $this->cache->getItem($cacheKey);
+
+    if ($item->isHit()) {
+        return new JsonResponse($item->get());
+    }
+
+    $url = 'https://api.multimedia-services.fr/api/products';
+    $json = @file_get_contents($url);
+    if (!$json) {
+        return new JsonResponse(['ok' => false, 'error' => 'fetch_failed'], 502);
+    }
+
+    $data = json_decode($json, true);
+    if (!is_array($data) || !isset($data['data']) || !is_array($data['data'])) {
+        return new JsonResponse(['ok' => false, 'error' => 'bad_format'], 502);
+    }
+
+    // filtre: uniquement dispo (optionnel)
+    $data['data'] = array_values(array_filter($data['data'], fn($p) => (int)($p['stock_available'] ?? 0) === 1));
+
+    $item->set($data);
+    $item->expiresAfter(30); // 30s
+    $this->cache->save($item);
+
+    return new JsonResponse($data);
+}
 }

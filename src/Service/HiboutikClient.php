@@ -65,6 +65,54 @@ class HiboutikClient
         return $this->lastDebug;
     }
 
+public function listCategories(): array
+{
+    $r = $this->httpClient->request('GET', $this->baseUrl('categories/'), $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $this->baseUrl('categories/'),
+        'status' => $status,
+        'raw'    => $raw,
+    ];
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'data'   => $data,
+        'debug'  => $this->lastDebug,
+    ];
+}
+
+public function listBrands(): array
+{
+    // ⚠️ endpoint à valider chez toi : souvent "brands/" ou parfois "manufacturers/"
+    $r = $this->httpClient->request('GET', $this->baseUrl('brands/'), $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+   
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $this->baseUrl('brands/'),
+        'status' => $status,
+        'raw'    => $raw,
+    ];
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'data'   => $data,
+        'debug'  => $this->lastDebug,
+    ];
+}
+
+
     /* ===================== SUPPLIERS ===================== */
 
     public function listSuppliers(): array
@@ -203,6 +251,98 @@ class HiboutikClient
         return is_array($data) ? $data : [];
     }
 
+  public function getProducts(): array
+{
+    $url    = $this->baseUrl('products/');
+    $r      = $this->httpClient->request('GET', $url, $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = ['method' => 'GET', 'url' => $url, 'status' => $status, 'raw' => $raw];
+
+    // Cas 1: l’API renvoie directement une liste: [ {...}, {...} ]
+    if (is_array($data) && array_is_list($data)) {
+        return $data;
+    }
+
+    // Cas 2: l’API renvoie un wrapper: { "products": [ ... ] } (ou autre clé)
+    if (is_array($data)) {
+        foreach (['products', 'data', 'items', 'result'] as $k) {
+            if (isset($data[$k]) && is_array($data[$k])) {
+                return $data[$k];
+            }
+        }
+    }
+
+    return [];
+}
+
+ public function getCategories(): array
+{
+    $url    = $this->baseUrl('categories/');
+    $r      = $this->httpClient->request('GET', $url, $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = ['method' => 'GET', 'url' => $url, 'status' => $status, 'raw' => $raw];
+
+    // Cas 1: l’API renvoie directement une liste: [ {...}, {...} ]
+    if (is_array($data) && array_is_list($data)) {
+        return $data;
+    }
+
+    // Cas 2: l’API renvoie un wrapper: { "products": [ ... ] } (ou autre clé)
+    if (is_array($data)) {
+        foreach (['categories', 'data', 'items', 'result'] as $k) {
+            if (isset($data[$k]) && is_array($data[$k])) {
+                return $data[$k];
+            }
+        }
+    }
+
+    return [];
+}
+
+public function getCategory(int $id): array
+{
+    $url = $this->baseUrl('categories/' . $id);
+    $r   = $this->httpClient->request('GET', $url, $this->auth());
+    $raw = $r->getContent(false);
+    $d   = json_decode($raw, true);
+    return is_array($d) ? $d : [];
+}
+
+public function setCategoryAttribute(int $categoryId, string $attribute, int|string $newValue): array
+{
+    $url = $this->baseUrl('categories'); // PAS de slash final
+
+    // on passe tout dans auth($extra) comme tu faisais avant (simple, stable)
+    $r = $this->httpClient->request('PUT', $url, $this->auth([
+        'headers' => [
+            'accept' => '*/*',
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ],
+        'body' => [
+            'category_id' => (string)$categoryId,
+            'category_attribute' => $attribute,
+            'new_value' => (string)$newValue,
+        ],
+    ]));
+
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+
+    $this->lastDebug = ['method' => 'PUT', 'url' => $url, 'status' => $status, 'raw' => $raw];
+
+    return [
+        'status' => $status,
+        'raw' => $raw,
+    ];
+}
+
+
     /* ===================== STORES & TILL ===================== */
 
     public function getStores(): array
@@ -217,16 +357,17 @@ class HiboutikClient
     }
 
     /** Récup info store par défaut (id + devise) */
-    public function getDefaultStoreMeta(): array
-    {
-        $stores = $this->getStores();
-        $s      = $stores[0] ?? [];
+   public function getDefaultStoreMeta(): array
+{
+    $stores = $this->getStores();
+    $s      = $stores[0] ?? [];
 
-        return [
-            'store_id'       => (int)($s['store_id'] ?? 1),
-            'currency_code'  => (string)($s['store_default_currency'] ?? 'EUR'),
-        ];
-    }
+    return [
+        'store_id'      => (int)($s['store_id'] ?? 1),
+        'stock_id'      => (int)($s['stock_id'] ?? $s['store_id'] ?? 1),
+        'currency_code' => (string)($s['store_default_currency'] ?? 'EUR'),
+    ];
+}
 
     public function listTillMovements(int $storeId, int $year, int $month): array
     {
@@ -301,13 +442,15 @@ class HiboutikClient
     /* ===================== INVENTORY (arrivages) ===================== */
 
     /** Label EXACT: "RACHAT dd-mm-YYYY Nom Prénom" */
-    public function buildDailyRachatLabel(\DateTimeInterface $d, string $nom, string $prenom): string
-    {
-        $date = $d->format('d-m-Y');
-        $nom = trim($nom);
-        $prenom = trim($prenom);
-        return trim(sprintf('RACHAT %s %s %s', $date, $nom, $prenom));
-    }
+   public function buildDailyRachatLabel(\DateTimeInterface $d, int $supplierId, string $nom, string $prenom, bool $isMulti=false): string
+{
+    $date = $d->format('d-m-Y');
+    $nom = trim($nom);
+    $prenom = trim($prenom);
+
+    $suffix = $isMulti ? ' (MULTI)' : '';
+    return trim(sprintf('RACHAT %s SUP#%d %s %s%s', $date, $supplierId, $nom, $prenom, $suffix));
+}
 
     /** (optionnel) mensuel: "RACHAT MENSUEL-mm-YYYY" */
     public function buildMonthlyRachatLabel(\DateTimeInterface $d, string $prefix = 'RACHAT MENSUEL'): string
@@ -353,38 +496,40 @@ class HiboutikClient
     }
 
     /** POST /inventory_inputs/ */
-    public function createInventoryInput(int $stockId, int $supplierId, string $label, ?\DateTimeInterface $date = null): array
-    {
-        $date = $date ?: new \DateTimeImmutable('today');
+   public function createInventoryInput(int $stockId, int $supplierId, string $label): array
+{
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
 
-        $opts = $this->auth();
-        $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
-        $opts['body'] = http_build_query([
-            'inventory_input_stock_id'    => $stockId,
-            'inventory_input_supplier_id' => $supplierId,
-            'inventory_input_date'        => $date->format('Y-m-d'),
-            'inventory_input_quantity'    => 0,
-            'inventory_input_amount'      => '0.00',
-            'inventory_input_label'       => $label,
-            'supplier_invoice_number'     => '',
-            'delivery_amount'             => '0.00',
-            'payment_date'                => '0000-00-00',
-            'invoice_date'                => '0000-00-00',
-        ]);
+    // ✅ Hiboutik attend stock_id / supplier_id / label
+    $payload = [
+        'stock_id'    => (string)$stockId,
+        'supplier_id' => (string)$supplierId,
+        'label'       => (string)$label,
+    ];
 
-        $res = $this->req('POST', 'inventory_inputs/', $opts);
+    $opts['body'] = http_build_query($payload);
 
-        if (($res['ok'] ?? false)) {
-            $data = $res['data'];
-            $row  = (is_array($data) && isset($data[0]) && is_array($data[0])) ? $data[0] : $data;
-            $id   = (int)($row['inventory_input_id'] ?? 0);
-            if ($id > 0) {
-                return ['ok' => true, 'id' => $id, 'label' => $label, 'created' => true, 'row' => $row];
-            }
-        }
+    // ✅ endpoint sans slash final = souvent plus stable
+    $res = $this->req('POST', 'inventory_inputs', $opts);
 
-        return ['ok' => false, 'status' => $res['status'] ?? 500, 'error' => $res['raw'] ?? null, 'label' => $label];
+    // 🔥 DEBUG si fail
+    if (!($res['ok'] ?? false)) {
+        $res['debug_payload'] = $payload;
+        $res['hib_last'] = $this->getLastDebug();
     }
+
+    // si OK, Hiboutik renvoie parfois [ { inventory_input_id: ... } ]
+    if (($res['ok'] ?? false)) {
+        $data = $res['data'] ?? null;
+        $row  = (is_array($data) && isset($data[0]) && is_array($data[0])) ? $data[0] : (is_array($data) ? $data : []);
+        $id   = (int)($row['inventory_input_id'] ?? 0);
+
+        return ['ok' => true, 'id' => $id, 'label' => $label, 'row' => $row];
+    }
+
+    return ['ok' => false, 'status' => $res['status'] ?? 500, 'raw' => $res['raw'] ?? null, 'label' => $label];
+}
 
     /**
      * ✅ 1 arrivage / revendeur / jour :
@@ -392,36 +537,37 @@ class HiboutikClient
      * - si existe déjà => réutilise
      * - sinon => crée
      */
-    public function getOrCreateDailyRachatInput(
-        int $stockId,
-        int $supplierId,
-        string $nom,
-        string $prenom,
-        ?\DateTimeInterface $date = null
-    ): array {
-        $date  = $date ?: new \DateTimeImmutable('today');
-        $label = $this->buildDailyRachatLabel($date, $nom, $prenom);
+   public function getOrCreateDailyRachatInput(
+    int $stockId,
+    int $supplierId,
+    string $nom,
+    string $prenom,
+    bool $isMulti = false,
+    ?\DateTimeInterface $date = null
+): array {
+    $date  = $date ?: new \DateTimeImmutable('today');
+    $label = $this->buildDailyRachatLabel($date, $supplierId, $nom, $prenom, $isMulti);
 
-        $found = $this->findInventoryInputByLabel($label);
-        if ($found && !empty($found['inventory_input_id'])) {
-            return ['ok' => true, 'id' => (int)$found['inventory_input_id'], 'label' => $label, 'created' => false, 'row' => $found];
-        }
-
-        return $this->createInventoryInput($stockId, $supplierId, $label, $date);
+    $found = $this->findInventoryInputByLabel($label);
+    if ($found && !empty($found['inventory_input_id'])) {
+        return ['ok' => true, 'id' => (int)$found['inventory_input_id'], 'label' => $label, 'created' => false, 'row' => $found];
     }
 
-    /** (optionnel) mensuel */
-    public function getOrCreateMonthlyRachatInput(int $stockId, int $supplierId, string $prefix = 'RACHAT MENSUEL'): array
-    {
-        $label = $this->buildMonthlyRachatLabel(new \DateTimeImmutable('today'), $prefix);
+    return $this->createInventoryInput($stockId, $supplierId, $label, $date);
+}
 
-        $found = $this->findInventoryInputByLabel($label);
-        if ($found && !empty($found['inventory_input_id'])) {
-            return ['ok' => true, 'id' => (int)$found['inventory_input_id'], 'label' => $label, 'created' => false];
-        }
+    // /** (optionnel) mensuel */
+    // public function getOrCreateMonthlyRachatInput(int $stockId, int $supplierId, string $prefix = 'RACHAT MENSUEL'): array
+    // {
+    //     $label = $this->buildMonthlyRachatLabel(new \DateTimeImmutable('today'), $prefix);
 
-        return $this->createInventoryInput($stockId, $supplierId, $label, new \DateTimeImmutable('today'));
-    }
+    //     $found = $this->findInventoryInputByLabel($label);
+    //     if ($found && !empty($found['inventory_input_id'])) {
+    //         return ['ok' => true, 'id' => (int)$found['inventory_input_id'], 'label' => $label, 'created' => false];
+    //     }
+
+    //     return $this->createInventoryInput($stockId, $supplierId, $label, new \DateTimeImmutable('today'));
+    // }
 
     // ===================== INVENTORY INPUT DETAILS =====================
 
@@ -575,46 +721,106 @@ class HiboutikClient
 
     // ===================== BARCODE / IMEI =====================
 
-    public function trySetBarcodeFromImei(int $productId, ?string $imeiRaw): array
-    {
-        $imeiRaw = trim((string)$imeiRaw);
+// ===================== BARCODE / IDENTIFIANT =====================
 
-        if ($imeiRaw === '') {
-            return ['ok' => true, 'skipped' => true, 'reason' => 'empty_imei'];
-        }
-
-        $check = $this->sanitizeImei($imeiRaw);
-        if (!$check['ok']) {
-            return ['ok' => false, 'skipped' => true, 'reason' => 'invalid_imei', 'error' => $check['error']];
-        }
-
-        $opts = $this->auth();
-        $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
-        $opts['body'] = http_build_query([
-            'product_attribute' => 'product_barcode',
-            'product_id'        => $productId,
-            'new_value'         => $check['imei'],
-        ]);
-
-        $r      = $this->httpClient->request('PUT', $this->baseUrl('products/'), $opts);
-        $status = $r->getStatusCode();
-        $raw    = $r->getContent(false);
-        $data   = json_decode($raw, true);
-
-        $this->lastDebug = [
-            'method' => 'PUT',
-            'url'    => $this->baseUrl('products/'),
-            'status' => $status,
-            'raw'    => $raw,
-            'sent'   => ['product_id' => $productId, 'product_attribute' => 'product_barcode', 'new_value' => $check['imei']],
-            'data'   => $data,
-        ];
-        if ($this->debug && $this->logger) {
-            $this->logger->info('[HIB UPDATE BARCODE]', $this->lastDebug);
-        }
-
-        return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'data' => $data, 'raw' => $raw, 'imei' => $check['imei']];
+public function trySetBarcodeSmart(int $productId, ?string $raw): array
+{
+    $raw = trim((string)$raw);
+    if ($raw === '') {
+        return ['ok' => true, 'skipped' => true, 'reason' => 'empty'];
     }
+
+    $digits = preg_replace('/\D+/', '', $raw);
+    if ($digits === '') {
+        return ['ok' => true, 'skipped' => true, 'reason' => 'no_digits'];
+    }
+
+    $kind = $this->classifyIdentifier($digits);
+
+    // ✅ règle simple : on ne pousse dans product_barcode que si c'est EAN/UPC (scannable)
+    if ($kind !== 'ean') {
+        // -> IMEI ou serial : on ne met pas dans barcode
+        return ['ok' => true, 'skipped' => true, 'reason' => 'not_barcode', 'kind' => $kind, 'value' => $digits];
+    }
+
+    // Ici on a un EAN/UPC (8/12/13/14) validé
+    return $this->putProductAttribute($productId, 'product_barcode', $digits) + ['kind' => $kind, 'barcode' => $digits];
+}
+
+/**
+ * Retourne:
+ * - 'ean'  : EAN/UPC valide (8/12/13/14 + checksum)
+ * - 'imei' : IMEI valide (15 + Luhn) (on choisit de ne PAS l'envoyer en barcode)
+ * - 'serial' : autre (on skip)
+ */
+private function classifyIdentifier(string $digits): string
+{
+    $len = strlen($digits);
+
+    // IMEI = 15 + Luhn
+    if ($len === 15 && $this->luhnCheck($digits)) {
+        return 'imei';
+    }
+
+    // EAN/UPC = 8/12/13/14 + checksum GS1
+    if (in_array($len, [8, 12, 13, 14], true) && $this->gs1CheckDigitOk($digits)) {
+        return 'ean';
+    }
+
+    return 'serial';
+}
+
+/** checksum EAN/UPC (GS1) */
+private function gs1CheckDigitOk(string $digits): bool
+{
+    $len = strlen($digits);
+    if ($len < 2) return false;
+
+    $check = (int)substr($digits, -1);
+    $body  = substr($digits, 0, -1);
+
+    $sum = 0;
+    // en partant de la droite, poids 3/1 alternés
+    $rev = strrev($body);
+    for ($i = 0; $i < strlen($rev); $i++) {
+        $n = (int)$rev[$i];
+        $sum += ($i % 2 === 0) ? $n * 3 : $n;
+    }
+
+    $calc = (10 - ($sum % 10)) % 10;
+    return $calc === $check;
+}
+
+/** facteur commun: PUT product_attribute */
+private function putProductAttribute(int $productId, string $attr, string $value): array
+{
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['body'] = http_build_query([
+        'product_attribute' => $attr,
+        'product_id'        => $productId,
+        'new_value'         => $value,
+    ]);
+
+    $r      = $this->httpClient->request('PUT', $this->baseUrl('products/'), $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $this->baseUrl('products/'),
+        'status' => $status,
+        'raw'    => $raw,
+        'sent'   => ['product_id' => $productId, 'product_attribute' => $attr, 'new_value' => $value],
+        'data'   => $data,
+    ];
+    if ($this->debug && $this->logger) {
+        $this->logger->info('[HIB UPDATE PRODUCT ATTR]', $this->lastDebug);
+    }
+
+    return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'data' => $data, 'raw' => $raw];
+}
 
     private function sanitizeImei(string $imeiRaw): array
     {
@@ -702,8 +908,7 @@ public function ensureDailyRachatInput(
     bool $isMulti = false,
     ?\DateTimeInterface $date = null
 ): array {
-    // tu veux un label EXACT -> on ignore $isMulti
-    return $this->getOrCreateDailyRachatInput($stockId, $supplierId, $nom, $prenom, $date);
+    return $this->getOrCreateDailyRachatInput($stockId, $supplierId, $nom, $prenom, $isMulti, $date);
 }
 
 /**
@@ -736,17 +941,17 @@ public function listInventoryInputDetails(int $inventoryInputId): array
 public function validateInventoryInput(int $inventoryInputId): array
 {
     if ($inventoryInputId <= 0) {
-        return ['ok' => false, 'status' => 400, 'data' => [], 'error' => 'Invalid inventoryInputId'];
+        return ['ok' => false, 'status' => 400, 'raw' => 'invalid_inventory_input_id'];
     }
 
-    // Tentative 1
-    $res = $this->req('POST', 'inventory_inputs/validate/' . $inventoryInputId);
-    if (($res['ok'] ?? false)) return $res;
+    // ✅ EXACTEMENT comme ton curl (JSON)
+    $res = $this->req('POST', 'inventory_input_validate', [
+        'json' => ['inventory_input_id' => $inventoryInputId],
+        'headers' => ['Accept' => '*/*'], // optionnel mais ok
+    ]);
 
-    // Tentative 2
-    return $this->req('POST', 'inventory_inputs/' . $inventoryInputId . '/validate/');
+    return $res;
 }
-
 
 
 }

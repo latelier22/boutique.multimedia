@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tablette – En attente</title>
+
+  <!-- Polices (optionnel mais conseillé) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg0:#070B12;
+      --bg1:#0B1220;
+      --card: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.10);
+      --text:#EAF0FF;
+      --muted: rgba(234,240,255,.72);
+      --blue:#2F5FB8;
+      --blue2:#7FA6E6;
+      --gold:#D6B04D;
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --r1:22px;
+      --r2:16px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(900px 500px at 20% 10%, rgba(47,95,184,.28), transparent 55%),
+        radial-gradient(900px 520px at 85% 15%, rgba(214,176,77,.16), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .wrap{
+      width:min(980px, 100%);
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:18px;
+    }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border:1px solid var(--stroke);
+      border-radius: var(--r1);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background:
+        radial-gradient(500px 200px at 20% 0%, rgba(127,166,230,.22), transparent 60%),
+        radial-gradient(420px 220px at 80% 0%, rgba(214,176,77,.16), transparent 60%);
+      pointer-events:none;
+      opacity:.9;
+    }
+
+    .inner{position:relative; padding:22px;}
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:18px 22px;
+      border-bottom:1px solid var(--stroke);
+      background: rgba(0,0,0,.15);
+    }
+
+    .brand img{
+      height:52px;
+      width:auto;
+      object-fit:contain;
+      filter: drop-shadow(0 6px 16px rgba(0,0,0,.35));
+    }
+
+    .brand .txt{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+
+    .brand .title{
+      font-family: Rajdhani, Inter, system-ui, sans-serif;
+      font-size:20px;
+      letter-spacing:.6px;
+      margin:0;
+    }
+    .brand .subtitle{
+      margin:4px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    h1{
+      font-family: Rajdhani, Inter, system-ui, sans-serif;
+      font-size:30px;
+      margin:0 0 10px;
+      letter-spacing:.4px;
+    }
+
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 14px;
+      margin:8px 0 18px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.18);
+    }
+
+    .dot{
+      width:8px; height:8px; border-radius:50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 3px rgba(214,176,77,.18);
+    }
+
+    /* Zone status + spinner */
+    .statusBox{
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.22);
+      border-radius: var(--r2);
+      padding:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .statusLeft{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+
+    .statusLabel{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .statusValue{
+      font-size:16px;
+      font-weight:600;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .spinner{
+      width:34px; height:34px;
+      border-radius:50%;
+      border:3px solid rgba(127,166,230,.25);
+      border-top-color: var(--blue2);
+      border-right-color: var(--gold);
+      animation: spin 1s linear infinite;
+      flex: 0 0 auto;
+    }
+    @keyframes spin {to{transform:rotate(360deg)}}
+
+    /* Boutons */
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid var(--stroke);
+      border-radius: 14px;
+      padding:12px 14px;
+      color:var(--text);
+      font-weight:600;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      transition: transform .12s ease, filter .12s ease, background .12s ease;
+      user-select:none;
+      background: rgba(0,0,0,.18);
+    }
+
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .btn:active{ transform: translateY(0px); filter: brightness(.98); }
+
+    .btn-primary{
+      background: linear-gradient(180deg, rgba(47,95,184,.92), rgba(47,95,184,.55));
+      border-color: rgba(127,166,230,.30);
+    }
+
+    .btn-ghost{
+      background: rgba(0,0,0,.18);
+    }
+
+    .btn svg{ width:18px; height:18px; opacity:.95; }
+
+    /* Colonne droite */
+    .side{
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .info{
+      border:1px solid var(--stroke);
+      border-radius: var(--r2);
+      background: rgba(0,0,0,.18);
+      padding:16px;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .hint{
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px dashed rgba(255,255,255,.14);
+      font-size:13px;
+      color: rgba(234,240,255,.62);
+    }
+
+    @media (max-width: 860px){
+      .wrap{ grid-template-columns: 1fr; }
+      .brand{ justify-content:center; text-align:center; }
+      .brand .txt{ align-items:center; }
+      .actions{ flex-direction:column; }
+      .btn{ width:100%; justify-content:center; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <!-- Carte principale -->
+    <section class="card">
+      <div class="brand">
+        <!-- Remplace par ton chemin asset -->
+        <img src="{{ asset('images/logo-multimediaservices.png') }}" alt="Multimédia Services">
+        <div class="txt">
+          <p class="title">Multimédia Services</p>
+          <p class="subtitle">Tablette – Session sécurisée</p>
+        </div>
+      </div>
+
+      <div class="inner">
+        <h1>En attente de connexion…</h1>
+
+        <div class="meta">
+          <span class="pill"><span class="dot"></span> Device : <strong>{{ device }}</strong></span>
+          <span class="pill">État : <strong id="state">Connexion…</strong></span>
+        </div>
+
+        <div class="statusBox" aria-live="polite">
+          <div class="statusLeft">
+            <div class="statusLabel">Instruction</div>
+            <div class="statusValue" id="status">Connexion au service…</div>
+          </div>
+          <div class="spinner" aria-hidden="true"></div>
+        </div>
+
+        <div class="actions">
+          <form method="post" action="{{ path('tablet_logout') }}" style="margin:0">
+            <button class="btn btn-ghost" type="submit">
+              <!-- lock icon -->
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M7 11V8.5a5 5 0 0 1 10 0V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M6.5 11h11A2.5 2.5 0 0 1 20 13.5v5A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-5A2.5 2.5 0 0 1 6.5 11Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 15v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              Verrouiller
+            </button>
+          </form>
+
+          <button class="btn btn-primary" id="btn-reco" type="button">
+            <!-- refresh icon -->
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M20 12a8 8 0 0 1-14.7 4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 12a8 8 0 0 1 14.7-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M5 19v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 5v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Reconnecter
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Colonne droite -->
+    <aside class="side">
+      <section class="card">
+        <div class="inner">
+          <div class="info">
+            La tablette reste en attente et se redirige automatiquement dès réception d’une instruction.
+            <div class="hint">
+              Astuce : si le Wi-Fi “dort”, la reconnexion automatique + un ping régulier limitent les déconnexions.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="inner">
+          <div class="info">
+            <strong>multimedia-services.fr</strong><br>
+            Services & réparations – poste sécurisé.
+          </div>
+        </div>
+      </section>
+    </aside>
+
+  </div>
+
+<script>
+(function(){
+  const stateEl  = document.getElementById('state');
+  const statusEl = document.getElementById('status');
+  const btnReco  = document.getElementById('btn-reco');
+
+  const device = {{ device|json_encode|raw }};
+  const token  = {{ token|json_encode|raw }};
+
+  let ws = null;
+
+  // Reconnexion progressive (évite “ça se déconnecte trop souvent” + tempête de reconnexions)
+  let retry = 0;
+  let retryTimer = null;
+
+  // Keep-alive applicatif (utile contre certains Wi-Fi/NAT qui coupent les connexions “silencieuses”)
+  let pingTimer = null;
+  const PING_EVERY_MS = 20000; // 20s
+
+  function setUI(state, text){
+    stateEl.textContent = state;
+    statusEl.textContent = text;
+  }
+
+  function clearTimers(){
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    if (pingTimer)  { clearInterval(pingTimer); pingTimer = null; }
+  }
+
+  function wsUrl(){
+    const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+    return `${proto}://${location.host}/ws-tablet?device=${encodeURIComponent(device)}&token=${encodeURIComponent(token)}`;
+  }
+
+  function scheduleReconnect(reason){
+    clearTimers();
+
+    // backoff: 0.8s -> 1.6s -> 3.2s -> ... max 15s
+    const base = 800;
+    const delay = Math.min(15000, Math.round(base * Math.pow(2, retry)));
+    retry = Math.min(retry + 1, 6);
+
+    setUI("Hors ligne", reason ? `Reconnexion… (${reason})` : "Reconnexion…");
+
+    retryTimer = setTimeout(connect, delay);
+  }
+
+  function startPing(){
+    if (pingTimer) clearInterval(pingTimer);
+    pingTimer = setInterval(() => {
+      try {
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+        }
+      } catch(e){}
+    }, PING_EVERY_MS);
+  }
+
+  function connect(){
+    clearTimers();
+
+    try {
+      if (ws && (ws.readyState === 0 || ws.readyState === 1)) {
+        ws.close();
+      }
+    } catch(e){}
+
+    setUI("Connexion…", "Connexion au service…");
+
+    try {
+      ws = new WebSocket(wsUrl());
+    } catch(e) {
+      scheduleReconnect("échec WebSocket");
+      return;
+    }
+
+    ws.onopen = () => {
+      retry = 0; // reset backoff
+      setUI("Connecté", "En attente d’une instruction…");
+      startPing();
+    };
+
+    ws.onerror = () => {
+      // on laisse onclose gérer la reconnexion
+      setUI("Instable", "Problème réseau…");
+    };
+
+    ws.onclose = () => {
+      scheduleReconnect("connexion interrompue");
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+
+        // Si le serveur répond au ping, on peut rafraîchir l’état
+        if (msg && msg.type === "pong") {
+          setUI("Connecté", "En attente d’une instruction…");
+          return;
+        }
+
+        if (msg && msg.url) {
+          setUI("Redirection…", "Ouverture de la page demandée…");
+          location.href = msg.url;
+        }
+      } catch(err){
+        // ignore
+      }
+    };
+  }
+
+  btnReco.addEventListener('click', () => {
+    retry = 0;
+    setUI("Connexion…", "Reconnexion demandée…");
+    connect();
+  });
+
+  // Reconnect si l’onglet revient au premier plan (tablette / webview)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      if (!ws || ws.readyState === 3) connect();
+    }
+  });
+
+  connect();
+})();
+</script>
+</body>
+</html>

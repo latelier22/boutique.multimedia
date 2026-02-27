@@ -78,10 +78,151 @@
 
     .actions a,
     .actions button{font-size:0.8rem;}
+
+    .btn[disabled], .btn-ghost[disabled], .ui.button[disabled]{
+  opacity:.45;
+  cursor:not-allowed !important;
+  pointer-events:none;
+}
+a.is-disabled{
+  opacity:.45;
+  pointer-events:none;
+  cursor:not-allowed;
+}
+
+  .btn-ghost[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+
   }
 </style>
+<style>
+  :root{
+    --sylius-topbar-h: 0px;
+    --rachats-bar-h: 0px;
+    --rachats-offset: 0px;
+  }
+
+  #bar{
+    display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;
+
+    /* ✅ STICKY sous la topbar Sylius */
+    position: sticky;
+    top: var(--sylius-topbar-h);
+    z-index: 1000;
+    background: #fff;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 6px 12px rgba(0,0,0,.05);
+  }
+
+  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none;font-size:0.9rem}
+  .btn-secondary{background:#475569;border-color:#475569}
+  .btn-ghost{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#e5edff;color:#1e293b;cursor:pointer;text-decoration:none;font-size:0.9rem}
+  .muted{opacity:.7}
+
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+
+  /* ✅ le header du tableau devient sticky SOUS (topbar + bar) */
+  thead th{
+    position: sticky;
+    top: calc(var(--sylius-topbar-h) + var(--rachats-bar-h));
+    background:#0d6efd;
+    color:#fff;
+    z-index: 999;
+  }
+
+  .actions{white-space:normal;}
+  .actions a,
+  .actions button,
+  .actions form{display:inline-block;margin-right:6px;margin-bottom:4px}
+  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
+  .pill-ok{background:#dcfce7;color:#166534}
+  .pill-off{background:#fee2e2;color:#991b1b}
+  .nowrap{white-space:nowrap}
+  th.select-col, td.select-col { width: 40px; text-align:center; }
+
+  tr.is-treated { background:#ecfdf5; }
+  tr.is-treated td { border-bottom-color:#bbf7d0; }
+
+  tr.revendeur-ok { background:#ecfdf5; }
+  tr.revendeur-ok td { border-bottom-color:#bbf7d0; }
+  .pill-blue{background:#dbeafe;color:#1e40af}
+
+  /* ✅ le hash #rachat-XXX ne sera plus caché */
+  tr[id^="rachat-"]{
+    scroll-margin-top: var(--rachats-offset);
+  }
+
+  /* ─────────── RESPONSIVE MOBILE ─────────── */
+  @media (max-width: 768px) {
+    #bar{flex-direction:column;align-items:stretch;}
+
+    table#rachats,
+    table#rachats thead,
+    table#rachats tbody,
+    table#rachats th,
+    table#rachats td,
+    table#rachats tr{display:block;}
+
+    table#rachats thead{display:none;}
+    table#rachats tbody{padding:0;}
+  }
+</style>
+<script>
+  function computeRachatsOffsets() {
+    const topbar = document.querySelector('.admin-layout__topbar');
+    const bar = document.getElementById('bar');
+
+    const topbarH = topbar ? topbar.offsetHeight : 0;
+    const barH = bar ? bar.offsetHeight : 0;
+
+    document.documentElement.style.setProperty('--sylius-topbar-h', topbarH + 'px');
+    document.documentElement.style.setProperty('--rachats-bar-h', barH + 'px');
+    document.documentElement.style.setProperty('--rachats-offset', (topbarH + barH + 16) + 'px');
+  }
+
+  function scrollToHashRachat() {
+    const hash = location.hash || '';
+    if (!hash.startsWith('#rachat-')) return;
+
+    const el = document.querySelector(hash);
+    if (!el) return;
+
+    const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rachats-offset')) || 0;
+    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+
+    el.style.outline = '3px solid rgba(13,110,253,.35)';
+    el.style.borderRadius = '8px';
+    setTimeout(() => el.style.outline = '', 1200);
+  }
+
+  window.addEventListener('load', () => {
+    computeRachatsOffsets();
+    scrollToHashRachat();
+  });
+
+  window.addEventListener('resize', () => {
+    computeRachatsOffsets();
+  });
+
+  // si le hash change (rare mais utile)
+  window.addEventListener('hashchange', () => {
+    computeRachatsOffsets();
+    scrollToHashRachat();
+  });
+</script>
 
 {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+
+
+
 
 <form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
   <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
@@ -131,167 +272,198 @@
 
     <input type="hidden" name="arrivage_label" id="arrivage_label" value="">
 
-<button type="submit"
-        id="btn_create_arrivage"
-        formaction="{{ path('admin_rachats_arrivage_create_batch') }}"
-        class="btn-ghost">
-  📦 Créer arrivage
-</button>
-<button type="submit"
-        formaction="{{ path('admin_arrivages_create_from_rachats') }}"
-        class="btn-ghost">
-  📦 Créer / ajouter à arrivage (sélection)
-</button>
+    <button type="submit"
+            id="btn_create_arrivage"
+            formaction="{{ path('admin_rachats_arrivage_create_batch') }}"
+            class="btn-ghost">
+      📦 Créer arrivage
+    </button>
+
+    <button type="submit"
+            formaction="{{ path('admin_arrivages_create_from_rachats') }}"
+            class="btn-ghost">
+      📦 Créer / ajouter à arrivage (sélection)
+    </button>
 
     <a class="ui primary button" href="{{ path('admin_till_index') }}">VOIR CAISSE</a>
   </div>
 
   <table id="rachats">
-<thead>
-  <tr>
-    <th class="select-col">
-      <input type="checkbox" id="check_all" title="Tout sélectionner">
-    </th>
-    <th class="nowrap">ID</th>
-    <th>Modèle</th>
-    <th>Prix rachat</th>
-    <th class="nowrap">Date cession</th>
-    <th>Nom</th>
-    <th>Prénom</th>
-    <th class="nowrap">Téléphone</th>
-    <th>Email</th>
-    <th class="nowrap">PDF</th>
-    <th class="nowrap">Pièce ID</th>
-    <th class="nowrap">Payé ?</th>
-    <th class="nowrap">Revendeur</th>
-    <th>Actions</th>
-  </tr>
-</thead>
+    <thead>
+      <tr>
+        <th class="select-col">
+          <input type="checkbox" id="check_all" title="Tout sélectionner">
+        </th>
+        <th class="nowrap">ID</th>
+        <th>Modèle</th>
+        <th>Prix rachat</th>
+        <th class="nowrap">Date cession</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th class="nowrap">Téléphone</th>
+        <th>Email</th>
+        <th class="nowrap">PDF</th>
+        <th class="nowrap">Pièce ID</th>
+        <th class="nowrap">Payé ?</th>
+        <th class="nowrap">Revendeur</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
 
-<tbody>
-{% for row in rows %}
-  {% set revId = (row.revendeur_id|default(0)) + 0 %}
-  {% set hasRevendeur = revId > 0 %}
-  {% set isProcessed = hasRevendeur or (row.vendorProcessedAt is defined and row.vendorProcessedAt) %}
+    <tbody>
+    {% for row in rows %}
+      {% set revId = (row.revendeur_id|default(0)) + 0 %}
+      {% set hasRevendeur = revId > 0 %}
+      {% set hasSupplier = (row.hib_supplier_id|default(0)) + 0 > 0 %}
+      {% set isProcessed = hasRevendeur or (row.vendorProcessedAt is defined and row.vendorProcessedAt) %}
+      {% set hibProductId = (row.hib_product_id|default(0)) + 0 %}
+      {% set hibInputId   = (row.hib_inventory_input_id|default(0)) + 0 %}
+      {% set alreadyHibArrivage = hibInputId > 0 %}
 
-  <tr id="rachat-{{ row.id }}" data-id="{{ row.id }}" style="{{ isProcessed ? 'background:#ecfeff' : '' }}">
+      {# ✅ URL de retour garantie + hash sur cette ligne #}
+      {% set returnUrl = path('admin_rachats_index', { enabled: enabled }) ~ '#rachat-' ~ row.id %}
 
-    <td class="select-col" data-label="">
-      <input type="checkbox" name="ids[]" value="{{ row.id }}">
-    </td>
+      <tr id="rachat-{{ row.id }}"
+          data-id="{{ row.id }}"
+          data-paid="{{ row.paidAt ? 1 : 0 }}"
+          data-supplier="{{ row.hib_supplier_id|default(revId)|default(0) }}"
+          data-hib-product="{{ hibProductId }}"
+          data-hib-arrivage="{{ alreadyHibArrivage ? 1 : 0 }}"
+          style="{{ isProcessed ? 'background:#ecfeff' : '' }}">
 
-    <td class="nowrap" data-label="ID">{{ row.id }}</td>
-    <td data-label="Modèle">{{ row.marque_modele ?: '—' }}</td>
-    <td data-label="Prix rachat">{{ row.prix_achat ?: '—' }}</td>
-    <td class="nowrap" data-label="Date cession">{{ row.date_cession ?: '—' }}</td>
-    <td data-label="Nom">{{ row.nom ?: '—' }}</td>
-    <td data-label="Prénom">{{ row.prenom ?: '—' }}</td>
-    <td class="nowrap" data-label="Téléphone">{{ row.telephone ?: '—' }}</td>
-    <td data-label="Email">{{ row.email ?: '—' }}</td>
+        <td class="select-col" data-label="">
+          <input type="checkbox" name="ids[]" value="{{ row.id }}">
+        </td>
 
-    <td class="nowrap" data-label="PDF">
-      {% if row.pdf_url %}
-        <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
-      {% else %}—{% endif %}
-    </td>
+        <td class="nowrap" data-label="ID">{{ row.id }}</td>
+        <td data-label="Modèle">{{ row.marque_modele ?: '—' }}</td>
+        <td data-label="Prix rachat">{{ row.prix_achat ?: '—' }}</td>
+        <td class="nowrap" data-label="Date cession">{{ row.date_cession ?: '—' }}</td>
+        <td data-label="Nom">{{ row.nom ?: '—' }}</td>
+        <td data-label="Prénom">{{ row.prenom ?: '—' }}</td>
+        <td class="nowrap" data-label="Téléphone">{{ row.telephone ?: '—' }}</td>
+        <td data-label="Email">{{ row.email ?: '—' }}</td>
 
-    <td class="nowrap" data-label="Pièce ID">
-      {% if row.piece_identite_url %}
-        <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
-      {% else %}—{% endif %}
-    </td>
+        <td class="nowrap" data-label="PDF">
+          {% if row.pdf_url %}
+            <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
+          {% else %}—{% endif %}
+        </td>
 
-    <td class="nowrap" data-label="Payé ?">
-      {% if row.paidAt %}
-        <span class="pill pill-ok">
-          ✔ {{ row.paidMethod ?: 'ESP' }}<br>
-          <span class="muted">{{ row.paidAt }}</span>
-        </span>
-      {% else %}
-        <span class="pill pill-off">Non payé</span>
-      {% endif %}
-    </td>
+        <td class="nowrap" data-label="Pièce ID">
+          {% if row.piece_identite_url %}
+            <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
+          {% else %}—{% endif %}
+        </td>
 
-    <td class="nowrap" data-label="Revendeur">
-      {% if hasRevendeur %}
-        <span class="pill pill-ok">OK #{{ revId }}</span>
-      {% else %}
-        <span class="pill pill-off">Non</span>
-      {% endif %}
-    </td>
+        <td class="nowrap" data-label="Payé ?">
+          {% if row.paidAt %}
+            <span class="pill pill-ok">
+              ✔ {{ row.paidMethod ?: 'ESP' }}<br>
+              <span class="muted">{{ row.paidAt }}</span>
+            </span>
+          {% else %}
+            <span class="pill pill-off">Non payé</span>
+          {% endif %}
+        </td>
 
-    <td class="actions" data-label="Actions">
-      <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
-      <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
+        <td class="nowrap" data-label="Revendeur">
+          {% if hasRevendeur %}
+            <span class="pill pill-ok">OK #{{ revId }}</span>
+          {% else %}
+            <span class="pill pill-off">Non</span>
+          {% endif %}
+        </td>
 
-      {% if row.__autre_url %}
-        <a href="{{ row.__autre_url }}" class="btn">Autre rachat</a>
-      {% endif %}
+        <td class="actions" data-label="Actions">
+          <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
+          <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
 
-      {% if not row.paidAt %}
-        <button type="submit"
-                class="btn-ghost"
-                formaction="{{ path('admin_rachats_encaissement_one', { id: row.id }) }}"
-                name="method"
-                value="ESP">
-          💶 ESP
-        </button>
-      {% else %}
-        <button type="submit"
-                class="btn-ghost"
-                formaction="{{ path('admin_rachats_annuler_encaissement_one', { id: row.id }) }}"
-                onclick="return confirm('Annuler le paiement de ce rachat ?');">
-          ❌ Annuler paiement
-        </button>
-      {% endif %}
+          {% if row.__autre_url %}
+            <a href="{{ row.__autre_url }}" class="btn">Autre rachat</a>
+          {% endif %}
 
-      <button type="submit"
-              class="btn-ghost"
-              formaction="{{ path('admin_rachats_create_hib_product_arrivage', { id: row.id }) }}">
-        📦 Produit + arrivage
-      </button>
+          {% if not row.paidAt %}
+            <button type="submit"
+                    class="btn-ghost"
+                    formaction="{{ path('admin_rachats_encaissement_one', { id: row.id }) }}"
+                    name="method"
+                    value="ESP">
+              💶 ESP
+            </button>
+          {% else %}
+            <button type="submit"
+                    class="btn-ghost"
+                    formaction="{{ path('admin_rachats_annuler_encaissement_one', { id: row.id }) }}"
+                    onclick="return confirm('Annuler le paiement de ce rachat ?');">
+              ❌ Annuler paiement
+            </button>
+          {% endif %}
 
- {% if not hasRevendeur %}
- <button type="button"
-        class="btn-ghost js-link-revendeur"
-        data-rachat-id="{{ row.id }}"
-        data-nom="{{ row.nom|e('html_attr') }}"
-        data-prenom="{{ row.prenom|e('html_attr') }}"
-        data-telephone="{{ row.telephone|e('html_attr') }}"
-        data-email="{{ row.email|e('html_attr') }}"
-        data-csrf="{{ csrf_token('apply_revendeur_' ~ row.id) }}"
-        data-csrf-process="{{ csrf_token('process_revendeur_' ~ row.id) }}"
-        data-back-enabled="{{ enabled }}"
-        data-return="{{ app.request.requestUri|e('html_attr') }}">
-  👤 Lier / choisir revendeur
-</button>
+          {% if alreadyArrivage %}
+  <button type="button"
+          class="btn-ghost muted"
+          disabled
+          title="Déjà ajouté à l’arrivage #{{ row.hib_inventory_input_id }}">
+    ✅ Déjà en arrivage
+  </button>
 
+{% elseif not hasSupplier %}
+  <button type="button"
+          class="btn-ghost muted"
+          disabled
+          title="Créer ou lier un revendeur avant d’envoyer en arrivage">
+    🚫 Produit + arrivage
+  </button>
 
-  {# Fallback : création auto si tu veux garder #}
-  <form method="post" action="{{ path('admin_rachats_process_revendeur', { id: row.id }) }}" style="display:inline">
-    <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ row.id) }}">
-    <input type="hidden" name="_return" value="{{ app.request.requestUri }}">
-    <input type="hidden" name="_back_enabled" value="{{ enabled }}">
-    <button class="btn-ghost" type="submit"
-            onclick="return confirm('Créer un nouveau revendeur (si aucun existant) ?');">
-      ➕ Créer nouveau
-    </button>
-  </form>
 {% else %}
-  <a class="btn-ghost" href="{{ path('admin_revendeurs_show', { id: revId }) }}">👤 Voir revendeur</a>
-  <a class="btn-ghost" href="{{ path('admin_revendeurs_edit', { id: revId }) }}">✏️ Éditer revendeur</a>
+  <button type="submit"
+          class="btn-ghost"
+          formaction="{{ path('admin_rachats_create_hib_product_arrivage', { id: row.id }) }}">
+    📦 Produit + arrivage
+  </button>
 {% endif %}
 
-    </td>
-  </tr>
+          {% if not hasRevendeur %}
+            <button type="button"
+                    class="btn-ghost js-link-revendeur"
+                    data-rachat-id="{{ row.id }}"
+                    data-nom="{{ row.nom|e('html_attr') }}"
+                    data-prenom="{{ row.prenom|e('html_attr') }}"
+                    data-telephone="{{ row.telephone|e('html_attr') }}"
+                    data-email="{{ row.email|e('html_attr') }}"
+                    data-csrf="{{ csrf_token('apply_revendeur_' ~ row.id) }}"
+                    data-csrf-process="{{ csrf_token('process_revendeur_' ~ row.id) }}"
+                    data-back-enabled="{{ enabled }}"
+                    data-return="{{ returnUrl|e('html_attr') }}">
+              👤 Lier / choisir revendeur
+            </button>
 
-{% else %}
-  <tr>
-    <td colspan="14" class="muted">Aucun rachat.</td>
-  </tr>
-{% endfor %}
-</tbody>
+            {# ✅ Création auto : _return GARANTI avec hash #}
+            <form method="post"
+                  action="{{ path('admin_rachats_process_revendeur', { id: row.id }) }}"
+                  style="display:inline">
+              <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ row.id) }}">
+              <input type="hidden" name="_return" value="{{ returnUrl }}">
+              <input type="hidden" name="_back_enabled" value="{{ enabled }}">
+              <button class="btn-ghost" type="submit"
+                      onclick="return confirm('Créer un nouveau revendeur (si aucun existant) ?');">
+                ➕ Créer nouveau
+              </button>
+            </form>
+          {% else %}
+            <a class="btn-ghost" href="{{ path('admin_revendeurs_show', { id: revId }) }}">👤 Voir revendeur</a>
+            <a class="btn-ghost" href="{{ path('admin_revendeurs_edit', { id: revId }) }}">✏️ Éditer revendeur</a>
+          {% endif %}
+        </td>
+      </tr>
 
+    {% else %}
+      <tr>
+        <td colspan="14" class="muted">Aucun rachat.</td>
+      </tr>
+    {% endfor %}
+    </tbody>
   </table>
 </form>
 
@@ -313,18 +485,19 @@
   </div>
 
   <div class="actions">
-  <div class="ui button deny">Annuler</div>
+    <div class="ui button deny">Annuler</div>
 
-  <div class="ui teal button" id="revendeurCreateBtn">
-    ➕ Créer nouveau + lier (auto)
-  </div>
+    <div class="ui teal button" id="revendeurCreateBtn">
+      ➕ Créer nouveau + lier (auto)
+    </div>
 
-  <div class="ui primary button" id="revendeurApplyBtn" disabled>
-    Associer au rachat
+    <div class="ui primary button" id="revendeurApplyBtn" disabled>
+      Associer au rachat
+    </div>
   </div>
 </div>
+```
 
-</div>
 
 
 <script>
@@ -339,19 +512,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  if (location.hash && location.hash.startsWith('#rachat-')) {
-    const el = document.querySelector(location.hash);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.style.outline = '3px solid rgba(13,110,253,.35)';
-      el.style.borderRadius = '8px';
-      setTimeout(() => el.style.outline = '', 1200);
-    }
-  }
-});
-</script>
 
 
 <script>
@@ -486,10 +646,10 @@ document.addEventListener('DOMContentLoaded', function () {
       const nom = (btn.dataset.nom || '').trim();
       const prenom = (btn.dataset.prenom || '').trim();
 
-      let q = '';
-      if (email) q = email;
-      else if (tel) q = tel;
-      else q = (nom + ' ' + prenom).trim();
+      //let q = '';
+      //if (email) q = email;
+      //else if (tel) q = tel;
+      let  q = (nom);
 
       input.value = q;
       renderResults([]);
@@ -525,6 +685,61 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.requestSubmit(btn);
   });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('rachats_form');
+  if (!form) return;
+
+  const btnMasquer = form.querySelector('button[name="val"][value="0"]');
+  const btnReveler = form.querySelector('button[name="val"][value="1"]');
+  const btnEncaisser = form.querySelector('button[formaction*="encaissement_batch"]');
+  const btnArrivage = form.querySelector('button[formaction*="admin_arrivages_create_from_rachats"]');
+
+  function getSelectedRows() {
+    const ids = [...form.querySelectorAll('input[name="ids[]"]:checked')].map(cb => cb.value);
+    return ids
+      .map(id => document.querySelector('#rachat-' + id))
+      .filter(Boolean);
+  }
+
+  function refreshBarState() {
+    const rows = getSelectedRows();
+    const any = rows.length > 0;
+
+    // Masquer/Révéler: juste besoin d’une sélection
+    if (btnMasquer) btnMasquer.disabled = !any;
+    if (btnReveler) btnReveler.disabled = !any;
+
+    // Encaisser: sélection + au moins un non payé
+    if (btnEncaisser) {
+      const hasUnpaid = rows.some(tr => tr.dataset.paid !== '1');
+      btnEncaisser.disabled = !(any && hasUnpaid);
+      btnEncaisser.title = (!any) ? "Sélection requise" : (!hasUnpaid ? "Tout est déjà payé" : "");
+    }
+
+    // Arrivage: sélection + supplier unique (évite ton erreur controller)
+    if (btnArrivage) {
+      const suppliers = new Set(rows.map(tr => (tr.dataset.supplier || '0')).filter(x => x !== '0'));
+      const uniqueSupplier = suppliers.size <= 1; // 0 (inconnu) ou 1 ok
+      btnArrivage.disabled = !(any && uniqueSupplier);
+
+      if (!any) btnArrivage.title = "Sélection requise";
+      else if (!uniqueSupplier) btnArrivage.title = "Sélection invalide: plusieurs revendeurs différents";
+      else btnArrivage.title = "";
+    }
+  }
+
+  // écoute sélection
+  form.addEventListener('change', (e) => {
+    if (e.target && e.target.matches('input[name="ids[]"], #check_all')) {
+      refreshBarState();
+    }
+  });
+
+  refreshBarState();
 });
 </script>
 

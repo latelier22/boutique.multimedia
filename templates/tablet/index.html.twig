@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tablette – Diaporama</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#05070c;
+      --text:#EAF0FF;
+      --muted: rgba(234,240,255,.72);
+      --stroke: rgba(255,255,255,.12);
+      --blue:#2F5FB8;
+      --blue2:#7FA6E6;
+      --gold:#D6B04D;
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+      overflow:hidden;
+    }
+
+    /* fullscreen stage */
+    .stage{
+      position:fixed; inset:0;
+      background:
+        radial-gradient(900px 500px at 18% 10%, rgba(47,95,184,.22), transparent 60%),
+        radial-gradient(900px 520px at 85% 15%, rgba(214,176,77,.14), transparent 60%),
+        #04060a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* image */
+    .imgWrap{
+      position:absolute; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 6vh 5vw;
+    }
+    .img{
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 18px 60px rgba(0,0,0,.55));
+      transform: translateZ(0);
+    }
+
+    /* top bar */
+    .topbar{
+      position:absolute; top:16px; left:16px; right:16px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      z-index:5;
+      pointer-events:none;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+      padding:10px 12px;
+      border:1px solid var(--stroke);
+      border-radius: var(--r);
+      background: rgba(0,0,0,.22);
+      backdrop-filter: blur(10px);
+      pointer-events:auto;
+    }
+    .brand img{height:34px; width:auto; object-fit:contain}
+    .brand .btxt{
+      display:flex; flex-direction:column; line-height:1.05;
+    }
+    .brand .t{
+      font-family: Rajdhani, Inter, system-ui, sans-serif;
+      font-size:16px; letter-spacing:.4px;
+      margin:0;
+    }
+    .brand .s{ margin:2px 0 0; font-size:12px; color:var(--muted); }
+
+    .statusPill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 12px;
+      border:1px solid var(--stroke);
+      border-radius: 999px;
+      background: rgba(0,0,0,.22);
+      backdrop-filter: blur(10px);
+      font-size:13px;
+      color: var(--muted);
+      pointer-events:auto;
+      user-select:none;
+    }
+    .dot{
+      width:8px; height:8px; border-radius:50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 3px rgba(214,176,77,.16);
+    }
+
+    /* bottom overlay */
+    .overlay{
+      position:absolute; left:0; right:0; bottom:0;
+      padding: 40px 24px 24px;
+      background: linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.35), transparent);
+      z-index:4;
+      pointer-events:none;
+    }
+    .content{
+      width:min(1100px, 100%);
+      margin:0 auto;
+    }
+    .title{
+      font-family: Rajdhani, Inter, system-ui, sans-serif;
+      font-size: clamp(28px, 4.5vw, 56px);
+      font-weight:700;
+      letter-spacing:.4px;
+      margin:0;
+      text-shadow: 0 6px 24px rgba(0,0,0,.55);
+    }
+    .priceRow{
+      margin-top:10px;
+      display:flex;
+      gap:14px;
+      align-items:baseline;
+      flex-wrap:wrap;
+    }
+    .price{
+      font-size: clamp(26px, 3.2vw, 44px);
+      font-weight:700;
+    }
+    .oldPrice{
+      font-size: 18px;
+      opacity:.70;
+      text-decoration: line-through;
+    }
+    .badge{
+      display:inline-flex; align-items:center;
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(214,176,77,.18);
+      border: 1px solid rgba(214,176,77,.35);
+      color: rgba(234,240,255,.92);
+      font-weight:600;
+      font-size:13px;
+    }
+
+    /* actions (2 boutons) */
+    .actions{
+      position:absolute;
+      right:16px; bottom:16px;
+      display:flex;
+      gap:10px;
+      z-index:6;
+      pointer-events:auto;
+    }
+    .btn{
+      border:1px solid var(--stroke);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-weight:700;
+      font-family: Rajdhani, Inter, system-ui, sans-serif;
+      letter-spacing:.3px;
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      backdrop-filter: blur(10px);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); filter: brightness(1.05); }
+    .btn:active{ transform: translateY(0px); filter: brightness(.98); }
+    .btn-primary{
+      background: linear-gradient(180deg, rgba(47,95,184,.92), rgba(47,95,184,.52));
+      border-color: rgba(127,166,230,.30);
+    }
+    .btn svg{ width:18px; height:18px; opacity:.95; }
+
+    /* helper */
+    .hint{
+      position:absolute;
+      left:16px; bottom:16px;
+      padding:10px 12px;
+      border:1px solid var(--stroke);
+      border-radius: 14px;
+      background: rgba(0,0,0,.22);
+      backdrop-filter: blur(10px);
+      color: rgba(234,240,255,.65);
+      font-size:12px;
+      z-index:6;
+      pointer-events:none;
+    }
+
+    @media (max-width: 740px){
+      .actions{ left:16px; right:16px; justify-content:space-between; }
+      .btn{ width: calc(50% - 5px); justify-content:center; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="stage" id="stage" title="Tap pour avancer">
+    <!-- image -->
+    <div class="imgWrap">
+      <img id="img" class="img" alt="Produit">
+    </div>
+
+    <!-- top -->
+    <div class="topbar">
+      <div class="brand">
+        <img src="{{ asset('images/logo-multimediaservices.png') }}" alt="Multimédia Services">
+        <div class="btxt">
+          <p class="t">Multimédia Services</p>
+          <p class="s">Diaporama tablette</p>
+        </div>
+      </div>
+
+      <div class="statusPill">
+        <span class="dot"></span>
+        <span id="wsState">Connexion…</span>
+      </div>
+    </div>
+
+    <!-- bottom overlay -->
+    <section class="overlay">
+      <div class="content">
+        <h1 class="title" id="title">Chargement…</h1>
+        <div class="priceRow">
+          <div class="price" id="price">—</div>
+          <div class="oldPrice" id="oldPrice" style="display:none">—</div>
+          <div class="badge" id="badge" style="display:none">Promo</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hint">Tap/clic : produit suivant</div>
+
+    <!-- actions -->
+    <div class="actions">
+      <form method="post" action="{{ path('tablet_logout') }}" style="margin:0">
+        <button class="btn" type="submit">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 11V8.5a5 5 0 0 1 10 0V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M6.5 11h11A2.5 2.5 0 0 1 20 13.5v5A2.5 2.5 0 0 1 17.5 21h-11A2.5 2.5 0 0 1 4 18.5v-5A2.5 2.5 0 0 1 6.5 11Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 15v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Verrouiller
+        </button>
+      </form>
+
+      <button class="btn btn-primary" id="btn-reco" type="button">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M20 12a8 8 0 0 1-14.7 4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M4 12a8 8 0 0 1 14.7-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M5 19v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19 5v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Reconnecter
+      </button>
+    </div>
+  </main>
+
+<script>
+(function(){
+  // ====== CONFIG ======
+  const API_PRODUCTS = "https://api.multimedia-services.fr/api/products";
+  const SLIDE_MS = 5000;          // 5s comme ton Next.js
+  const REFRESH_PRODUCTS_MS = 60000; // refresh liste 1 min
+  const PRELOAD_NEXT = true;
+
+  // ====== DOM ======
+  const stage = document.getElementById('stage');
+  const imgEl = document.getElementById('img');
+  const titleEl = document.getElementById('title');
+  const priceEl = document.getElementById('price');
+  const oldPriceEl = document.getElementById('oldPrice');
+  const badgeEl = document.getElementById('badge');
+  const wsStateEl = document.getElementById('wsState');
+  const btnReco = document.getElementById('btn-reco');
+
+  // ====== TWIG VARS ======
+  const device = {{ device|json_encode|raw }};
+  const token  = {{ token|json_encode|raw }};
+
+  // ====== Helpers ======
+  function formatPrice(p){
+    const n = Number(p ?? 0);
+    if (Number.isNaN(n)) return "—";
+    return n.toFixed(2).replace('.', ',') + " €";
+  }
+  function firstImage(p){
+    const list = Array.isArray(p?.images) ? p.images : [];
+    return p?.image ?? p?.thumb ?? list[0] ?? "";
+  }
+
+  // ====== DIAPORAMA STATE ======
+  let products = [];
+  let index = 0;
+  let slideTimer = null;
+  let refreshTimer = null;
+
+  function render(i){
+    if (!products.length) {
+      titleEl.textContent = "Aucun produit…";
+      priceEl.textContent = "—";
+      oldPriceEl.style.display = "none";
+      badgeEl.style.display = "none";
+      imgEl.removeAttribute("src");
+      return;
+    }
+
+    index = ((i % products.length) + products.length) % products.length;
+    const p = products[index];
+
+    const img = firstImage(p);
+    if (img) imgEl.src = img;
+
+    imgEl.alt = p?.product_model ?? "Produit";
+    titleEl.textContent = p?.product_model ?? "Produit";
+
+    const hasPromo =
+      (p?.product_discount_price ?? "0") !== "0" &&
+      Number(p?.product_discount_price) > 0;
+
+    const priceStr = hasPromo ? p.product_discount_price : p.product_price;
+    priceEl.textContent = formatPrice(priceStr);
+
+    if (hasPromo) {
+      oldPriceEl.style.display = "";
+      oldPriceEl.textContent = formatPrice(p.product_price);
+      badgeEl.style.display = "";
+    } else {
+      oldPriceEl.style.display = "none";
+      badgeEl.style.display = "none";
+    }
+
+    // Preload next image
+    if (PRELOAD_NEXT && products.length > 1) {
+      const next = products[(index + 1) % products.length];
+      const nextImg = firstImage(next);
+      if (nextImg) {
+        const pre = new Image();
+        pre.src = nextImg;
+      }
+    }
+  }
+
+  function next(){
+    render(index + 1);
+  }
+
+  function startSlide(){
+    stopSlide();
+    slideTimer = setInterval(next, SLIDE_MS);
+  }
+  function stopSlide(){
+    if (slideTimer) clearInterval(slideTimer);
+    slideTimer = null;
+  }
+
+  async function loadProducts(){
+    try {
+      const res = await fetch(API_PRODUCTS, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const json = await res.json();
+
+      // On supporte plusieurs formats sans casser :
+      // - {ok:true, data:[...]}
+      // - {ok:true, data:{...}} (un seul)
+      // - [...] (liste brute)
+      let list = [];
+      if (Array.isArray(json)) list = json;
+      else if (json && Array.isArray(json.data)) list = json.data;
+      else if (json && json.data && typeof json.data === "object") list = [json.data];
+
+      // Filtre mini: garde ceux qui ont au moins un nom
+      list = list.filter(p => p && (p.product_model || p.product_id));
+
+      products = list;
+      if (index >= products.length) index = 0;
+      render(index);
+      startSlide();
+    } catch (e) {
+      // On ne met pas de spam à l'écran : juste un message simple
+      titleEl.textContent = "Impossible de charger les produits";
+      priceEl.textContent = "Vérifier la connexion";
+      oldPriceEl.style.display = "none";
+      badgeEl.style.display = "none";
+      stopSlide();
+    }
+  }
+
+  stage.addEventListener('click', () => {
+    if (products.length) next();
+  });
+
+  // Refresh liste produits périodiquement (au cas où stock/prix changent)
+  function startRefresh(){
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(loadProducts, REFRESH_PRODUCTS_MS);
+  }
+
+  // ====== WEBSOCKET (redirect) ======
+  let ws = null;
+  let retry = 0;
+  let retryTimer = null;
+  let pingTimer = null;
+  const PING_EVERY_MS = 20000;
+
+  function wsUrl(){
+    const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+    return `${proto}://${location.host}/ws-tablet?device=${encodeURIComponent(device)}&token=${encodeURIComponent(token)}`;
+  }
+
+  function setWsState(txt){ wsStateEl.textContent = txt; }
+
+  function clearWsTimers(){
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    if (pingTimer)  { clearInterval(pingTimer); pingTimer = null; }
+  }
+
+  function startPing(){
+    if (pingTimer) clearInterval(pingTimer);
+    pingTimer = setInterval(() => {
+      try {
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type:"ping", t:Date.now() }));
+        }
+      } catch(e){}
+    }, PING_EVERY_MS);
+  }
+
+  function scheduleReconnect(){
+    clearWsTimers();
+    const base = 800;
+    const delay = Math.min(15000, Math.round(base * Math.pow(2, retry)));
+    retry = Math.min(retry + 1, 6);
+    setWsState("Hors ligne");
+    retryTimer = setTimeout(connectWs, delay);
+  }
+
+  function connectWs(){
+    clearWsTimers();
+    try {
+      if (ws && (ws.readyState === 0 || ws.readyState === 1)) ws.close();
+    } catch(e){}
+
+    setWsState("Connexion…");
+
+    try {
+      ws = new WebSocket(wsUrl());
+    } catch(e) {
+      scheduleReconnect();
+      return;
+    }
+
+    ws.onopen = () => {
+      retry = 0;
+      setWsState("Connecté");
+      startPing();
+    };
+    ws.onerror = () => {
+      setWsState("Instable");
+    };
+    ws.onclose = () => {
+      scheduleReconnect();
+    };
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+
+        if (msg && msg.type === "pong") {
+          setWsState("Connecté");
+          return;
+        }
+
+        if (msg && msg.url) {
+          setWsState("Redirection…");
+          location.href = msg.url;
+        }
+      } catch(err){}
+    };
+  }
+
+  btnReco.addEventListener('click', () => {
+    retry = 0;
+    connectWs();
+    loadProducts(); // bonus : recharge la liste en même temps
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      if (!ws || ws.readyState === 3) connectWs();
+    }
+  });
+
+  // ====== BOOT ======
+  loadProducts();
+  startRefresh();
+  connectWs();
+})();
+</script>
+</body>
+</html>

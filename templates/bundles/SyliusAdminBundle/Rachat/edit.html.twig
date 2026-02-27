@@ -82,9 +82,11 @@
 
   {{ form_start(form, { attr: { class: 'ui form', id: 'rachat-form' } }) }}
 
-  <div class="two fields">
+  <div class="four fields">
     <div class="field">{{ form_row(form.marqueModele) }}</div>
     <div class="field">{{ form_row(form.imei) }}</div>
+    <div class="field">{{ form_row(form.hibBrandId) }}</div>
+    <div class="field">{{ form_row(form.hibCategoryId) }}</div>
   </div>
 
   <div class="three fields">

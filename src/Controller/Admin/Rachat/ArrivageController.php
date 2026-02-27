@@ -66,7 +66,14 @@ final class ArrivageController extends AbstractController
 
         if (!($res['ok'] ?? false)) {
             $this->addFlash('error', 'Erreur Hiboutik (' . ($res['status'] ?? '??') . ')');
-        } else {
+        } 
+
+        if (!($res['ok'] ?? false)) {
+            $dbg = $this->hib->getLastDebug();
+            $this->addFlash('error', 'Erreur Hiboutik (' . ($res['status'] ?? '??') . ') : ' . substr((string)($dbg['raw'] ?? ''), 0, 200));
+            return $this->redirectToRoute('admin_arrivages_index');
+        }
+        else {
             $this->addFlash('success', "Arrivage #$id validé !");
         }
 
