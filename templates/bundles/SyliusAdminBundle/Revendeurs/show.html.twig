@@ -3,88 +3,141 @@
 {% block title %}Revendeur #{{ v.id }}{% endblock %}
 
 {% block content %}
-  <h1 class="ui header">
+
+<h1 class="ui header">
     Revendeur #{{ v.id }} — {{ v.displayName }}
     <div class="sub header">
-      {{ v.telephone }} — {{ v.email }}
+        {{ v.telephone }} — {{ v.email }}
     </div>
-  </h1>
+</h1>
 
-  <div class="ui buttons">
-    <a class="ui button" href="{{ path('admin_revendeurs_edit', {id: v.id}) }}">Éditer</a>
-    <form method="post" action="{{ path('admin_revendeurs_sync_hiboutik', {id: v.id}) }}" style="display:inline">
-      <button class="ui primary button" type="submit">Sync Hiboutik</button>
+<div class="ui buttons">
+    <a class="ui button" href="{{ path('admin_revendeurs_edit', {id: v.id}) }}">
+        Éditer
+    </a>
+
+    <form method="post"
+          action="{{ path('admin_revendeurs_sync_hiboutik', {id: v.id}) }}"
+          style="display:inline">
+        <button class="ui primary button" type="submit">
+            Sync Hiboutik
+        </button>
     </form>
-  </div>
-
-  <div class="ui divider"></div>
-
- <h4 class="ui dividing header">Pièce d’identité (revendeur)</h4>
-
-<div class="ui two column stackable grid">
-  <div class="column">
-    <div class="ui small header">Recto</div>
-    {% if ci.recto %}
-      <a href="#" class="ci-thumb" data-full="{{ ci.recto }}">
-        <img class="ui bordered image" style="max-width:160px;height:auto" src="{{ ci.recto }}">
-      </a>
-    {% else %}
-      <div class="ui message">Aucun recto</div>
-    {% endif %}
-  </div>
-
-  <div class="column">
-    <div class="ui small header">Verso</div>
-    {% if ci.verso %}
-      <a href="#" class="ci-thumb" data-full="{{ ci.verso }}">
-        <img class="ui bordered image" style="max-width:160px;height:auto" src="{{ ci.verso }}">
-      </a>
-    {% else %}
-      <div class="ui message">Aucun verso</div>
-    {% endif %}
-  </div>
 </div>
 
-  <div class="ui divider"></div>
+<div class="ui divider"></div>
 
-  <h3 class="ui header">Rachats associés</h3>
+<h4 class="ui dividing header">Pièce d’identité (revendeur)</h4>
 
-  <table class="ui celled table">
+<div class="ui two column stackable grid">
+    <div class="column">
+        <div class="ui small header">Recto</div>
+        {% if ci.recto %}
+            <img class="ui bordered image"
+                 style="max-width:160px;height:auto"
+                 src="{{ ci.recto }}">
+        {% else %}
+            <div class="ui message">Aucun recto</div>
+        {% endif %}
+    </div>
+
+    <div class="column">
+        <div class="ui small header">Verso</div>
+        {% if ci.verso %}
+            <img class="ui bordered image"
+                 style="max-width:160px;height:auto"
+                 src="{{ ci.verso }}">
+        {% else %}
+            <div class="ui message">Aucun verso</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="ui divider"></div>
+
+{# Bouton nouveau rachat #}
+<form method="post"
+      action="{{ path('admin_revendeurs_rachats_new', {id: v.id}) }}">
+    <input type="hidden"
+           name="_token"
+           value="{{ csrf_token('revendeur_new_rachat_' ~ v.id) }}">
+
+    <button class="ui primary button" type="submit">
+        <i class="plus icon"></i>
+        Nouveau rachat pour <strong>{{ v.displayName }}</strong>
+    </button>
+</form>
+
+<div class="ui divider"></div>
+
+<h3 class="ui header">Rachats associés</h3>
+
+<table class="ui celled table">
     <thead>
-      <tr>
-        <th>ID</th>
-        <th>Date</th>
-        <th>Produit</th>
-        <th>IMEI</th>
-        <th>Prix</th>
-        <th>CI</th>
-        <th>Actions</th>
-      </tr>
+        <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Produit</th>
+            <th>IMEI</th>
+            <th>Prix</th>
+            <th>CI</th>
+            <th>Actions</th>
+        </tr>
     </thead>
     <tbody>
-      {% for r in rachats %}
+
+    {% for r in rachats %}
         <tr>
-          <td>{{ r.id }}</td>
-          <td>{{ r.createdAt ? r.createdAt|date('d/m/Y') : '—' }}</td>
-          <td>{{ r.marqueModele ?: '—' }}</td>
-          <td>{{ r.imei ?: '—' }}</td>
-          <td>{{ r.prixAchat ?: '—' }}</td>
-          <td>
-            {# Indicateur CI basé sur présence de json ou juste "?" (simple) #}
-            {% if r.pieceIdentiteUrl %}
-              ✅
-            {% else %}
-              —
-            {% endif %}
-          </td>
-          <td>
-            <a class="ui tiny button" href="{{ path('admin_rachats_edit', {id: r.id}) }}">Éditer</a>
-            <a class="ui tiny button" href="{{ path('admin_rachats_show', {id: r.id}) }}">Voir</a>
-          </td>
+            <td>{{ r.id }}</td>
+            <td>{{ r.createdAt ? r.createdAt|date('d/m/Y') : '—' }}</td>
+            <td>{{ r.marqueModele ?: '—' }}</td>
+            <td>{{ r.imei ?: '—' }}</td>
+            <td>{{ r.prixAchat ?: '—' }}</td>
+            <td>
+                {% if r.pieceIdentiteUrl %}
+                    ✅
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>
+
+                <a class="ui tiny button"
+                   href="{{ path('admin_rachats_edit', {id: r.id}) }}">
+                    Éditer
+                </a>
+
+                <a class="ui tiny button"
+                   href="{{ path('admin_rachats_show', {id: r.id}) }}">
+                    Voir
+                </a>
+
+                {# DELETE sécurisé #}
+                <form method="post"
+                      action="{{ path('admin_rachats_delete', {id: r.id}) }}"
+                      style="display:inline"
+                      onsubmit="return confirm('Supprimer ce rachat ?');">
+
+                    <input type="hidden"
+                           name="_token"
+                           value="{{ csrf_token('delete' ~ r.id) }}">
+
+                    <button class="ui red tiny button">
+                        <i class="trash icon"></i>
+                        Supprimer
+                    </button>
+                </form>
+
+            </td>
         </tr>
-      {% else %}
-        <tr><td colspan="7">Aucun rachat.</td></tr>
-      {% endfor %}
+
+    {% else %}
+        <tr>
+            <td colspan="7">Aucun rachat.</td>
+        </tr>
+    {% endfor %}
+
     </tbody>
-  </table>
+</table>
+
 {% endblock %}

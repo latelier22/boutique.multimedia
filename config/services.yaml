@@ -43,6 +43,10 @@ services:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
 
+    App\Command\BackfillRachatArrivagesCommand:
+        tags:
+            - { name: 'console.command', command: 'app:backfill-rachat-arrivages' }
+
 # define a service which will be used as the queue
 
     redis_connection_factory:

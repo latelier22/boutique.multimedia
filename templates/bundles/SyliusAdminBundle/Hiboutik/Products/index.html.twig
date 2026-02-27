@@ -1,0 +1,85 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Produits Hiboutik{% endblock %}
+
+{% block content %}
+{# {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %} #}
+<h1 class="ui header">📦 Produits Hiboutik</h1>
+{# 
+<form method="post" action="{{ path('admin_arrivages_create') }}" style="margin-bottom: 1em;">
+  <button type="submit" class="ui green button">
+    <i class="plus icon"></i> Créer l’arrivage du mois
+  </button>
+</form> #}
+
+<div class="ui label">
+  count =
+  {{ products is iterable ? (products|length) : 'NOT ITERABLE' }}
+</div>
+{# 
+<pre style="white-space:pre-wrap;max-height:200px;overflow:auto">
+{{ dump(products) }}
+</pre> #}
+
+<table class="ui celled table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nom</th>
+      <th>Prix</th>
+      <th>En ligne</th>
+
+      
+      
+    </tr>
+  </thead>
+  <tbody>
+
+  {% for p in products %}
+    <tr>
+      <td>{{ p.product_id ?? '—' }}</td>
+      <td>{{ p.product_model ?? '—' }}</td>
+      <td>{{ p.product_price ?? '—' }}</td>
+      <td>{{ p.product_display_www ? 'Oui' : 'Non' }}</td>     
+ </tr>
+    {% else %}
+        <tr>
+        <td colspan="4" class="center aligned">Aucun produit trouvé.</td>
+        </tr>
+    {% endfor %}
+
+  </tbody>
+</table>
+{% endblock %}
+
+{# 
+//  array:28 [▼
+//   "product_id" => 892
+//   "product_model" => "Vitre Arrière Noire iPhone 15 (Pulled A)"
+//   "product_barcode" => "2430000008924"
+//   "product_brand" => 0
+//   "product_supplier" => 0
+//   "product_price" => "0.00"
+//   "product_discount_price" => "0.00"
+//   "product_supply_price" => "0.00"
+//   "points_in" => 0
+//   "points_out" => 0
+//   "product_category" => 0
+//   "product_size_type" => 0
+//   "product_package" => 0
+//   "product_stock_management" => 0
+//   "product_supplier_reference" => ""
+//   "product_vat" => 1
+//   "product_display" => 1
+//   "product_display_www" => 0
+//   "product_arch" => 0
+//   "products_desc" => ""
+//   "product_font_color" => "#000000"
+//   "product_bck_btn_color" => "#CCCCCC"
+//   "products_ref_ext" => ""
+//   "product_order" => 8
+//   "weight" => "0.00"
+//   "multiple" => 1
+//   "updated_at" => "2026-02-25 11:43:36"
+//   "product_specific_rules" => []
+//  #}

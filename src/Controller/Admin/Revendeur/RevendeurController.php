@@ -18,6 +18,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
+use App\Service\RachatFactory;
+
 #[Route('/admin/revendeurs', name: 'admin_revendeurs_')]
 final class RevendeurController extends AbstractController
 {
@@ -33,6 +35,26 @@ final class RevendeurController extends AbstractController
         $rows = $this->em->getRepository(Revendeur::class)->findBy([], ['id' => 'DESC']);
         return $this->render('@SyliusAdmin/Revendeurs/index.html.twig', ['rows' => $rows]);
     }
+
+
+    #[Route('/{id}/rachats/new', name: 'rachats_new', methods: ['POST'])]
+public function newRachatForRevendeur(
+    Revendeur $revendeur,
+    Request $request,
+    RachatFactory $factory,
+    EntityManagerInterface $em
+): Response {
+    if (!$this->isCsrfTokenValid('revendeur_new_rachat_'.$revendeur->getId(), (string)$request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalide.');
+    }
+
+    $r = $factory->newForRevendeur($revendeur);
+    $em->persist($r);
+    $em->flush();
+
+    return $this->redirectToRoute('admin_rachats_edit', ['id' => $r->getId()]);
+}
+
 
     #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
     public function new(Request $req): Response

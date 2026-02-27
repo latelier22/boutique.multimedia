@@ -111,6 +111,46 @@ class Rachat
  */
 private ?Revendeur $revendeur = null;
 
+
+/** @ORM\Column(name="hib_inventory_input_id", type="integer", nullable=true) */
+private ?int $hibInventoryInputId = null;
+
+public function getHibInventoryInputId(): ?int
+{
+    return $this->hibInventoryInputId;
+}
+
+public function setHibInventoryInputId(?int $v): self
+{
+    $this->hibInventoryInputId = $v;
+    return $this;
+}
+
+/** @ORM\Column(name="hib_arrivage_added_at", type="datetime_immutable", nullable=true) */
+private ?\DateTimeImmutable $hibArrivageAddedAt = null;
+
+
+public function getHibArrivageAddedAt(): ?\DateTimeImmutable { return $this->hibArrivageAddedAt; }
+public function setHibArrivageAddedAt(?\DateTimeImmutable $v): self { $this->hibArrivageAddedAt = $v; return $this; }
+
+
+// App\Entity\Rachat.php
+
+/** @ORM\Column(name="hib_brand_id", type="integer", nullable=true) */
+private ?int $hibBrandId = null;
+
+/** @ORM\Column(name="hib_category_id", type="integer", nullable=true) */
+private ?int $hibCategoryId = null;
+
+public function getHibBrandId(): ?int { return $this->hibBrandId; }
+public function setHibBrandId(?int $id): self { $this->hibBrandId = $id; return $this; }
+
+public function getHibCategoryId(): ?int { return $this->hibCategoryId; }
+public function setHibCategoryId(?int $id): self { $this->hibCategoryId = $id; return $this; }
+
+
+
+
 public function getRevendeur(): ?Revendeur
 {
     return $this->revendeur;
