@@ -14,7 +14,6 @@
         </div>
         {% include '@SyliusShop/Product/_mainImage.html.twig' with {'product': product} %}
     </a>
-    <div class="content wishlist">
         <a
             href="{{ path('sylius_shop_product_show', { slug: product.slug, _locale: product.translation.locale }) }}"
             class="header sylius-product-name"
@@ -26,7 +25,6 @@
 
         <div class="ui divider"></div>
 
-        {% include '@BitBagSyliusWishlistPlugin/Common/_addToWishlist.html.twig' %}
     </div>
 </div>
 
