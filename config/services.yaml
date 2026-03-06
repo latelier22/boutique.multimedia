@@ -1,60 +1,42 @@
 parameters:
-  locale: fr_FR
-  google_api_key: '%env(GOOGLE_API_KEY)%'
-  google_cse_id:  '%env(GOOGLE_CSE_ID)%'
-  hiboutik.account: '%env(string:HIBOUTIK_ACCOUNT)%'
-  hiboutik.login:   '%env(string:HIBOUTIK_LOGIN)%'
-  hiboutik.key:     '%env(string:HIBOUTIK_API_KEY)%'
-  hiboutik.widget_secret: '%env(HIBOUTIK_WIDGET_SECRET)%'
-  hiboutik.debug:   true
-  $logger:     '@logger'
-  tablet_socket_token: '%env(TABLET_SOCKET_TOKEN)%'
-  tablet_pin: '%env(TABLET_PIN)%'
-  tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
+    locale: fr_FR
+    google_api_key: '%env(GOOGLE_API_KEY)%'
+    google_cse_id: '%env(GOOGLE_CSE_ID)%'
+    hiboutik.account: '%env(string:HIBOUTIK_ACCOUNT)%'
+    hiboutik.login: '%env(string:HIBOUTIK_LOGIN)%'
+    hiboutik.key: '%env(string:HIBOUTIK_API_KEY)%'
+    hiboutik.widget_secret: '%env(HIBOUTIK_WIDGET_SECRET)%'
+    hiboutik.debug: true
+    tablet_socket_token: '%env(TABLET_SOCKET_TOKEN)%'
+    tablet_pin: '%env(TABLET_PIN)%'
+    tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
 
-  rachats_columns:
-    columns:
-      select:   { label: "Sélection", default: true }
-      id:       { label: "#",         default: true }
-      modele:   { label: "Modèle",    default: true }
-      prix:     { label: "Prix",      default: true }
-      date:     { label: "Date",      default: true }
-      nom:      { label: "Nom",       default: true }
-      prenom:   { label: "Prénom",    default: false }
-      tel:      { label: "Téléphone", default: true }
-      email:    { label: "Email",     default: false }
-      pdf:      { label: "PDF",       default: true }
-      ci:       { label: "Pièce ID",  default: true }
-      paiement: { label: "Paiement",  default: true }
-      revendeur: { label: "Revendeur", default: true }
-      actions:  { label: "Actions",   default: true }
+    rachats_columns:
+        columns:
+            select: { label: 'Sélection', default: true }
+            id: { label: '#', default: true }
+            modele: { label: 'Modèle', default: true }
+            prix: { label: 'Prix', default: true }
+            date: { label: 'Date', default: true }
+            nom: { label: 'Nom', default: true }
+            prenom: { label: 'Prénom', default: false }
+            tel: { label: 'Téléphone', default: true }
+            email: { label: 'Email', default: false }
+            pdf: { label: 'PDF', default: true }
+            ci: { label: 'Pièce ID', default: true }
+            paiement: { label: 'Paiement', default: true }
+            revendeur: { label: 'Revendeur', default: true }
+            actions: { label: 'Actions', default: true }
 
-    presets:
-      desktop:  [select,id,modele,prix,date,nom,prenom,tel,email,pdf,ci,paiement,revendeur,actions]
-      tablet:   [select,id,modele,prix,date,nom,tel,pdf,paiement,revendeur,actions]
-      mobile:   [select,id,modele,prix,date,nom,tel,pdf,paiement,actions]
-    
-
-  
-
-
-
-
-  
-
+        presets:
+            desktop: [select, id, modele, prix, date, nom, prenom, tel, email, pdf, ci, paiement, revendeur, actions]
+            tablet: [select, id, modele, prix, date, nom, tel, pdf, paiement, revendeur, actions]
+            mobile: [select, id, modele, prix, date, nom, tel, pdf, paiement, actions]
 
 services:
-   
-    # Default configuration for services in *this* file
     _defaults:
-        # Automatically injects dependencies in your services
         autowire: true
-
-        # Automatically registers your services as commands, event subscribers, etc.
         autoconfigure: true
-
-        # Allows optimizing the container by removing unused services; this also means
-        # fetching services directly from the container via $container->get() won't work
         public: false
 
     _instanceof:
@@ -63,14 +45,10 @@ services:
         Sylius\Bundle\ResourceBundle\Form\Type\AbstractResourceType:
             autowire: false
 
-    # Makes classes in src/ available to be used as services;
-    # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/*'
         exclude: '../src/{Entity,Migrations,Tests,Kernel.php}'
 
-    # Controllers are imported separately to make sure services can be injected
-    # as action arguments even if you don't extend any base controller class
     App\Controller\:
         resource: '../src/Controller'
         tags: ['controller.service_arguments']
@@ -79,80 +57,25 @@ services:
         tags:
             - { name: 'console.command', command: 'app:backfill-rachat-arrivages' }
 
-# define a service which will be used as the queue
-
     redis_connection_factory:
         class: Enqueue\Redis\RedisConnectionFactory
 
     App\Controller\Admin\SearchImageController:
         arguments:
             $googleApiKey: '%google_api_key%'
-            $googleCseId:  '%google_cse_id%'
-
-    App\Twig\ProductExtension:
-        tags: ['twig.extension']
-        public: true
-
-    App\Service\ProductAssociationFilterService:
-        public: true
-
-    App\Twig\TaxonExtension:
-        tags: ['twig.extension']
-    
-    App\Form\Extension\TaxonTypeExtension:
-        tags:
-        - { name: form.type_extension, extended_type: Sylius\Bundle\TaxonomyBundle\Form\Type\TaxonType }
-
+            $googleCseId: '%google_cse_id%'
 
     App\Controller\Admin\Product\CreateSimpleProductController:
-            arguments:
-                $productFactory: '@sylius.factory.product'
-                $variantFactory: '@sylius.factory.product_variant'
-                $channelPricingFactory: '@sylius.factory.channel_pricing'
-                $productTaxonFactory: '@sylius.factory.product_taxon'
-                $productRepository: '@sylius.repository.product'
-                $variantRepository: '@sylius.repository.product_variant'
-                $channelRepository: '@sylius.repository.channel'
-                $taxonRepository: '@sylius.repository.taxon'
-                $httpClient: '@http_client'
-    
-     # Client Hiboutik
-    App\Service\HiboutikClient:
         arguments:
+            $productFactory: '@sylius.factory.product'
+            $variantFactory: '@sylius.factory.product_variant'
+            $channelPricingFactory: '@sylius.factory.channel_pricing'
+            $productTaxonFactory: '@sylius.factory.product_taxon'
+            $productRepository: '@sylius.repository.product'
+            $variantRepository: '@sylius.repository.product_variant'
+            $channelRepository: '@sylius.repository.channel'
+            $taxonRepository: '@sylius.repository.taxon'
             $httpClient: '@http_client'
-            $hibAccount: '%hiboutik.account%'
-            $hibLogin:   '%hiboutik.login%'
-            $hibApiKey:  '%hiboutik.key%'   # ⬅️ NOM QUI MATCHE le constructeur
-            $debug:      '%hiboutik.debug%'
-            $logger:     '@monolog.logger.hiboutik'
-    
-    monolog.logger.hiboutik:
-        class: Monolog\Logger
-        arguments: ['hiboutik']
-    
-    App\Service\RachatPdfGenerator:
-        arguments:
-            $projectDir: '%kernel.project_dir%'
-            $pdf: '@knp_snappy.pdf'
-
-
-    App\Twig\AppExtension:
-        tags: ['twig.extension']
-
-    App\Twig\JsonExtension:
-        tags: ['twig.extension']
-
-
-    # App\Menu\Admin\HiboutikMenuListener:
-    #     tags:
-    #         - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
-
-    
-  
-
-    # ⚠️ Toute sous-classe hérite automatiquement des args du parent
-    App\Service\HiboutikTillClient:
-        parent: App\Service\HiboutikClient
 
     App\Controller\Widget\HiboutikWidgetController:
         arguments:
@@ -161,3 +84,44 @@ services:
             $apiKey: '%hiboutik.key%'
             $widgetSecret: '%hiboutik.widget_secret%'
         tags: ['controller.service_arguments']
+
+    App\Form\Extension\TaxonTypeExtension:
+        tags:
+            - { name: form.type_extension, extended_type: Sylius\Bundle\TaxonomyBundle\Form\Type\TaxonType }
+
+    App\Service\HiboutikClient:
+        arguments:
+            $httpClient: '@http_client'
+            $hibAccount: '%hiboutik.account%'
+            $hibLogin: '%hiboutik.login%'
+            $hibApiKey: '%hiboutik.key%'
+            $debug: '%hiboutik.debug%'
+            $logger: '@monolog.logger.hiboutik'
+
+    App\Service\HiboutikTillClient:
+        parent: App\Service\HiboutikClient
+
+    App\Service\RachatPdfGenerator:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+            $pdf: '@knp_snappy.pdf'
+
+    App\Service\ProductAssociationFilterService:
+        public: true
+
+    monolog.logger.hiboutik:
+        class: Monolog\Logger
+        arguments: ['hiboutik']
+
+    App\Twig\AppExtension:
+        tags: ['twig.extension']
+
+    App\Twig\JsonExtension:
+        tags: ['twig.extension']
+
+    App\Twig\ProductExtension:
+        tags: ['twig.extension']
+        public: true
+
+    App\Twig\TaxonExtension:
+        tags: ['twig.extension']

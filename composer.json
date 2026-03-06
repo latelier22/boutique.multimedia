@@ -25,19 +25,16 @@
     ],
     "require": {
         "php": "^8.1",
-        "asdoria/sylius-bulk-edit-plugin": "*",
-        "friendsofsylius/sylius-import-export-plugin": "^0.27.0",
         "guzzlehttp/psr7": "^2.5",
+        "jms/serializer-bundle": "*",
         "knplabs/knp-snappy-bundle": "^1.10",
-        "monsieurbiz/sylius-cms-page-plugin": "^1.2.3",
-        "monsieurbiz/sylius-media-manager-plugin": "^1.2.3",
-        "monsieurbiz/sylius-rich-editor-plugin": "*",
-        "monsieurbiz/sylius-search-plugin": "^2.3",
         "nikic/php-parser": "^4.0",
         "portphp/csv": "^2.0",
         "portphp/spreadsheet": "^1.0",
         "psr/http-factory": "*",
-        "sylius/sylius": "^1.14",
+        "sylius-labs/polyfill-symfony-security": "*",
+        "sylius/sylius": "2.0.*",
+        "sylius/user-bundle": "*",
         "symfony/dotenv": "^5.4 || ^6.4",
         "symfony/flex": "^2.4",
         "symfony/http-client": "^6.4",
@@ -124,9 +121,6 @@
             "@php bin/console sylius:show-plus-info --ansi"
         ],
         "auto-scripts": {
-
-            "vendor/monsieurbiz/sylius-rich-editor-plugin/scripts/replace_intl_extension.php": "php-script",
-
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }

@@ -25,8 +25,10 @@
     "@semantic-ui-react/css-patch": "^1.1.2",
     "@sylius-ui/frontend": "^1.0",
     "@symfony/stimulus-bridge": "^3.2.0 || ^4.0.0",
+    "@symfony/ux-autocomplete": "file:vendor/symfony/ux-autocomplete/assets",
     "@symfony/ux-cropperjs": "file:vendor/symfony/ux-cropperjs/assets",
     "@symfony/ux-dropzone": "file:vendor/symfony/ux-dropzone/assets",
+    "@symfony/ux-live-component": "file:vendor/symfony/ux-live-component/assets",
     "@symfony/ux-react": "file:vendor/symfony/ux-react/assets",
     "@symfony/ux-turbo": "file:vendor/symfony/ux-turbo/assets",
     "@symfony/webpack-encore": "^5.1.0",
@@ -34,7 +36,8 @@
     "react": "^18.0",
     "react-dom": "^18.0",
     "sass": "^1.87.0",
-    "sass-loader": "^16.0.5"
+    "sass-loader": "^16.0.5",
+    "tom-select": "^2.2.2"
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
 }

@@ -1,10 +1,5 @@
-asdoria_bulk_edit:
-    resource: "@AsdoriaSyliusBulkEditPlugin/config/routing.yaml"
 
-    prefix: /admin
-
-shop_taxon_mis_en_avant:
-    path: /{_locale}/taxons/mis-en-avant
+    # path: /{_locale}/taxons/mis-en-avant
 
 app_export_data_taxon:
     path: /admin/export/sylius.resource/csv

@@ -4,8 +4,6 @@ imports:
     - { resource: "@SyliusApiBundle/Resources/config/app/config.yaml" }
     # - { resource: "@SyliusShopBundle/Resources/config/app/config.yml" }
     - { resource: "../parameters.yaml" }
-    - { resource: "@AsdoriaSyliusBulkEditPlugin/config/config.yaml"}
-    - { resource: "@MonsieurBizSyliusSearchPlugin/Resources/config/config.yaml" }
    
    
 
