@@ -1,0 +1,954 @@
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/user-bundle 1.14: The "Sylius\Bundle\UserBundle\Security\UserLoginInterface" interface is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/user 1.14: The "Sylius\Component\User\Security\Generator\UniquePinGenerator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\ContextProvider\DefaultContextProvider" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\ContextProvider\ContextProviderInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Registry\TemplateBlockRegistry" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Registry\TemplateBlockRegistryInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TwigTemplateBlockRenderer" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TemplateBlockRendererInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\DelegatingTemplateEventRenderer" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TemplateEventRendererInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Console\Command\DebugTemplateEventCommand" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TemplateEventExtension" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\LegacySonataBlockExtension" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Storage\FilterStorage" class is deprecated and will be removed in Sylius 2.0. Use Sylius\Bundle\GridBundle\Storage\SessionFilterStorage from sylius/grid-bundle version 1.13 or later instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Storage\FilterStorage" class is deprecated and will be removed in Sylius 2.0. Use Sylius\Bundle\GridBundle\Storage\FilterStorageInterface from sylius/grid-bundle version 1.13 or later instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionAction\FixedDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionAction\ActionValidatorInterface" interface is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForProductsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionScope\ScopeValidatorInterface" interface is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForTaxonsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForVariantsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Console\Command\ShowAvailablePluginsCommand" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Theme\ChannelBasedThemeContext" class is deprecated and will be moved to the ShopBundle in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\DashboardStatisticsProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\DashboardStatisticsProviderInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\SalesDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\SalesDataProviderInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "MugProductFixture" class is deprecated and will be removed in Sylius 2.0. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "StickerProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "BookProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "TshirtProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\CountryTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\LocaleTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\CustomerTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core 1.13: The "Sylius\Component\Core\Provider\ProductVariantsPricesProviderInterface" class is deprecated, use "Sylius\Component\Core\Provider\ProductVariantMap\ProductVariantsMapProviderInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\PriceHelper" class is deprecated, use "Sylius\Component\Core\Calculator\ProductVariantPriceCalculator" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\VariantResolverHelper" class is deprecated, use "Sylius\Component\Product\Resolver\CompositeProductVariantResolver" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\CheckoutStepsHelper" class is deprecated, use "Sylius\Component\Core\Checker\OrderPaymentMethodSelectionRequirementChecker" and "Sylius\Component\Core\Checker\OrderShippingMethodSelectionRequirementChecker" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/grid-bundle 1.8: Sylius\Bundle\GridBundle\Form\Type\Filter\MoneyFilterType is deprecated, replace it with your own implementation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/sylius 1.14: The "Sylius\Bundle\CoreBundle\Twig\FilterExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: The Liip\ImagineBundle\Templating\Helper\FilterHelper class is deprecated since version 2.2 and will be removed in 3.0; use Twig instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Controller\PayumController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Validator\GatewayFactoryExistsValidator" class is deprecated and will be moved to the PaymentBundle in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Validator\GroupsGenerator\GatewayConfigGroupsGenerator" class is deprecated and will be moved to the PaymentBundle in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Controller\Dashboard\StatisticsController" class is deprecated. Will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Controller\NotificationController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\OrderEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManager" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\OrderEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManagerInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\ShipmentEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ShipmentEmailManager" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\ShipmentEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ShipmentEmailManagerInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\EventListener\ResourceDeleteSubscriber" class is deprecated and will be removed in Sylius 2.0. It will be replaced with the "Sylius\Bundle\AdminBundle\EventListener\ResourceDeleteListener".
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Form\Extension\CatalogPromotionActionTypeExtension" class is deprecated and will be removed in Sylius 2.0. Starting with this version, form types will be extended using the parent form like in Sylius\Bundle\AdminBundle\Form\Type\CatalogPromotionActionType.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Form\Extension\CatalogPromotionScopeTypeExtension" class is deprecated and will be removed in Sylius 2.0. Starting with this version, form types will be extended using the parent form like in Sylius\Bundle\AdminBundle\Form\Type\CatalogPromotionScopeType.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Provider\StatisticsDataProvider" class is deprecated and will be removed in Sylius 2.0. Use "Sylius\Component\Core\Statistics\Provider\StatisticsProvider" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Provider\StatisticsDataProviderInterface" class is deprecated and will be removed in Sylius 2.0. Use "Sylius\Component\Core\Statistics\Provider\StatisticsProviderInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Twig\NotificationWidgetExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.14: The "Sylius\Bundle\ShopBundle\Controller\HomepageController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.14: The "Sylius\Bundle\ShopBundle\Controller\SecurityWidgetController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\ContactEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ContactEmailManager" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\ContactEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ContactEmailManagerInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\OrderEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManager" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\OrderEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManagerInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.12: The "Sylius\Bundle\ShopBundle\Twig\OrderTaxesTotalExtension" class is deprecated and will be removed in Sylius 2.0. Use methods "getTaxExcludedTotal" and "getTaxIncludedTotal" from "Sylius\Component\Core\Model\Order" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\Twig\OrderItemsSubtotalExtension" class is deprecated and will be removed in Sylius 2.0. Use method "getItemsSubtotal" from "Sylius\Component\Core\Model\Order" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/sylius 1.13: The "Sylius\Bundle\ShopBundle\Calculator\OrderItemsSubtotalCalculator" class is deprecated and will be removed in Sylius 2.0. Items subtotal calculations is now available by using Sylius\Component\Core\Model\Order::getSubtotalItems method.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\Calculator\OrderItemsSubtotalCalculatorInterface" interface is deprecated and will be removed in Sylius 2.0, use method "getItemsSubtotal" from "Sylius\Component\Core\Model\OrderInterface" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Bridge\Symfony\Routing\RouteNameResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Bridge\Symfony\Routing\CachedRouteNameResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Factory\MergingExtractorResourceMetadataFactory" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: The "Lexik\Bundle\JWTAuthenticationBundle\Services\KeyLoader\OpenSSLKeyLoader" class is deprecated since version 2.5 and will be removed in 3.0. Use "Lexik\Bundle\JWTAuthenticationBundle\Services\KeyLoader\RawKeyLoader" instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: The "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\DefaultJWSProvider" class is deprecated since version 2.5 and will be removed in 3.0. Use "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\LcobucciJWSProvider" or create your own "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\JWSProviderInterface" implementation instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\SerializerContextBuilder\ReadOperationContextBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadAvatarImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadProductImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadTaxonImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\AddressDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\AdminUserDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ChannelDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\MessengerDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\CountryDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\LocaleDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ShippingMethodDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PaymentMethodDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductAttributeDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductTaxonDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductVariantDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PromotionCouponDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\TranslatableDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ZoneDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PromotionDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\CustomerDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\ShippingMethodFilter" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\PaymentMethodFilter" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\Doctrine\PromotionCouponPromotionFilter" class is deprecated and will be removed in Sylius 2.0. Starting with this version, promotion coupon collection will be filtered by promotion code, using API Platform search filter.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Serializer\FlattenExceptionNormalizer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\Constraints\AccountVerificationTokenEligibilityValidator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\PercentageDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\FixedDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForProductsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForTaxonsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForVariantsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\OrderTokenValueAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\CommandDataTransformerInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\ShipmentIdAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInShopUserIdAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\ChannelCodeAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInCustomerEmailIfNotSetAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInCustomerEmailAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LocaleCodeAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\SubresourceIdAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ChannelAwareItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\EventListener\PostgreSQLDriverExceptionListener" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\ApiResourceConfigurationMerger" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\ResourceMetadataPropertyValueResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Metadata\Merger\LegacyResourceMetadataMerger" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\ResourceApiInputDataPropertiesValidator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\ResourceInputDataPropertiesValidatorInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\OpenApi\Documentation\PathHiderDocumentationModifier" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/dependency-injection 6.4: "Symfony\Component\DependencyInjection\ContainerAwareTrait" is deprecated, use dependency injection instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\CommandAwareInputDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Option "enable_annotations" at "framework.validation" is deprecated. Use the "enable_attributes" option instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.2: The child node "legacy_error_messages" at path "framework.form" is deprecated.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Option "reset_on_message" at "framework.messenger" is deprecated. It does nothing and will be removed in version 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Not setting the "framework.http_method_override" config option is deprecated. It will default to "false" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.handle_all_throwables" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_secure" config option is deprecated. It will default to "auto" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_samesite" config option is deprecated. It will default to "lax" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.validation.email_validation_mode" config option is deprecated. It will default to "html5" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.php_errors.log" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/security-bundle 6.2: The "enable_authenticator_manager" option at "security" is deprecated.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/order-bundle 1.14: The "sylius_order.autoconfigure_with_attributes" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "sylius_ui.events" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since api-platform/core 2.6: The use of the `collection.pagination.client_items_per_page` has been deprecated in 2.6 and will be removed in 3.0. Use `defaults.pagination_client_items_per_page` instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.configuration" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Configuration\ConfigurationProcessorInterface" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Command\ListCommand" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.context.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.hierarchy_provider" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Form\Type\ThemeChoiceType" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Form\Type\ThemeNameChoiceType" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.hierarchy_provider" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Context\SettableThemeContext" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.loader" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Repository\ThemeRepositoryInterface" service.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "MonsieurBiz\SyliusSearchPlugin\Command\PopulateCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "MonsieurBiz\SyliusSearchPlugin\Command\SearchCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\OrderBundle\Console\Command\RemoveExpiredCartsCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\UserBundle\Console\Command\DemoteUserCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\UserBundle\Console\Command\PromoteUserCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\CancelUnpaidOrdersCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\CheckRequirementsCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallAssetsCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallDatabaseCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallSampleDataCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\SetupCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\ShowAvailablePluginsCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InformAboutGUSCommand" class instead.
+2026-03-06T07:38:31+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\JwtConfigurationCommand" class instead.
+
+> @ build:prod /var/www/boutique.multimedia
+> encore production
+
+Running webpack ...
+
+ DONE  Compiled successfully in 1794ms                                                                                                                                                                                                                                                               7:38:34 AM
+
+3 files written to public/build/app/shop
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ DONE  Compiled successfully in 15572ms                                                                                                                                                                                                                                                              7:38:48 AM
+
+4 files written to public/build/app/admin
+ WARN  Compiled with 10 warnings                                                                                                                                                                                                                                                                     7:38:49 AM
+
+ warn  in ./themes/MultimediaTheme/public/scss/style.scss                                                                                                                                                                                                                                            7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 0, column 8 of file:///var/www/boutique.multimedia/themes/MultimediaTheme/public/scss/style.scss:0:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+0 | @import "theme";
+
+
+themes/MultimediaTheme/public/scss/style.scss 1:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss                                                                                                                                                                                                      7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 0, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss:0:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+0 | @import "theme";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss 1:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss                                                                                                                                                                                                      7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 1, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss:1:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+1 | @import "rtl";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/ShopBundle/Resources/private/scss/style.scss 2:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 0, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:0:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+0 | @import "variables";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 1, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:1:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+1 | @import "filters";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 2:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:2:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+2 | @import "rtl";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 3:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 20 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:2:20:
+Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+2 | $color-sylius-dark: darken($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 3:21  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 20 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:2:20:
+darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -11.9718309859%)
+color.adjust($color, $lightness: -5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+2 | $color-sylius-dark: darken($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 3:21  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 3, column 21 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:3:21:
+Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+3 | $color-sylius-light: lighten($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 4:22  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:49 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 3, column 21 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:3:21:
+lighten() is deprecated. Suggestions:
+
+color.scale($color, $lightness: 8.5858585859%)
+color.adjust($color, $lightness: 5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+3 | $color-sylius-light: lighten($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 4:22  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ WARN  Compiled with 11 warnings                                                                                                                                                                                                                                                                     7:38:51 AM
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss                                                                                                                                                                                                      7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 0, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss:0:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+0 | @import "attributes";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss 1:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss                                                                                                                                                                                                      7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 1, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss:1:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+1 | @import "layout";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss 2:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss                                                                                                                                                                                                      7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss:2:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+2 | @import "taxonomy";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss 3:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss                                                                                                                                                                                                      7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 3, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss:3:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+3 | @import "ui";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/AdminBundle/Resources/private/sass/main.scss 4:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 0, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:0:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+0 | @import "variables";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 1, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:1:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+1 | @import "filters";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 2:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 8 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss:2:8:
+Sass @import rules are deprecated and will be removed in Dart Sass 3.0.0.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+2 | @import "rtl";
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 3:9  root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 20 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:2:20:
+Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+2 | $color-sylius-dark: darken($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 3:21  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 2, column 20 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:2:20:
+darken() is deprecated. Suggestions:
+
+color.scale($color, $lightness: -11.9718309859%)
+color.adjust($color, $lightness: -5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+2 | $color-sylius-dark: darken($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 3:21  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 3, column 21 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:3:21:
+Global built-in functions are deprecated and will be removed in Dart Sass 3.0.0.
+Use color.adjust instead.
+
+More info and automated migrator: https://sass-lang.com/d/import
+
+3 | $color-sylius-light: lighten($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 4:22  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+ warn  in ./vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss                                                                                                                                                                                                         7:38:51 AM
+
+Module Warning (from ./node_modules/.pnpm/sass-loader@16.0.5_sass@1.89.0_webpack@5.99.9_webpack-cli@4.10.0_/node_modules/sass-loader/dist/cjs.js):
+Deprecation Warning on line 3, column 21 of file:///var/www/boutique.multimedia/vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss:3:21:
+lighten() is deprecated. Suggestions:
+
+color.scale($color, $lightness: 8.5858585859%)
+color.adjust($color, $lightness: 5%)
+
+More info: https://sass-lang.com/d/color-functions
+
+3 | $color-sylius-light: lighten($color-sylius, 5%) !default;
+
+
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/_variables.scss 4:22  @import
+vendor/sylius/sylius/src/Sylius/Bundle/UiBundle/Resources/private/sass/main.scss 1:9         root stylesheet
+
+
+shop:
+  Entrypoint theme-multimedia-theme 27.7 KiB = theme-multimedia-theme.02722466.css 27.7 KiB theme-multimedia-theme.31d6cfe0.js 0 bytes
+  Entrypoint theme-multimedia-style 29 KiB = theme-multimedia-style.1a20110b.css 29 KiB theme-multimedia-style.31d6cfe0.js 0 bytes
+  Entrypoint shop-entry [big] 1.01 MiB (216 KiB) = shop-entry.21fd3a17.css 586 KiB shop-entry.baca10f5.js 443 KiB 7 auxiliary assets
+  shop compiled with 10 warnings
+
+admin:
+  Entrypoint admin-entry [big] 1.14 MiB (25.6 KiB) = admin-entry.0c30d84c.css 560 KiB admin-entry.890f86af.js 607 KiB 5 auxiliary assets
+  admin compiled with 11 warnings
+
+app.shop:
+  app.shop compiled successfully
+
+app.admin:
+  Entrypoint app-admin-entry [big] 431 KiB = app-admin-entry.0e9020df.css 4.84 KiB app-admin-entry.70fa0817.js 426 KiB
+  app.admin compiled successfully
+
+In CheckExceptionOnInvalidReferenceBehaviorPass.php line 119:
+                                                                                                             
+  The service "App\Service\RachatPdfGenerator" has a dependency on a non-existent service "knp_snappy.pdf".  
+                                                                                                             
+
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.3: The "doctrine/mongodb-odm" driver is deprecated. Doctrine MongoDB and PHPCR will no longer be supported in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.3: The "doctrine/mongodb-odm" driver is deprecated. Doctrine MongoDB and PHPCR will no longer be supported in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.3: The "doctrine/mongodb-odm" driver is deprecated. Doctrine MongoDB and PHPCR will no longer be supported in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.3: The "doctrine/mongodb-odm" driver is deprecated. Doctrine MongoDB and PHPCR will no longer be supported in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/sylius 1.14: The "Sylius\Bundle\CoreBundle\DependencyInjection\Compiler\LiipImageFiltersPass" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: The Liip\ImagineBundle\Templating\FilterExtension class is deprecated since version 2.7 and will be removed in 3.0; configure "liip_imagine.twig.mode" to "lazy" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: The Liip\ImagineBundle\Templating\FilterTrait trait is deprecated since version 2.7 and will be removed in 3.0; use Twig instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Option "enable_annotations" at "framework.validation" is deprecated. Use the "enable_attributes" option instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.2: The child node "legacy_error_messages" at path "framework.form" is deprecated.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Option "reset_on_message" at "framework.messenger" is deprecated. It does nothing and will be removed in version 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Not setting the "framework.http_method_override" config option is deprecated. It will default to "false" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.handle_all_throwables" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_secure" config option is deprecated. It will default to "auto" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_samesite" config option is deprecated. It will default to "lax" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.validation.email_validation_mode" config option is deprecated. It will default to "html5" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.php_errors.log" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Enabling the integration of Doctrine annotations is deprecated. Set the "framework.annotations.enabled" config option to false.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/security-bundle 6.2: The "enable_authenticator_manager" option at "security" is deprecated.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/order-bundle 1.14: The "sylius_order.autoconfigure_with_attributes" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "sylius_ui.events" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/templating 6.4: "Symfony\Component\Templating\Helper\Helper" is deprecated since version 6.4 and will be removed in 7.0. Use Twig instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/templating 6.4: "Symfony\Component\Templating\Helper\HelperInterface" is deprecated since version 6.4 and will be removed in 7.0. Use Twig instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since api-platform/core 2.6: The use of the `collection.pagination.client_items_per_page` has been deprecated in 2.6 and will be removed in 3.0. Use `defaults.pagination_client_items_per_page` instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: The "annotations.cached_reader" service is deprecated without replacement.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: The "annotations.reader" service is deprecated without replacement.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.adjustment" with model "App\Entity\Order\Adjustment" and interface "Sylius\Component\Order\Model\AdjustmentInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.order" with model "App\Entity\Order\Order" and interface "Sylius\Component\Order\Model\OrderInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.order_item" with model "App\Entity\Order\OrderItem" and interface "Sylius\Component\Order\Model\OrderItemInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.order_item_unit" with model "App\Entity\Order\OrderItemUnit" and interface "Sylius\Component\Order\Model\OrderItemUnitInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.order_sequence" with model "App\Entity\Order\OrderSequence" and interface "Sylius\Component\Order\Model\OrderSequenceInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.currency" with model "App\Entity\Currency\Currency" and interface "Sylius\Component\Currency\Model\CurrencyInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.exchange_rate" with model "App\Entity\Currency\ExchangeRate" and interface "Sylius\Component\Currency\Model\ExchangeRateInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.locale" with model "App\Entity\Locale\Locale" and interface "Sylius\Component\Locale\Model\LocaleInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product" with model "App\Entity\Product\Product" and interface "Sylius\Component\Product\Model\ProductInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_translation" with model "App\Entity\Product\ProductTranslation" and interface "Sylius\Component\Product\Model\ProductTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_variant" with model "App\Entity\Product\ProductVariant" and interface "Sylius\Component\Product\Model\ProductVariantInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_variant_translation" with model "App\Entity\Product\ProductVariantTranslation" and interface "Sylius\Component\Product\Model\ProductVariantTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_option" with model "App\Entity\Product\ProductOption" and interface "Sylius\Component\Product\Model\ProductOptionInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_option_translation" with model "App\Entity\Product\ProductOptionTranslation" and interface "Sylius\Component\Product\Model\ProductOptionTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_association" with model "App\Entity\Product\ProductAssociation" and interface "Sylius\Component\Product\Model\ProductAssociationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_association_type" with model "App\Entity\Product\ProductAssociationType" and interface "Sylius\Component\Product\Model\ProductAssociationTypeInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_association_type_translation" with model "App\Entity\Product\ProductAssociationTypeTranslation" and interface "Sylius\Component\Product\Model\ProductAssociationTypeTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_option_value" with model "App\Entity\Product\ProductOptionValue" and interface "Sylius\Component\Product\Model\ProductOptionValueInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_option_value_translation" with model "App\Entity\Product\ProductOptionValueTranslation" and interface "Sylius\Component\Product\Model\ProductOptionValueTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.channel" with model "App\Entity\Channel\Channel" and interface "Sylius\Component\Channel\Model\ChannelInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_attribute" with model "App\Entity\Product\ProductAttribute" and interface "Sylius\Component\Product\Model\ProductAttributeInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_attribute_translation" with model "App\Entity\Product\ProductAttributeTranslation" and interface "Sylius\Component\Product\Model\ProductAttributeTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_attribute_value" with model "App\Entity\Product\ProductAttributeValue" and interface "Sylius\Component\Product\Model\ProductAttributeValueInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.tax_rate" with model "App\Entity\Taxation\TaxRate" and interface "Sylius\Component\Taxation\Model\TaxRateInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.tax_category" with model "App\Entity\Taxation\TaxCategory" and interface "Sylius\Component\Taxation\Model\TaxCategoryInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipment" with model "App\Entity\Shipping\Shipment" and interface "Sylius\Component\Shipping\Model\ShipmentInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipment_unit" with model "App\Entity\Order\OrderItemUnit" and interface "Sylius\Component\Shipping\Model\ShipmentUnitInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipping_method" with model "App\Entity\Shipping\ShippingMethod" and interface "Sylius\Component\Shipping\Model\ShippingMethodInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipping_method_translation" with model "App\Entity\Shipping\ShippingMethodTranslation" and interface "Sylius\Component\Shipping\Model\ShippingMethodTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipping_category" with model "App\Entity\Shipping\ShippingCategory" and interface "Sylius\Component\Shipping\Model\ShippingCategoryInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shipping_method_rule" with model "Sylius\Component\Shipping\Model\ShippingMethodRule" and interface "Sylius\Component\Shipping\Model\ShippingMethodRuleInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.payment" with model "App\Entity\Payment\Payment" and interface "Sylius\Component\Payment\Model\PaymentInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.payment_method" with model "App\Entity\Payment\PaymentMethod" and interface "Sylius\Component\Payment\Model\PaymentMethodInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.payment_method_translation" with model "App\Entity\Payment\PaymentMethodTranslation" and interface "Sylius\Component\Payment\Model\PaymentMethodTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.catalog_promotion" with model "App\Entity\Promotion\CatalogPromotion" and interface "Sylius\Component\Promotion\Model\CatalogPromotionInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.catalog_promotion_translation" with model "Sylius\Component\Promotion\Model\CatalogPromotionTranslation" and interface "Sylius\Component\Promotion\Model\CatalogPromotionTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.catalog_promotion_scope" with model "App\Entity\Promotion\CatalogPromotionScope" and interface "Sylius\Component\Promotion\Model\CatalogPromotionScopeInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.promotion" with model "App\Entity\Promotion\Promotion" and interface "Sylius\Component\Promotion\Model\PromotionInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.promotion_translation" with model "Sylius\Component\Promotion\Model\PromotionTranslation" and interface "Sylius\Component\Promotion\Model\PromotionTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.promotion_coupon" with model "App\Entity\Promotion\PromotionCoupon" and interface "Sylius\Component\Promotion\Model\PromotionCouponInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.catalog_promotion_action" with model "App\Entity\Promotion\CatalogPromotionAction" and interface "Sylius\Component\Promotion\Model\CatalogPromotionActionInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.promotion_rule" with model "App\Entity\Promotion\PromotionRule" and interface "Sylius\Component\Promotion\Model\PromotionRuleInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.promotion_action" with model "App\Entity\Promotion\PromotionAction" and interface "Sylius\Component\Promotion\Model\PromotionActionInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.address" with model "App\Entity\Addressing\Address" and interface "Sylius\Component\Addressing\Model\AddressInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.country" with model "App\Entity\Addressing\Country" and interface "Sylius\Component\Addressing\Model\CountryInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.province" with model "App\Entity\Addressing\Province" and interface "Sylius\Component\Addressing\Model\ProvinceInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.zone" with model "App\Entity\Addressing\Zone" and interface "Sylius\Component\Addressing\Model\ZoneInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.zone_member" with model "App\Entity\Addressing\ZoneMember" and interface "Sylius\Component\Addressing\Model\ZoneMemberInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.inventory_unit" with model "App\Entity\Order\OrderItemUnit" and interface "Sylius\Component\Inventory\Model\InventoryUnitInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.taxon" with model "App\Entity\Taxonomy\Taxon" and interface "Sylius\Component\Taxonomy\Model\TaxonInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.taxon_translation" with model "App\Entity\Taxonomy\TaxonTranslation" and interface "Sylius\Component\Taxonomy\Model\TaxonTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.admin_user" with model "App\Entity\User\AdminUser" and interface "Sylius\Component\Core\Model\AdminUserInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shop_user" with model "App\Entity\User\ShopUser" and interface "Sylius\Component\Core\Model\ShopUserInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.oauth_user" with model "App\Entity\User\UserOAuth" and interface "Sylius\Component\User\Model\UserOAuthInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.customer" with model "App\Entity\Customer\Customer" and interface "Sylius\Component\Customer\Model\CustomerInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.customer_group" with model "App\Entity\Customer\CustomerGroup" and interface "Sylius\Component\Customer\Model\CustomerGroupInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_review" with model "App\Entity\Product\ProductReview" and interface "Sylius\Component\Review\Model\ReviewInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_reviewer" with model "App\Entity\Customer\Customer" and interface "Sylius\Component\Review\Model\ReviewerInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_taxon" with model "App\Entity\Product\ProductTaxon" and interface "Sylius\Component\Core\Model\ProductTaxonInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.product_image" with model "App\Entity\Product\ProductImage" and interface "Sylius\Component\Core\Model\ProductImageInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.taxon_image" with model "App\Entity\Taxonomy\TaxonImage" and interface "Sylius\Component\Core\Model\TaxonImageInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.channel_pricing" with model "App\Entity\Channel\ChannelPricing" and interface "Sylius\Component\Core\Model\ChannelPricingInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.avatar_image" with model "Sylius\Component\Core\Model\AvatarImage" and interface "Sylius\Component\Core\Model\AvatarImageInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.channel_pricing_log_entry" with model "Sylius\Component\Core\Model\ChannelPricingLogEntry" and interface "Sylius\Component\Core\Model\ChannelPricingLogEntryInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.shop_billing_data" with model "Sylius\Component\Core\Model\ShopBillingData" and interface "Sylius\Component\Core\Model\ShopBillingDataInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.channel_price_history_config" with model "Sylius\Component\Core\Model\ChannelPriceHistoryConfig" and interface "Sylius\Component\Core\Model\ChannelPriceHistoryConfigInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "monsieurbiz_cms_page.page" with model "MonsieurBiz\SyliusCmsPagePlugin\Entity\Page" and interface "MonsieurBiz\SyliusCmsPagePlugin\Entity\PageInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "monsieurbiz_cms_page.page_translation" with model "MonsieurBiz\SyliusCmsPagePlugin\Entity\PageTranslation" and interface "MonsieurBiz\SyliusCmsPagePlugin\Entity\PageTranslationInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.payment_security_token" with model "App\Entity\Payment\PaymentSecurityToken" and interface "Sylius\Bundle\PayumBundle\Model\PaymentSecurityTokenInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/resource-bundle 1.6: Specifying the interface for resources is deprecated and will be removed in 2.0. Please rely on auto-discovering interfaces instead. Triggered by resource "sylius.gateway_config" with model "App\Entity\Payment\GatewayConfig" and interface "Sylius\Bundle\PayumBundle\Model\GatewayConfigInterface".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/order-bundle 1.14: The "Sylius\Bundle\OrderBundle\Controller\OrderItemController" class is deprecated. Will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/product-bundle 1.14: The "Sylius\Bundle\ProductBundle\Controller\ProductAttributeController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/addressing-bundle 1.14: The "Sylius\Bundle\AddressingBundle\Controller\ProvinceController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\GetAddressLogEntryCollectionAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\GetOrderAdjustmentsAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/messenger 6.2: Implementing "Symfony\Component\Messenger\Handler\MessageHandlerInterface" is deprecated, use the "Symfony\Component\Messenger\Attribute\AsMessageHandler" attribute instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\QueryHandler\GetAddressLogEntryCollectionHandler" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/doctrine-bridge 6.3: Registering "MonsieurBiz\SyliusSearchPlugin\EventSubscriber\ReindexProductEventSubscriber" as a Doctrine subscriber is deprecated. Register it as a listener instead, using e.g. the #[AsDoctrineListener] attribute.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/doctrine-bridge 6.3: Registering "sylius.doctrine.orm.event_subscriber.load_metadata.attribute" as a Doctrine subscriber is deprecated. Register it as a listener instead, using e.g. the #[AsDoctrineListener] attribute.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/doctrine-bridge 6.3: Registering "sylius.doctrine.orm.event_subscriber.load_metadata.review" as a Doctrine subscriber is deprecated. Register it as a listener instead, using e.g. the #[AsDoctrineListener] attribute.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Component\Core\Grid\Filter\EntitiesFilter" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/grid 1.8: Sylius\Component\Grid\Filter\MoneyFilter is deprecated, replace it with your own implementation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\AccountResetPasswordItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\AdminResetPasswordItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\OrderItemItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\OrderItemUnitItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\PaymentItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ShipmentItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ProductItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\CustomerItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\VerifyCustomerAccountItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ShippingMethodsCollectionDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\PaymentMethodsCollectionDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ChannelsCollectionDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ProductAttributesSubresourceDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\OrderAdjustmentsSubresourceDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\OrderItemAdjustmentsSubresourceDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\AdminOrderItemAdjustmentsSubresourceDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Class "Nyholm\Psr7\Factory\HttplugFactory" is deprecated since version 1.8, use "Nyholm\Psr7\Factory\Psr17Factory" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/money-bundle 1.14: The "Sylius\Bundle\MoneyBundle\Templating\Helper\ConvertMoneyHelper" class is deprecated, use "Sylius\Component\Currency\Converter\CurrencyConverter" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/money-bundle 1.14: The "Sylius\Bundle\MoneyBundle\Templating\Helper\ConvertMoneyHelperInterface" interface is deprecated, use "Sylius\Component\Currency\Converter\CurrencyConverterInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/order-bundle 1.14: The "Sylius\Bundle\OrderBundle\Templating\Helper\AdjustmentsHelper" class is deprecated, use "Sylius\Component\Order\Aggregator\AdjustmentsByLabelAggregator" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/money-bundle 1.14: The "Sylius\Bundle\MoneyBundle\Templating\Helper\FormatMoneyHelper" class is deprecated, use "Sylius\Bundle\MoneyBundle\Formatter\MoneyFormatter" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/money-bundle 1.14: The "Sylius\Bundle\MoneyBundle\Templating\Helper\FormatMoneyHelperInterface" interface is deprecated, use "Sylius\Bundle\MoneyBundle\Formatter\MoneyFormatterInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/currency-bundle 1.14: The "Sylius\Bundle\CurrencyBundle\Templating\Helper\CurrencyHelper" class is deprecated, use "Symfony\Component\Intl\Currencies::getSymbol" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/currency-bundle 1.14: The "Sylius\Bundle\CurrencyBundle\Templating\Helper\CurrencyHelperInterface" interface is deprecated.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/locale-bundle 1.14: The "Sylius\Bundle\LocaleBundle\Templating\Helper\LocaleHelper" class is deprecated, use "Sylius\Component\Locale\Converter\LocaleConverter" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/locale-bundle 1.14: The "Sylius\Bundle\LocaleBundle\Templating\Helper\LocaleHelperInterface" interface is deprecated, use "Sylius\Component\Locale\Converter\LocaleConverterInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/product-bundle 1.14: The "Sylius\Bundle\ProductBundle\Controller\ProductSlugController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shipping 1.8: The "Sylius\Component\Shipping\Checker\ShippingMethodEligibilityChecker" class is deprecated, use "Sylius\Component\Shipping\Checker\Eligibility\CompositeShippingMethodEligibilityChecker" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shipping 1.8: The "Sylius\Component\Shipping\Checker\ShippingMethodEligibilityCheckerInterface" interface is deprecated, use "Sylius\Component\Shipping\Checker\Eligibility\ShippingMethodEligibilityCheckerInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shipping-bundle 1.11: The "Sylius\Bundle\ShippingBundle\Provider\Calendar" class is deprecated and will be removed in Sylius 2.0. Use "Symfony\Component\Clock\Clock" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shipping-bundle 1.13: The "Sylius\Bundle\ShippingBundle\Provider\DateTimeProvider" interface is deprecated and will be removed in Sylius 2.0. Use "Symfony\Component\Clock\Clock" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/inventory-bundle 1.14: The "Sylius\Bundle\InventoryBundle\Templating\Helper\InventoryHelper" class is deprecated, use "Sylius\Component\Inventory\Checker\AvailabilityChecker" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/user-bundle 1.14: The "Sylius\Bundle\UserBundle\Security\UserPasswordHasher" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/user-bundle 1.14: The "Sylius\Component\User\Security\UserPasswordHasherInterface" interface is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/user-bundle 1.14: The "Sylius\Bundle\UserBundle\Security\UserLogin" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/user-bundle 1.14: The "Sylius\Bundle\UserBundle\Security\UserLoginInterface" interface is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/user 1.14: The "Sylius\Component\User\Security\Generator\UniquePinGenerator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\ContextProvider\DefaultContextProvider" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\ContextProvider\ContextProviderInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Registry\TemplateBlockRegistry" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Registry\TemplateBlockRegistryInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TwigTemplateBlockRenderer" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TemplateBlockRendererInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\DelegatingTemplateEventRenderer" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Renderer\TemplateEventRendererInterface" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Console\Command\DebugTemplateEventCommand" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TestFormAttributeExtension" class is deprecated and will be removed in Sylius 2.0. Use sylius/twig-extra package instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\TemplateEventExtension" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Twig\LegacySonataBlockExtension" class is deprecated and will be removed in Sylius 2.0
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Storage\FilterStorage" class is deprecated and will be removed in Sylius 2.0. Use Sylius\Bundle\GridBundle\Storage\SessionFilterStorage from sylius/grid-bundle version 1.13 or later instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "Sylius\Bundle\UiBundle\Storage\FilterStorage" class is deprecated and will be removed in Sylius 2.0. Use Sylius\Bundle\GridBundle\Storage\FilterStorageInterface from sylius/grid-bundle version 1.13 or later instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionAction\FixedDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionAction\ActionValidatorInterface" interface is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForProductsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/promotion-bundle 1.13: The "Sylius\Bundle\PromotionBundle\Validator\CatalogPromotionScope\ScopeValidatorInterface" interface is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForTaxonsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\CatalogPromotion\Validator\CatalogPromotionScope\ForVariantsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Console\Command\ShowAvailablePluginsCommand" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Theme\ChannelBasedThemeContext" class is deprecated and will be moved to the ShopBundle in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\DashboardStatisticsProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\DashboardStatisticsProviderInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\SalesDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core 1.14: The "Sylius\Component\Core\Dashboard\SalesDataProviderInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "MugProductFixture" class is deprecated and will be removed in Sylius 2.0. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "StickerProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "BookProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.5: The "TshirtProductFixture" class is deprecated. Use new product fixtures class located at "src/Sylius/Bundle/CoreBundle/Fixture/" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\CountryTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\LocaleTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Form\Extension\CustomerTypeExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core 1.13: The "Sylius\Component\Core\Provider\ProductVariantsPricesProviderInterface" class is deprecated, use "Sylius\Component\Core\Provider\ProductVariantMap\ProductVariantsMapProviderInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\PriceHelper" class is deprecated, use "Sylius\Component\Core\Calculator\ProductVariantPriceCalculator" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\VariantResolverHelper" class is deprecated, use "Sylius\Component\Product\Resolver\CompositeProductVariantResolver" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/core-bundle 1.14: The "Sylius\Bundle\CoreBundle\Templating\Helper\CheckoutStepsHelper" class is deprecated, use "Sylius\Component\Core\Checker\OrderPaymentMethodSelectionRequirementChecker" and "Sylius\Component\Core\Checker\OrderShippingMethodSelectionRequirementChecker" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/grid-bundle 1.8: Sylius\Bundle\GridBundle\Form\Type\Filter\MoneyFilterType is deprecated, replace it with your own implementation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/sylius 1.14: The "Sylius\Bundle\CoreBundle\Twig\FilterExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: The Liip\ImagineBundle\Templating\Helper\FilterHelper class is deprecated since version 2.2 and will be removed in 3.0; use Twig instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Controller\PayumController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Validator\GatewayFactoryExistsValidator" class is deprecated and will be moved to the PaymentBundle in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/payum-bundle 1.14: The "Sylius\Bundle\PayumBundle\Validator\GroupsGenerator\GatewayConfigGroupsGenerator" class is deprecated and will be moved to the PaymentBundle in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Controller\Dashboard\StatisticsController" class is deprecated. Will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Controller\NotificationController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\OrderEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManager" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\OrderEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManagerInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\ShipmentEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ShipmentEmailManager" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.13: The "Sylius\Bundle\AdminBundle\EmailManager\ShipmentEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ShipmentEmailManagerInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\EventListener\ResourceDeleteSubscriber" class is deprecated and will be removed in Sylius 2.0. It will be replaced with the "Sylius\Bundle\AdminBundle\EventListener\ResourceDeleteListener".
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Menu\PromotionUpdateMenuBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Form\Extension\CatalogPromotionActionTypeExtension" class is deprecated and will be removed in Sylius 2.0. Starting with this version, form types will be extended using the parent form like in Sylius\Bundle\AdminBundle\Form\Type\CatalogPromotionActionType.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Form\Extension\CatalogPromotionScopeTypeExtension" class is deprecated and will be removed in Sylius 2.0. Starting with this version, form types will be extended using the parent form like in Sylius\Bundle\AdminBundle\Form\Type\CatalogPromotionScopeType.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Provider\StatisticsDataProvider" class is deprecated and will be removed in Sylius 2.0. Use "Sylius\Component\Core\Statistics\Provider\StatisticsProvider" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Provider\StatisticsDataProviderInterface" class is deprecated and will be removed in Sylius 2.0. Use "Sylius\Component\Core\Statistics\Provider\StatisticsProviderInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/admin-bundle 1.14: The "Sylius\Bundle\AdminBundle\Twig\NotificationWidgetExtension" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.14: The "Sylius\Bundle\ShopBundle\Controller\HomepageController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.14: The "Sylius\Bundle\ShopBundle\Controller\SecurityWidgetController" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\ContactEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ContactEmailManager" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\ContactEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\ContactEmailManagerInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\OrderEmailManager" class is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManager" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\EmailManager\OrderEmailManagerInterface" interface is deprecated, use "Sylius\Bundle\CoreBundle\Mailer\OrderEmailManagerInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.12: The "Sylius\Bundle\ShopBundle\Twig\OrderTaxesTotalExtension" class is deprecated and will be removed in Sylius 2.0. Use methods "getTaxExcludedTotal" and "getTaxIncludedTotal" from "Sylius\Component\Core\Model\Order" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\Twig\OrderItemsSubtotalExtension" class is deprecated and will be removed in Sylius 2.0. Use method "getItemsSubtotal" from "Sylius\Component\Core\Model\Order" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/sylius 1.13: The "Sylius\Bundle\ShopBundle\Calculator\OrderItemsSubtotalCalculator" class is deprecated and will be removed in Sylius 2.0. Items subtotal calculations is now available by using Sylius\Component\Core\Model\Order::getSubtotalItems method.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/shop-bundle 1.13: The "Sylius\Bundle\ShopBundle\Calculator\OrderItemsSubtotalCalculatorInterface" interface is deprecated and will be removed in Sylius 2.0, use method "getItemsSubtotal" from "Sylius\Component\Core\Model\OrderInterface" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Bridge\Symfony\Routing\RouteNameResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Bridge\Symfony\Routing\CachedRouteNameResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Factory\MergingExtractorResourceMetadataFactory" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: The "Lexik\Bundle\JWTAuthenticationBundle\Services\KeyLoader\OpenSSLKeyLoader" class is deprecated since version 2.5 and will be removed in 3.0. Use "Lexik\Bundle\JWTAuthenticationBundle\Services\KeyLoader\RawKeyLoader" instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: The "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\DefaultJWSProvider" class is deprecated since version 2.5 and will be removed in 3.0. Use "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\LcobucciJWSProvider" or create your own "Lexik\Bundle\JWTAuthenticationBundle\Services\JWSProvider\JWSProviderInterface" implementation instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\SerializerContextBuilder\ReadOperationContextBuilder" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadAvatarImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadProductImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Controller\UploadTaxonImageAction" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\AddressDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\AdminUserDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ChannelDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\MessengerDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\CountryDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\LocaleDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ShippingMethodDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PaymentMethodDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductAttributeDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductTaxonDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ProductVariantDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PromotionCouponDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\TranslatableDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\ZoneDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\PromotionDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataPersister\CustomerDataPersister" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\ShippingMethodFilter" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\PaymentMethodFilter" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Filter\Doctrine\PromotionCouponPromotionFilter" class is deprecated and will be removed in Sylius 2.0. Starting with this version, promotion coupon collection will be filtered by promotion code, using API Platform search filter.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Serializer\FlattenExceptionNormalizer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\Constraints\AccountVerificationTokenEligibilityValidator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\PercentageDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\FixedDiscountActionValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForProductsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForTaxonsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\CatalogPromotion\ForVariantsScopeValidator" class is deprecated and will be removed in Sylius 2.0, use the usual symfony logic for validation.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\OrderTokenValueAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\CommandDataTransformerInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\ShipmentIdAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInShopUserIdAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\ChannelCodeAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInCustomerEmailIfNotSetAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LoggedInCustomerEmailAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\LocaleCodeAwareInputCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\SubresourceIdAwareCommandDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataProvider\ChannelAwareItemDataProvider" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\EventListener\PostgreSQLDriverExceptionListener" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\ApiResourceConfigurationMerger" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\ResourceMetadataPropertyValueResolver" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\ApiPlatform\Metadata\Merger\LegacyResourceMetadataMerger" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\ResourceApiInputDataPropertiesValidator" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\Validator\ResourceInputDataPropertiesValidatorInterface" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\OpenApi\Documentation\PathHiderDocumentationModifier" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/dependency-injection 6.4: "Symfony\Component\DependencyInjection\ContainerAwareTrait" is deprecated, use dependency injection instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/api-bundle 1.14: The "Sylius\Bundle\ApiBundle\DataTransformer\CommandAwareInputDataTransformer" class is deprecated and will be removed in Sylius 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Option "enable_annotations" at "framework.validation" is deprecated. Use the "enable_attributes" option instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.2: The child node "legacy_error_messages" at path "framework.form" is deprecated.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Option "reset_on_message" at "framework.messenger" is deprecated. It does nothing and will be removed in version 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.1: Not setting the "framework.http_method_override" config option is deprecated. It will default to "false" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.handle_all_throwables" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_secure" config option is deprecated. It will default to "auto" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.session.cookie_samesite" config option is deprecated. It will default to "lax" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.validation.email_validation_mode" config option is deprecated. It will default to "html5" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/framework-bundle 6.4: Not setting the "framework.php_errors.log" config option is deprecated. It will default to "true" in 7.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/security-bundle 6.2: The "enable_authenticator_manager" option at "security" is deprecated.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/order-bundle 1.14: The "sylius_order.autoconfigure_with_attributes" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/mailer-bundle 1.5: The "subject" option is deprecated since SyliusMailerBundle 1.5
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/ui-bundle 1.14: The "sylius_ui.events" is deprecated and will be removed in 2.0.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since api-platform/core 2.6: The use of the `collection.pagination.client_items_per_page` has been deprecated in 2.6 and will be removed in 3.0. Use `defaults.pagination_client_items_per_page` instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.configuration" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Configuration\ConfigurationProcessorInterface" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Command\ListCommand" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.context.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.hierarchy_provider" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Collector\ThemeCollector" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Form\Type\ThemeChoiceType" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.repository.theme" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Form\Type\ThemeNameChoiceType" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.hierarchy_provider" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Context\SettableThemeContext" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since sylius/theme-bundle 2.0: "sylius.theme.loader" service is deprecated since Sylius/ThemeBundle 2.0 and will be removed in 3.0. It is being referenced by the "Sylius\Bundle\ThemeBundle\Repository\ThemeRepositoryInterface" service.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "MonsieurBiz\SyliusSearchPlugin\Command\PopulateCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "MonsieurBiz\SyliusSearchPlugin\Command\SearchCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\OrderBundle\Console\Command\RemoveExpiredCartsCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\UserBundle\Console\Command\DemoteUserCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\UserBundle\Console\Command\PromoteUserCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\CancelUnpaidOrdersCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\CheckRequirementsCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallAssetsCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallDatabaseCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InstallSampleDataCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\SetupCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\ShowAvailablePluginsCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\InformAboutGUSCommand" class instead.
+2026-03-06T07:38:54+00:00 [info] User Deprecated: Since symfony/console 6.1: Relying on the static property "$defaultName" for setting a command name is deprecated. Add the "Symfony\Component\Console\Attribute\AsCommand" attribute to the "Sylius\Bundle\CoreBundle\Console\Command\JwtConfigurationCommand" class instead.

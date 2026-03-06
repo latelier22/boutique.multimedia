@@ -118,9 +118,6 @@
     "egulias/email-validator": {
         "version": "2.1.5"
     },
-    "enshrined/svg-sanitize": {
-        "version": "0.15.4"
-    },
     "fakerphp/faker": {
         "version": "v1.12.0"
     },
@@ -149,18 +146,6 @@
         },
         "files": [
             "config/packages/fos_elastica.yaml"
-        ]
-    },
-    "friendsofsymfony/jsrouting-bundle": {
-        "version": "3.5",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "2.3",
-            "ref": "a9f2e49180f75cdc71ae279a929c4b2e0638de84"
-        },
-        "files": [
-            "config/routes/fos_js_routing.yaml"
         ]
     },
     "friendsofsymfony/rest-bundle": {
@@ -598,19 +583,6 @@
     "sylius-labs/polyfill-symfony-security": {
         "version": "v1.0.0"
     },
-    "sylius/admin-order-creation-plugin": {
-        "version": "0.15",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "0.6",
-            "ref": "3ac19aedc8c846cc48cc61ee62ab5b280823efbf"
-        },
-        "files": [
-            "config/packages/sylius_admin_order_creation.yaml",
-            "config/routes/sylius_admin_order_creation.yaml"
-        ]
-    },
     "sylius/calendar": {
         "version": "v0.3.0"
     },
@@ -620,19 +592,6 @@
     "sylius/grid-bundle": {
         "version": "v1.5.1"
     },
-    "sylius/invoicing-plugin": {
-        "version": "0.25",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "0.5",
-            "ref": "4720bdeb3db9f81932523a640184244cf75da7f0"
-        },
-        "files": [
-            "config/packages/sylius_invoicing.yaml",
-            "config/routes/sylius_invoicing.yaml"
-        ]
-    },
     "sylius/mailer-bundle": {
         "version": "v1.4.4"
     },
@@ -641,15 +600,6 @@
     },
     "sylius/resource-bundle": {
         "version": "v1.4.4"
-    },
-    "sylius/state-machine-abstraction": {
-        "version": "1.13",
-        "recipe": {
-            "repo": "github.com/Sylius/SyliusRecipes",
-            "branch": "main",
-            "version": "1.13",
-            "ref": "d538f7c966e2d796543c3be72cb65072bf74504e"
-        }
     },
     "sylius/sylius": {
         "version": "v1.3.6"
