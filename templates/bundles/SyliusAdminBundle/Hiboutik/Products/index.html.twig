@@ -1,85 +1,359 @@
 {% extends '@!SyliusAdmin/layout.html.twig' %}
-
 {% block title %}Produits Hiboutik{% endblock %}
 
 {% block content %}
-{# {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %} #}
+
+<style>
+  :root{
+    --hib-topbar-h: 56px;
+    --hib-sticky-h: 170px;
+    --hib-sticky-top: calc(var(--hib-topbar-h) + var(--hib-sticky-h));
+  }
+
+  .admin-layout__topbar{ z-index: 2000; }
+
+  #stickyTop{
+    position: sticky;
+    top: var(--hib-topbar-h);
+    z-index: 1500;
+    background:#fff;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 6px 12px rgba(0,0,0,.06);
+  }
+
+  #filtersRow{
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    margin:0 0 8px 0;
+  }
+  #bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;}
+
+  .btn{
+    padding:6px 10px;border-radius:8px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;
+    cursor:pointer;text-decoration:none;font-size:0.9rem;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-secondary{background:#475569;border-color:#475569}
+  .muted{opacity:.7}
+
+  .iconbtn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border-radius:10px;border:1px solid rgba(0,0,0,.12);
+    background:#fff;cursor:pointer;text-decoration:none;padding:0;
+  }
+  .iconbtn:hover{ background:#f8fafc; }
+  .iconbtn:active{ transform:translateY(1px); }
+  .iconbtn-amber{ border-color:#fde68a; background:#fffbeb; }
+
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:2px 8px;border-radius:999px;font-size:.85em;white-space:nowrap;
+  }
+  .pill-ok{background:#dcfce7;color:#166534}
+  .pill-off{background:#fee2e2;color:#991b1b}
+  .pill-info{background:#e0f2fe;color:#075985}
+
+  table#hibTable{width:100%;border-collapse:collapse;background:#fff}
+  table#hibTable th, table#hibTable td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+
+  table#hibTable thead th{
+    position: sticky;
+    top: var(--hib-sticky-top);
+    background:#0d6efd;color:#fff;
+    z-index: 1200;
+  }
+
+  th.select-col, td.select-col{width:44px;text-align:center}
+  .nowrap{white-space:nowrap}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  .trunc{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .thumb{
+    width:38px;height:38px;border-radius:10px;object-fit:cover;border:1px solid rgba(0,0,0,.12);
+    background:#f8fafc;display:block;
+  }
+
+  tr[id^="p-"]{ scroll-margin-top: calc(var(--hib-sticky-top) + 18px); }
+
+  /* cards */
+  .cardsWrap{display:none;}
+  .cardRow{
+    display:flex;align-items:flex-start;gap:10px;
+    border:1px solid #e5e7eb;border-radius:14px;background:#fff;
+    padding:10px;margin:10px 0;
+    box-shadow:0 1px 2px rgba(0,0,0,.04);
+  }
+  .cardCheck{flex:0 0 auto;padding-top:6px}
+  .cardThumb{flex:0 0 auto}
+  .cardThumb img{width:52px;height:52px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.12);background:#f8fafc}
+  .cardMain{flex:1 1 auto;min-width:0}
+  .cardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .cardModel{font-weight:800;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cardMeta{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;color:#475569;font-size:.9rem;}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#f1f5f9;border:1px solid #e2e8f0;color:#0f172a;
+    padding:3px 8px;border-radius:999px;font-size:.85rem;
+  }
+  .cardActions{flex:0 0 auto;display:flex;align-items:center;gap:8px}
+
+  @media (max-width: 1100px){
+    :root{ --hib-sticky-h: 210px; }
+  }
+
+  @media (max-width: 768px){
+    :root{ --hib-sticky-h: 310px; }
+
+    table#hibTable{display:none;}
+    .cardsWrap{display:block;}
+
+    .btn,.btn-secondary{width:100%;justify-content:center}
+    #filtersRow > .field, #filtersRow > button, #filtersRow > a{width:100%;}
+    #filtersRow .ui.icon.input, #filtersRow select{width:100%;}
+  }
+</style>
+
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
 <h1 class="ui header">📦 Produits Hiboutik</h1>
-{# 
-<form method="post" action="{{ path('admin_arrivages_create') }}" style="margin-bottom: 1em;">
-  <button type="submit" class="ui green button">
-    <i class="plus icon"></i> Créer l’arrivage du mois
-  </button>
-</form> #}
 
-<div class="ui label">
-  count =
-  {{ products is iterable ? (products|length) : 'NOT ITERABLE' }}
+<div id="stickyTop">
+  {# ======= FILTRES GET ======= #}
+  <form id="filtersForm" method="get" action="{{ path('admin_hiboutik_product_index') }}"
+        class="ui form" style="margin:0">
+
+    <div id="filtersRow">
+
+      <div class="field">
+        <div class="ui icon input">
+          <input type="text" name="q" placeholder="Recherche (nom / barcode / id / tag)…"
+                 value="{{ filters.q ?? '' }}" style="min-width:260px">
+          <i class="search icon"></i>
+        </div>
+      </div>
+
+      <div class="field">
+        <select name="www" class="ui dropdown">
+          <option value=""  {{ (filters.www ?? '') == '' ? 'selected' : '' }}>🌐 WWW : Tous</option>
+          <option value="1" {{ (filters.www ?? '') == '1' ? 'selected' : '' }}>✅ WWW : Oui</option>
+          <option value="0" {{ (filters.www ?? '') == '0' ? 'selected' : '' }}>⛔ WWW : Non</option>
+        </select>
+      </div>
+
+      {# ✅ FILTRE MARQUE #}
+      <div class="field">
+        <select name="brand" class="ui dropdown">
+          <option value="" {{ (filters.brand ?? '') == '' ? 'selected' : '' }}>🏷️ Marque : Toutes</option>
+          {% for name,id in brandChoices %}
+            <option value="{{ id }}" {{ (filters.brand ?? '') == (id ~ '') ? 'selected' : '' }}>
+              {{ name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="cat" class="ui dropdown">
+          <option value="" {{ (filters.cat ?? '') == '' ? 'selected' : '' }}>📁 Catégorie : Toutes</option>
+          {% for name,id in catChoices %}
+            <option value="{{ id }}" {{ (filters.cat ?? '') == (id ~ '') ? 'selected' : '' }}>
+              {{ name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="sup" class="ui dropdown">
+          <option value="" {{ (filters.sup ?? '') == '' ? 'selected' : '' }}>🧑‍💼 Fournisseur : Tous</option>
+          {% for name,id in supplierChoices %}
+            <option value="{{ id }}" {{ (filters.sup ?? '') == (id ~ '') ? 'selected' : '' }}>
+              {{ name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="tag" class="ui dropdown">
+          <option value="" {{ (filters.tag ?? '') == '' ? 'selected' : '' }}>🏷️ Tag : Tous</option>
+          {% for label,id in tagChoices %}
+            <option value="{{ id }}" {{ (filters.tag ?? '') == (id ~ '') ? 'selected' : '' }}>
+              {{ label }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="ui primary button" type="submit"><i class="filter icon"></i> Filtrer</button>
+      <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}"><i class="undo icon"></i> Reset</a>
+
+      <div class="ui label">
+        count = {{ products is iterable ? products|length : 'NOT ITERABLE' }}
+      </div>
+
+    </div>
+  </form>
+
+  {# ======= ACTIONS POST ======= #}
+  <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_www_batch') }}" style="margin:0">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_www_batch') }}"/>
+
+    <div id="bar">
+      <button type="submit" name="val" value="1" class="btn"><i class="check icon"></i> WWW=Oui (sélection)</button>
+      <button type="submit" name="val" value="0" class="btn btn-secondary"><i class="ban icon"></i> WWW=Non (sélection)</button>
+      <span class="muted" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <i class="info circle icon"></i> Sélectionne des lignes puis clique.
+      </span>
+    </div>
+  </form>
 </div>
-{# 
-<pre style="white-space:pre-wrap;max-height:200px;overflow:auto">
-{{ dump(products) }}
-</pre> #}
 
-<table class="ui celled table">
+{# ===================== TABLE DESKTOP ===================== #}
+<table id="hibTable">
   <thead>
     <tr>
-      <th>ID</th>
+      <th class="select-col"><input type="checkbox" id="check_all"></th>
+      <th class="nowrap">#</th>
+      <th class="nowrap">🖼️</th>
       <th>Nom</th>
-      <th>Prix</th>
-      <th>En ligne</th>
-
-      
-      
+      <th>Marque</th>
+      <th class="nowrap">Prix</th>
+      <th>Catégorie</th>
+      <th>Fournisseur</th>
+      <th>Tags</th>
+      <th class="nowrap">WWW</th>
+      <th class="nowrap">⚙️</th>
     </tr>
   </thead>
   <tbody>
-
   {% for p in products %}
-    <tr>
-      <td>{{ p.product_id ?? '—' }}</td>
-      <td>{{ p.product_model ?? '—' }}</td>
-      <td>{{ p.product_price ?? '—' }}</td>
-      <td>{{ p.product_display_www ? 'Oui' : 'Non' }}</td>     
- </tr>
-    {% else %}
-        <tr>
-        <td colspan="4" class="center aligned">Aucun produit trouvé.</td>
-        </tr>
-    {% endfor %}
+    {% set pid = (p.product_id ?? 0) + 0 %}
+    {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
+    {% set imgs = p.images ?? [] %}
+    {% set mini = (imgs|length > 0) ? (imgs[0].url ?? '') : '' %}
 
+    {# ✅ marque : Hiboutik renvoie souvent product_brand_name #}
+    {% set brandName = p.product_brand_name ?? p.brand_name ?? '—' %}
+
+    {# ✅ tags robustes #}
+   {# ✅ TAGS (sans break) #}
+{% set tagsList = (p.tags is iterable) ? p.tags : [] %}
+
+    <tr id="p-{{ pid }}">
+      <td class="select-col"><input type="checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></td>
+      <td class="nowrap mono">#{{ pid }}</td>
+      <td class="nowrap">
+        {% if mini %}<img class="thumb" src="{{ mini }}" alt="mini {{ pid }}">{% else %}<span class="muted">—</span>{% endif %}
+      </td>
+      <td class="trunc">{{ p.product_model ?? '—' }}</td>
+      <td class="trunc">{{ brandName }}</td>
+      <td class="nowrap">{{ p.product_price ?? '—' }}</td>
+      <td class="trunc">{{ p.category_name ?? '—' }}</td>
+      <td class="trunc">{{ p.supplier_name ?? '—' }}</td>
+
+      <td>
+     
+{% if tagsList|length %}
+  {% for t in tagsList|slice(0,4) %}
+    <span class="pill pill-info"><i class="tag icon"></i> {{ t.tag_label }}</span>
+  {% endfor %}
+  {% if tagsList|length > 4 %}<span class="muted">+{{ tagsList|length - 4 }}</span>{% endif %}
+{% else %}
+  <span class="muted">—</span>
+{% endif %}
+      </td>
+
+      <td class="nowrap">
+        {% if www %}
+          <span class="pill pill-ok"><i class="globe icon"></i> Oui</span>
+        {% else %}
+          <span class="pill pill-off"><i class="globe icon"></i> Non</span>
+        {% endif %}
+      </td>
+
+      <td class="nowrap">
+        <a class="iconbtn iconbtn-amber" href="{{ path('admin_hiboutik_product_edit', {id: pid}) }}" title="Éditer">
+          <i class="edit icon"></i>
+        </a>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="11" class="muted">Aucun produit.</td></tr>
+  {% endfor %}
   </tbody>
 </table>
-{% endblock %}
 
-{# 
-//  array:28 [▼
-//   "product_id" => 892
-//   "product_model" => "Vitre Arrière Noire iPhone 15 (Pulled A)"
-//   "product_barcode" => "2430000008924"
-//   "product_brand" => 0
-//   "product_supplier" => 0
-//   "product_price" => "0.00"
-//   "product_discount_price" => "0.00"
-//   "product_supply_price" => "0.00"
-//   "points_in" => 0
-//   "points_out" => 0
-//   "product_category" => 0
-//   "product_size_type" => 0
-//   "product_package" => 0
-//   "product_stock_management" => 0
-//   "product_supplier_reference" => ""
-//   "product_vat" => 1
-//   "product_display" => 1
-//   "product_display_www" => 0
-//   "product_arch" => 0
-//   "products_desc" => ""
-//   "product_font_color" => "#000000"
-//   "product_bck_btn_color" => "#CCCCCC"
-//   "products_ref_ext" => ""
-//   "product_order" => 8
-//   "weight" => "0.00"
-//   "multiple" => 1
-//   "updated_at" => "2026-02-25 11:43:36"
-//   "product_specific_rules" => []
-//  #}
+{# ===================== CARDS MOBILE/TABLET ===================== #}
+<div class="cardsWrap">
+  {% for p in products %}
+    {% set pid = (p.product_id ?? 0) + 0 %}
+    {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
+    {% set imgs = p.images ?? [] %}
+    {% set mini = (imgs|length > 0) ? (imgs[0].url ?? '') : '' %}
+    {% set brandName = p.product_brand_name ?? p.brand_name ?? '—' %}
+
+    {% set tagsList = [] %}
+    {% if p.tags_labels is defined and p.tags_labels %}
+      {% set tagsList = p.tags_labels %}
+    {% elseif p.tags is iterable %}
+      {% set tagsList = p.tags %}
+    {% else %}
+      {% set tagsList = [] %}
+    {% endif %}
+
+    <div class="cardRow" id="p-{{ pid }}">
+      <div class="cardCheck"><input type="checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></div>
+      <div class="cardThumb">{% if mini %}<img src="{{ mini }}" alt="mini {{ pid }}">{% endif %}</div>
+
+      <div class="cardMain">
+        <div class="cardTop">
+          <div class="cardModel">#{{ pid }} — {{ p.product_model ?? '—' }}</div>
+          <div class="cardActions">
+            <a class="iconbtn iconbtn-amber" href="{{ path('admin_hiboutik_product_edit', {id: pid}) }}" title="Éditer">
+              <i class="edit icon"></i>
+            </a>
+          </div>
+        </div>
+
+        <div class="cardMeta">
+          <span class="badge"><i class="tag icon"></i> {{ brandName }}</span>
+          <span class="badge"><i class="euro sign icon"></i> {{ p.product_price ?? '—' }}</span>
+          <span class="badge"><i class="folder icon"></i> {{ p.category_name ?? '—' }}</span>
+          <span class="badge"><i class="user icon"></i> {{ p.supplier_name ?? '—' }}</span>
+
+          {% if www %}
+            <span class="pill pill-ok"><i class="globe icon"></i> WWW Oui</span>
+          {% else %}
+            <span class="pill pill-off"><i class="globe icon"></i> WWW Non</span>
+          {% endif %}
+
+         {% set tagsList = (p.tags is iterable) ? p.tags : [] %}
+{% if tagsList|length %}
+  {% for t in tagsList|slice(0,4) %}
+    <span class="pill pill-info"><i class="tag icon"></i> {{ t.tag_label }}</span>
+  {% endfor %}
+  {% if tagsList|length > 4 %}<span class="muted">+{{ tagsList|length - 4 }}</span>{% endif %}
+{% else %}
+  <span class="muted">—</span>
+{% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="ui message muted">Aucun produit.</div>
+  {% endfor %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const checkAll = document.getElementById('check_all');
+  if (!checkAll) return;
+
+  checkAll.addEventListener('change', function(e){
+    const checked = e.target.checked;
+    document.querySelectorAll('input[name="ids[]"]').forEach(cb => cb.checked = checked);
+  });
+});
+</script>
+
+{% endblock %}

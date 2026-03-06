@@ -1,11 +1,370 @@
 {% extends '@SyliusAdmin/layout.html.twig' %}
 
-
-
+{% block title %}Upload + Pipette{% endblock %}
 
 {% block content %}
-    <h1>Téléversement d’une image</h1>
-    <div class="ui segment">
-        {{form(form)}}
+<div class="ui container" style="margin-top: 1rem;">
+  <div class="ui segment">
+    <h2 class="ui header">
+      <i class="upload icon"></i>
+      <div class="content">Upload</div>
+    </h2>
+
+    {{ form_start(form, {'attr': {'class': 'ui form', 'id': 'uploadForm'}}) }}
+      {{ form_row(form.file) }}
+
+      {# si tu as la checkbox removeWhiteBg dans le form, tu peux l'afficher ici #}
+      {# {{ form_row(form.removeWhiteBg) }} #}
+
+      <button class="ui primary button" type="submit" id="btnSave">
+        <i class="save icon"></i> Enregistrer
+      </button>
+    {{ form_end(form) }}
+  </div>
+
+  <div class="ui segment">
+    <h3 class="ui header">
+      <i class="magic icon"></i>
+      <div class="content">Suppression fond (pipette)</div>
+    </h3>
+
+    <div class="ui grid stackable">
+      <div class="six wide column">
+        <div class="ui form">
+          <div class="field">
+            <label>Tolérance : <span id="tolVal">45</span></label>
+            <input type="range" id="tol" min="0" max="140" value="45">
+          </div>
+
+          <div class="field">
+            <div class="ui checkbox">
+              <input type="checkbox" id="edgesOnly" checked>
+              <label>Supprimer seulement le fond connecté aux bords (recommandé)</label>
+            </div>
+          </div>
+
+          <div class="field">
+            <button class="ui button" type="button" id="pick" disabled>
+              🎯 Pipette : cliquer sur le fond
+            </button>
+          </div>
+
+          <div class="field" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <span>Couleur :</span>
+            <span id="swatch" style="width:20px;height:20px;border:1px solid #999;border-radius:4px;display:inline-block"></span>
+            <code id="colorTxt">—</code>
+          </div>
+
+          <div class="field" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="ui primary button" type="button" id="apply" disabled>Supprimer le fond</button>
+            <button class="ui button" type="button" id="reset" disabled>Reset</button>
+            <button class="ui green button" type="button" id="dl" disabled>Télécharger PNG</button>
+          </div>
+
+          <div class="ui info message">
+            <div class="header">Mode d’emploi</div>
+            <ol style="margin-top:.6rem">
+              <li>Choisis l’image dans le champ “file” (au-dessus).</li>
+              <li>Clique “Pipette”, puis clique sur le blanc du cadre.</li>
+              <li>Clique “Supprimer le fond”.</li>
+              <li>Option : “Télécharger PNG”.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="ten wide column">
+      <button class="ui button" type="button" id="bgGreen">Fond vert</button>
+<button class="ui button" type="button" id="bgCheck">Damier</button>
+       <canvas id="c"
+  style="
+    width:100%;
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:12px;
+    background:
+      linear-gradient(45deg, rgba(0,0,0,.08) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.08) 75%),
+      linear-gradient(45deg, rgba(0,0,0,.08) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.08) 75%);
+    background-size: 24px 24px;
+    background-position: 0 0, 12px 12px;
+  "></canvas>
+      </div>
     </div>
+  </div>
+</div>
+<script>
+(function () {
+  const formEl = document.getElementById('uploadForm');
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const tol = document.getElementById('tol');
+  const tolVal = document.getElementById('tolVal');
+  const edgesOnly = document.getElementById('edgesOnly');
+
+  const pickBtn = document.getElementById('pick');
+  const applyBtn = document.getElementById('apply');
+  const resetBtn = document.getElementById('reset');
+  const dlBtn = document.getElementById('dl');
+
+  const swatch = document.getElementById('swatch');
+  const colorTxt = document.getElementById('colorTxt');
+
+  // Fond vert / damier
+  const bgGreen = document.getElementById('bgGreen');
+  const bgCheck = document.getElementById('bgCheck');
+
+  if (bgGreen) {
+    bgGreen.addEventListener('click', () => {
+      canvas.style.background = '#00ff00';
+      canvas.style.backgroundSize = '';
+      canvas.style.backgroundPosition = '';
+    });
+  }
+
+  if (bgCheck) {
+    bgCheck.addEventListener('click', () => {
+      canvas.style.background =
+        'linear-gradient(45deg, rgba(0,0,0,.08) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.08) 75%),' +
+        'linear-gradient(45deg, rgba(0,0,0,.08) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.08) 75%)';
+      canvas.style.backgroundSize = '24px 24px';
+      canvas.style.backgroundPosition = '0 0, 12px 12px';
+    });
+  }
+
+  // Input file Dropzone / Symfony Form
+  const fileInput =
+    document.querySelector('#uploadForm input[type="file"]') ||
+    document.querySelector('input[type="file"][name$="[file]"]');
+
+  let img = new Image();
+  let original = null;
+  let picked = { r: 255, g: 255, b: 255 };
+  let picking = false;
+  let processed = false;
+
+  function setPicked(r, g, b) {
+    picked = { r, g, b };
+    swatch.style.background = `rgb(${r},${g},${b})`;
+    colorTxt.textContent = `rgb(${r},${g},${b})`;
+  }
+
+  tol.addEventListener('input', () => (tolVal.textContent = tol.value));
+
+  function drawToCanvasFromFile(file) {
+    const url = URL.createObjectURL(file);
+    img = new Image();
+    img.onload = () => {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      original = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      setPicked(255, 255, 255);
+      pickBtn.disabled = false;
+      applyBtn.disabled = false;
+      resetBtn.disabled = false;
+      dlBtn.disabled = false;
+      processed = false;
+    };
+    img.src = url;
+  }
+
+  function tryLoad() {
+    const f = fileInput && fileInput.files && fileInput.files[0];
+    if (f) drawToCanvasFromFile(f);
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', tryLoad, true);
+    if (formEl) {
+      formEl.addEventListener('drop', () => setTimeout(tryLoad, 80), true);
+      formEl.addEventListener('change', () => setTimeout(tryLoad, 80), true);
+    }
+  } else {
+    console.warn('Input file introuvable. Vérifie #uploadForm input[type=file]');
+  }
+
+  pickBtn.addEventListener('click', () => {
+    if (!original) return;
+    picking = true;
+    pickBtn.classList.add('orange');
+    pickBtn.textContent = '🎯 Clique sur le fond…';
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (!picking || !original) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) * (canvas.width / rect.width));
+    const y = Math.floor((e.clientY - rect.top) * (canvas.height / rect.height));
+
+    const d = ctx.getImageData(x, y, 1, 1).data;
+    setPicked(d[0], d[1], d[2]);
+
+    picking = false;
+    pickBtn.classList.remove('orange');
+    pickBtn.textContent = '🎯 Pipette : cliquer sur le fond';
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!original) return;
+    ctx.putImageData(original, 0, 0);
+    processed = false;
+  });
+
+  function dist2(r, g, b, r2, g2, b2) {
+    const dr = r - r2,
+      dg = g - g2,
+      db = b - b2;
+    return dr * dr + dg * dg + db * db;
+  }
+
+  function refineEdgeHalo(imageData, picked, baseTol, fringeTol = 25, iterations = 2) {
+    const { data, width: w, height: h } = imageData;
+    const tol2 = (baseTol + fringeTol) ** 2;
+
+    for (let it = 0; it < iterations; it++) {
+      const copy = new Uint8ClampedArray(data);
+
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = (y * w + x) * 4;
+          const a = copy[i + 3];
+          if (a === 0) continue;
+
+          const touchesTransparent =
+            copy[i - 4 + 3] === 0 ||
+            copy[i + 4 + 3] === 0 ||
+            copy[i - 4 * w + 3] === 0 ||
+            copy[i + 4 * w + 3] === 0 ||
+            copy[i - 4 * w - 4 + 3] === 0 ||
+            copy[i - 4 * w + 4 + 3] === 0 ||
+            copy[i + 4 * w - 4 + 3] === 0 ||
+            copy[i + 4 * w + 4 + 3] === 0;
+
+          if (!touchesTransparent) continue;
+
+          const r = copy[i],
+            g = copy[i + 1],
+            b = copy[i + 2];
+          const d2 = dist2(r, g, b, picked.r, picked.g, picked.b);
+
+          if (d2 <= tol2) {
+            const k = Math.min(1, d2 / tol2); // 0..1
+            data[i + 3] = Math.round(a * k * 0.35); // grignote le halo
+            if (data[i + 3] < 10) data[i + 3] = 0;
+          }
+        }
+      }
+    }
+  }
+
+  function removeBackground() {
+    if (!original) return;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const w = canvas.width,
+      h = canvas.height;
+
+    const T = Number(tol.value);
+    const thr2 = T * T;
+
+    const match = (x, y) => {
+      const i = (y * w + x) * 4;
+      const a = data[i + 3];
+      if (a === 0) return true;
+      return dist2(data[i], data[i + 1], data[i + 2], picked.r, picked.g, picked.b) <= thr2;
+    };
+
+    if (edgesOnly.checked) {
+      const visited = new Uint8Array(w * h);
+      const qx = new Int32Array(w * h);
+      const qy = new Int32Array(w * h);
+      let qh = 0,
+        qt = 0;
+
+      const push = (x, y) => {
+        const idx = y * w + x;
+        if (visited[idx]) return;
+        visited[idx] = 1;
+        qx[qt] = x;
+        qy[qt] = y;
+        qt++;
+      };
+
+      for (let x = 0; x < w; x++) {
+        if (match(x, 0)) push(x, 0);
+        if (match(x, h - 1)) push(x, h - 1);
+      }
+      for (let y = 0; y < h; y++) {
+        if (match(0, y)) push(0, y);
+        if (match(w - 1, y)) push(w - 1, y);
+      }
+
+      while (qh < qt) {
+        const x = qx[qh],
+          y = qy[qh];
+        qh++;
+
+        const i = (y * w + x) * 4;
+        data[i + 3] = 0;
+
+        if (x > 0 && !visited[y * w + (x - 1)] && match(x - 1, y)) push(x - 1, y);
+        if (x < w - 1 && !visited[y * w + (x + 1)] && match(x + 1, y)) push(x + 1, y);
+        if (y > 0 && !visited[(y - 1) * w + x] && match(x, y - 1)) push(x, y - 1);
+        if (y < h - 1 && !visited[(y + 1) * w + x] && match(x, y + 1)) push(x, y + 1);
+      }
+    } else {
+      for (let i = 0; i < data.length; i += 4) {
+        if (dist2(data[i], data[i + 1], data[i + 2], picked.r, picked.g, picked.b) <= thr2) {
+          data[i + 3] = 0;
+        }
+      }
+    }
+
+    // Anti-liseret
+    refineEdgeHalo(imageData, picked, Number(tol.value), 40, 4); //
+
+    ctx.putImageData(imageData, 0, 0);
+    processed = true;
+  }
+
+  applyBtn.addEventListener('click', removeBackground);
+
+  dlBtn.addEventListener('click', async () => {
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png', 1));
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'image-fond-supprime.png';
+    a.click();
+  });
+
+  // Remplacer le fichier du formulaire par le PNG traité
+  if (formEl) {
+    formEl.addEventListener('submit', async (e) => {
+      if (!processed) return;
+
+      e.preventDefault();
+
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/png', 1));
+      if (!blob || !fileInput) return formEl.submit();
+
+      const pngFile = new File([blob], 'image-fond-supprime.png', { type: 'image/png' });
+      const dt = new DataTransfer();
+      dt.items.add(pngFile);
+      fileInput.files = dt.files;
+
+      formEl.submit();
+    });
+  }
+
+  // init Semantic UI checkbox
+  if (window.jQuery && window.jQuery.fn && window.jQuery.fn.checkbox) {
+    window.jQuery('.ui.checkbox').checkbox();
+  }
+})();
+</script>
 {% endblock %}

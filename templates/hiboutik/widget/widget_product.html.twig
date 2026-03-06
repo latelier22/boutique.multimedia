@@ -1,0 +1,123 @@
+{% set img = p.image ?? p.thumb ?? null %}
+<div style="font-family:sans-serif;padding:15px;font-size:14px;">
+  <h3 style="margin:0 0 8px;">🧩 {{ p.product_model }}</h3>
+
+  <div>
+    <b>Marque:</b> {{ brandName ?: ('ID ' ~ (p.product_brand ?? '—')) }}<br>
+    <b>Catégorie:</b> {{ catName ?: ('ID ' ~ (p.product_category ?? '—')) }}<br>
+    <b>Prix:</b> {{ p.product_price ?? '—' }} €<br>
+    <b>WWW:</b> {{ p.product_display_www ?? 0 }}<br>
+  </div>
+
+  <hr>
+
+  <h4>🧾 MISC</h4>
+  <div><b>misc_varchar:</b> {{ p.misc_varchar ?? '—' }}</div>
+  <div><b>misc_varchar2:</b> {{ p.misc_varchar2 ?? '—' }}</div>
+  <div><b>misc_int:</b> {{ p.misc_int ?? '—' }}</div>
+  <div><b>misc_decimal:</b> {{ p.misc_decimal ?? '—' }}</div>
+  <div style="margin-top:6px;"><b>misc_text:</b><br>
+    <div style="white-space:pre-wrap;border:1px dashed #ddd;padding:8px;border-radius:8px;background:#fff;">
+      {{ p.misc_text ?? '—' }}
+    </div>
+  </div>
+
+  <div style="margin-top:12px;">
+  <textarea id="misc_text_input" style="width:100%;min-height:80px;"></textarea>
+  <button id="saveBtn" style="margin-top:8px;">💾 Sauver misc_text</button>
+  <span id="msg"></span>
+</div>
+
+  <hr>
+
+
+
+
+
+  <h4>🏷️ Tags</h4>
+  {% set tags = p.tags ?? [] %}
+  {% if tags|length %}
+    {% for t in tags %}
+      <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#f3f4f6;margin:2px 4px 0 0;">
+        {{ t.tag_label }}
+      </span>
+    {% endfor %}
+  {% else %}
+    <em>Aucun</em>
+  {% endif %}
+
+  <hr>
+
+  <h4>📦 Fournisseur</h4>
+  {% if supplier %}
+    <b>Nom:</b> {{ supplier.supplier_name ?? '—' }}<br>
+    <b>Email:</b> {{ supplier.supplier_email ?? '—' }}<br>
+    <b>Tél:</b> {{ supplier.supplier_contact ?? '—' }}<br>
+  {% else %}
+    <em>Aucun</em>
+  {% endif %}
+
+  {% if img %}
+    <div style="margin-top:10px;">
+      <img src="{{ img }}" style="max-width:100%;border-radius:10px;border:1px solid #e5e7eb;">
+    </div>
+  {% endif %}
+</div>
+
+<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+  <div style="font-weight:700;margin-bottom:6px;">📝 Commentaire (misc_text)</div>
+
+  <textarea id="miscText" style="width:100%;min-height:90px;padding:8px;border:1px solid #d1d5db;border-radius:8px;"
+    placeholder="Ex: état, couleur, stockage, batterie à changer...">{{ p.misc_text|default('') }}</textarea>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+    <button type="button" id="btnSaveMisc"
+      style="padding:8px 12px;border-radius:8px;border:0;background:#111827;color:white;cursor:pointer;">
+      Enregistrer
+    </button>
+
+    <span id="saveState" style="font-size:13px;"></span>
+  </div>
+</div>
+
+<script>
+(function(){
+  const btn = document.getElementById('btnSaveMisc');
+  const ta  = document.getElementById('miscText');
+  const st  = document.getElementById('saveState');
+  if (!btn || !ta || !st) return;
+
+  function setState(msg, ok){
+    st.textContent = msg;
+    st.style.color = ok ? '#166534' : '#991b1b';
+  }
+
+  btn.addEventListener('click', async () => {
+    try {
+      setState('Envoi...', true);
+
+      const res = await fetch('/hiboutik/widget/product/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_id: {{ p.product_id|default(0) }},
+          misc_text: ta.value
+        })
+      });
+
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.ok) {
+        console.error('SAVE FAIL', res.status, json);
+        setState('Erreur: ' + (json.error || json.raw || res.status), false);
+        return;
+      }
+
+      setState('✅ Enregistré', true);
+    } catch (e) {
+      console.error(e);
+      setState('Erreur réseau', false);
+    }
+  });
+})();
+</script>

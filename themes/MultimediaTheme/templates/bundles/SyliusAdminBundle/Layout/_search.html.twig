@@ -1,13 +1,15 @@
 <div class="item">
-   <form method="get" action="{{ path('admin_rachats_index') }}">
-  <div class="ui transparent left icon input">
-    <input
-      type="text"
-      name="q"
-      value="{{ app.request.query.get('q') }}"
-      placeholder="Recherche rachats…"
-    >
-    <i class="search link icon" onclick="this.closest('form').submit()"></i>
-  </div>
-</form>
+  <form method="get" action="{{ path('admin_rachats_index') }}">
+    <input type="hidden" name="ym" value="all">
+
+    <div class="ui transparent left icon input">
+      <input
+        type="text"
+        name="q"
+        value="{{ app.request.query.get('q') }}"
+        placeholder="Recherche rachats…"
+      >
+      <i class="search link icon" onclick="this.closest('form').submit()"></i>
+    </div>
+  </form>
 </div>

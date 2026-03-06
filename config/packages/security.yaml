@@ -1,4 +1,5 @@
 security:
+    
     enable_authenticator_manager: true
     providers:
         sylius_admin_user_provider:
@@ -12,6 +13,9 @@ security:
     password_hashers:
         Sylius\Component\User\Model\UserInterface: argon2i
     firewalls:
+        widget:
+            pattern: ^/widget
+            security: false
         tablet:
             pattern: ^/(?:[a-z]{2}_[A-Z]{2}/)?tablet
             security: false

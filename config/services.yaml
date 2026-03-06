@@ -5,11 +5,43 @@ parameters:
   hiboutik.account: '%env(string:HIBOUTIK_ACCOUNT)%'
   hiboutik.login:   '%env(string:HIBOUTIK_LOGIN)%'
   hiboutik.key:     '%env(string:HIBOUTIK_API_KEY)%'
+  hiboutik.widget_secret: '%env(HIBOUTIK_WIDGET_SECRET)%'
   hiboutik.debug:   true
   $logger:     '@logger'
   tablet_socket_token: '%env(TABLET_SOCKET_TOKEN)%'
   tablet_pin: '%env(TABLET_PIN)%'
   tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
+
+  rachats_columns:
+    columns:
+      select:   { label: "Sélection", default: true }
+      id:       { label: "#",         default: true }
+      modele:   { label: "Modèle",    default: true }
+      prix:     { label: "Prix",      default: true }
+      date:     { label: "Date",      default: true }
+      nom:      { label: "Nom",       default: true }
+      prenom:   { label: "Prénom",    default: false }
+      tel:      { label: "Téléphone", default: true }
+      email:    { label: "Email",     default: false }
+      pdf:      { label: "PDF",       default: true }
+      ci:       { label: "Pièce ID",  default: true }
+      paiement: { label: "Paiement",  default: true }
+      revendeur: { label: "Revendeur", default: true }
+      actions:  { label: "Actions",   default: true }
+
+    presets:
+      desktop:  [select,id,modele,prix,date,nom,prenom,tel,email,pdf,ci,paiement,revendeur,actions]
+      tablet:   [select,id,modele,prix,date,nom,tel,pdf,paiement,revendeur,actions]
+      mobile:   [select,id,modele,prix,date,nom,tel,pdf,paiement,actions]
+    
+
+  
+
+
+
+
+  
+
 
 services:
    
@@ -121,3 +153,11 @@ services:
     # ⚠️ Toute sous-classe hérite automatiquement des args du parent
     App\Service\HiboutikTillClient:
         parent: App\Service\HiboutikClient
+
+    App\Controller\Widget\HiboutikWidgetController:
+        arguments:
+            $account: '%hiboutik.account%'
+            $login: '%hiboutik.login%'
+            $apiKey: '%hiboutik.key%'
+            $widgetSecret: '%hiboutik.widget_secret%'
+        tags: ['controller.service_arguments']

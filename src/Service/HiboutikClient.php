@@ -31,6 +31,44 @@ class HiboutikClient
         ];
     }
 
+protected function reqWithHeaders(string $method, string $path, array $options = []): array
+{
+    $url = $this->baseUrl($path);
+    $r   = $this->httpClient->request($method, $url, $this->auth($options));
+    $status  = $r->getStatusCode();
+    $raw     = $r->getContent(false);
+    $data    = json_decode($raw, true);
+    $headers = $r->getHeaders(false); // ✅ important
+
+    $this->lastDebug = [
+        'url' => $url, 'method' => $method, 'opts' => $options,
+        'status' => $status, 'raw' => $raw, 'data' => $data,
+        'headers' => $headers,
+    ];
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'data' => $data,
+        'raw' => $raw,
+        'headers' => $headers,
+    ];
+}
+
+private function parseTotalFromContentRange(array $headers): ?int
+{
+    // Symfony renvoie souvent ['content-range' => ['items 0-249/1327']]
+    $cr = $headers['content-range'][0] ?? $headers['Content-Range'][0] ?? null;
+    if (!$cr) return null;
+
+    if (preg_match('~\/(\d+)\s*$~', $cr, $m)) {
+        return (int)$m[1];
+    }
+    return null;
+}
+
+
+
     /** Requête générique + debug conservé */
     protected function req(string $method, string $path, array $options = []): array
     {
@@ -64,6 +102,43 @@ class HiboutikClient
     {
         return $this->lastDebug;
     }
+
+
+public function getProductsAll(int $maxPages = 500): array
+{
+    $all = [];
+    $total = null;
+
+    for ($p = 1; $p <= $maxPages; $p++) {
+        $res = $this->reqWithHeaders('GET', 'products/?p=' . $p);
+        if (!($res['ok'] ?? false)) break;
+
+        $page = $res['data'] ?? [];
+
+        // wrapper éventuel
+        if (is_array($page) && !array_is_list($page)) {
+            foreach (['products','data','items','result'] as $k) {
+                if (isset($page[$k]) && is_array($page[$k])) { $page = $page[$k]; break; }
+            }
+        }
+
+        if (!is_array($page) || !$page) break;
+
+        $all = array_merge($all, $page);
+
+        // total via Content-Range si dispo
+        if ($total === null) {
+            $t = $this->parseTotalFromContentRange($res['headers'] ?? []);
+            if ($t) $total = $t;
+        }
+
+        // stop conditions
+        if ($total !== null && count($all) >= $total) break;
+        if (count($page) < 250) break; // fallback
+    }
+
+    return $all;
+}
 
 public function listCategories(): array
 {
@@ -791,6 +866,40 @@ private function gs1CheckDigitOk(string $digits): bool
     return $calc === $check;
 }
 
+
+public function putProductAttributeSingle(int $productId, string $attr, string $value): array
+{
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/json';
+    $opts['headers']['Accept'] = '*/*';
+
+    $opts['json'] = [
+        'product_attribute' => $attr,
+        'new_value'         => $value,
+    ];
+
+    $endpoint = 'product/' . $productId; // ✅ singulier
+
+    $r      = $this->httpClient->request('PUT', $this->baseUrl($endpoint), $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $this->baseUrl($endpoint),
+        'status' => $status,
+        'raw'    => $raw,
+        'sent'   => ['product_attribute' => $attr, 'new_value' => $value],
+        'data'   => $data,
+    ];
+    if ($this->debug && $this->logger) {
+        $this->logger->info('[HIB UPDATE PRODUCT ATTR SINGLE]', $this->lastDebug);
+    }
+
+    return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'data' => $data, 'raw' => $raw];
+}
+
 /** facteur commun: PUT product_attribute */
 private function putProductAttribute(int $productId, string $attr, string $value): array
 {
@@ -884,6 +993,36 @@ public function listInventoryInputsByPrefix(string $prefix, int $maxPages = 10):
     return $out;
 }
 
+// Dans App\Service\HiboutikClient
+
+public function updateProductAttributes(int $productId, array $fields): array
+{
+    $last = null;
+    $allOk = true;
+
+    foreach ($fields as $attr => $val) {
+        // skip null (mais garde "0")
+        if ($val === null) continue;
+
+        $val = is_bool($val) ? ($val ? '1' : '0') : (string)$val;
+
+        $r = $this->putProductAttributeSingle($productId, (string)$attr, $val);
+        $last = $r;
+
+        if (!($r['ok'] ?? false)) {
+            $allOk = false;
+            break;
+        }
+    }
+
+    return [
+        'ok' => $allOk,
+        'status' => $last['status'] ?? null,
+        'raw' => $last['raw'] ?? null,
+        'last' => $last,
+    ];
+}
+
 /**
  * ✅ TON INDEX ARRIVAGES : renvoie DIRECTEMENT un tableau de lignes
  * (pas de ['ok'=>..., 'data'=>...] sinon Twig casse)
@@ -952,6 +1091,84 @@ public function validateInventoryInput(int $inventoryInputId): array
 
     return $res;
 }
+
+/* ===================== TAGS PRODUITS ===================== */
+
+/**
+ * GET /tags/products
+ * Retourne les catégories de tags + leurs tags (tag_details)
+ */
+public function listProductTagCatalog(): array
+{
+    // d’après ta doc : /tags/products
+    return $this->req('GET', 'tags/products');
+}
+
+/**
+ * Construit un choix [ "CAT — TAG" => tag_id ] pour un <select>
+ * + map [tag_id => "CAT — TAG"]
+ */
+public function buildProductTagChoices(): array
+{
+    $res = $this->listProductTagCatalog();
+    $choices = [];
+    $map = [];
+
+    $rows = $res['data'] ?? [];
+    if (!is_array($rows)) $rows = [];
+
+    foreach ($rows as $cat) {
+        $catName = trim((string)($cat['tag_cat'] ?? ''));
+        $details = $cat['tag_details'] ?? [];
+        if (!is_array($details)) $details = [];
+
+        foreach ($details as $t) {
+            $id = (int)($t['tag_id'] ?? 0);
+            $label = trim((string)($t['tag'] ?? $t['tag_label'] ?? ''));
+            if ($id <= 0 || $label === '') continue;
+
+            $full = $catName !== '' ? ($catName.' — '.$label) : $label;
+            $choices[$full] = $id;
+            $map[$id] = $full;
+        }
+    }
+
+    ksort($choices, SORT_NATURAL | SORT_FLAG_CASE);
+    return ['ok' => ($res['ok'] ?? false), 'choices' => $choices, 'map' => $map, 'raw' => $res];
+}
+
+/**
+ * GET /products_tags/{product_id}
+ * Retourne les tags d’un produit
+ */
+public function listTagsForProduct(int $productId): array
+{
+    return $this->req('GET', 'products_tags/' . $productId);
+}
+
+/**
+ * POST /products_tags/{product_id}
+ * Ajoute un tag à un produit
+ */
+public function addTagToProduct(int $productId, int $tagId): array
+{
+    // La doc Hiboutik utilise souvent du form/urlencoded. On tente simple.
+    return $this->req('POST', 'products_tags/' . $productId, [
+        'json' => ['tag_id' => $tagId],
+        'headers' => ['Accept' => '*/*'],
+    ]);
+}
+
+/**
+ * DELETE /products_tags/{product_id}/{tag_id}
+ * Supprime un tag d’un produit
+ */
+public function deleteTagForProduct(int $productId, int $tagId): array
+{
+    return $this->req('DELETE', 'products_tags/' . $productId . '/' . $tagId);
+}
+
+
 
 
 }

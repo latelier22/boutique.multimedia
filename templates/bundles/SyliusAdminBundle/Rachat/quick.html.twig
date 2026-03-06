@@ -40,11 +40,11 @@
   <div class="two fields">
     <div class="field">
       <label>Marque / Modèle *</label>
-      <input type="text" name="marque_modele" required>
+      <input type="text" name="marqueModele" required>
     </div>
     <div class="field">
       <label>Prix d'achat (€) *</label>
-      <input type="number" step="0.01" name="prix_achat" required min="0.01">
+      <input type="number" step="0.01" name="prixAchat" required min="0.01">
     </div>
   </div>
 
@@ -63,8 +63,8 @@
   if (!f) return;
 
   f.addEventListener('submit', (e)=>{
-    const mm = (f.querySelector('input[name="marque_modele"]')?.value||'').trim();
-    const pa = parseFloat(f.querySelector('input[name="prix_achat"]')?.value||'0');
+    const mm = (f.querySelector('input[name="marqueModele"]')?.value||'').trim();
+    const pa = parseFloat(f.querySelector('input[name="prixAchat"]')?.value||'0');
     if (!mm || !(pa>0)) {
       e.preventDefault();
       alert('Veuillez saisir Marque/Modèle et un prix d’achat > 0.');

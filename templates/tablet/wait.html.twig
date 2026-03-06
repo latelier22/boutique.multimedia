@@ -54,6 +54,96 @@
       background:#0b0f14;
       opacity:.9;
     }
+    .grid9{
+  position:absolute;
+  inset:0;
+  padding:16px;
+  z-index:3;
+  display:none;
+}
+
+.grid9.show{ display:block; }
+
+.grid9Inner{
+  height:100%;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap:12px;
+}
+
+.gridCard{
+  border:1px solid var(--stroke);
+  border-radius: var(--r);
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(10px);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+.gridCard .ph{
+  flex: 1 1 auto;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+
+.gridCard img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  filter: drop-shadow(0 10px 35px rgba(0,0,0,.45));
+}
+
+.gridCard .meta{
+  padding:10px 12px;
+  border-top:1px solid var(--stroke);
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:baseline;
+}
+
+.gridCard .name{
+  font-family: Rajdhani, Inter, system-ui, sans-serif;
+  font-weight:800;
+  letter-spacing:.3px;
+  font-size:14px;
+  line-height:1.1;
+  overflow:hidden;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient: vertical;
+}
+
+.gridCard .p{
+  font-weight:800;
+  white-space:nowrap;
+  font-size:14px;
+}
+
+.imgWrap{ position:absolute; inset:0; z-index:1; }     /* <= AJOUTE z-index */
+.overlay{ z-index:2; }                                 /* (ton overlay est déjà z-index:4, ok) */
+
+.grid9{
+  position:absolute;
+  inset:0;
+  padding:16px;
+  z-index:9;           /* <= AU DESSUS DE TOUT */
+  display:none;
+  pointer-events:auto; /* <= important */
+}
+
+.grid9.show{ display:block; }
+
+/* Mobile: 2x? (optionnel) */
+@media (max-width:740px){
+  .grid9Inner{ grid-template-columns: repeat(2, 1fr); grid-template-rows: auto; }
+}
     @media (max-width:740px){
       .actions{left:16px;right:16px;justify-content:space-between}
       .btn{width:calc(50% - 5px);justify-content:center}
@@ -64,6 +154,9 @@
 <body>
 <main class="stage" id="stage">
   <div class="imgWrap"><img id="img" class="img" alt="Produit"></div>
+  <div class="grid9" id="grid9" aria-hidden="true">
+  <div class="grid9Inner" id="grid9Inner"></div>
+</div>
 
   <div class="topbar">
     <div class="brand">
@@ -104,120 +197,120 @@
 <audio id="newSound" preload="auto">
   <source src="/sounds/mixkit-game-level-completed-2059.wav" type="audio/wav">
 </audio>
-
 <script>
-(function(){
+(function () {
   const API_PRODUCTS = "{{ path('tablet_products') }}";
-  const SLIDE_MS = 5000;
-  const REFRESH_MS = 60000;
+
+  // ====== CYCLE ======
+  const GRID_COUNT   = 9;      // 3x3
+  const GRID_SHOW_MS = 3000;   // durée d’affichage grille
+  const SLIDE_MS     = 5000;   // durée par produit (diapo)
+  const REFRESH_MS   = 60000;  // refresh API produits
 
   const device = {{ device|json_encode|raw }};
   const token  = {{ token|json_encode|raw }};
 
-  const stage = document.getElementById('stage');
-  const imgEl = document.getElementById('img');
-  const titleEl = document.getElementById('title');
-  const priceEl = document.getElementById('price');
-  const oldPriceEl = document.getElementById('oldPrice');
-  const badgeEl = document.getElementById('badge');
-  const wsStateEl = document.getElementById('wsState');
-  const btnReco = document.getElementById('btn-reco');
+  // ====== DOM ======
+  const stage      = document.getElementById("stage");
+  const imgEl      = document.getElementById("img");
+  const titleEl    = document.getElementById("title");
+  const priceEl    = document.getElementById("price");
+  const oldPriceEl = document.getElementById("oldPrice");
+  const badgeEl    = document.getElementById("badge");
+  const wsStateEl  = document.getElementById("wsState");
+  const btnReco    = document.getElementById("btn-reco");
 
-  const newSound = document.getElementById("newSound");
-let audioUnlocked = false;
-let audioCtx = null;
+  const newBannerEl = document.getElementById("newBanner");
+  const newSound    = document.getElementById("newSound");
 
-function unlockAudio(){
-  if (audioUnlocked) return true;
+  const grid9      = document.getElementById("grid9");
+  const grid9Inner = document.getElementById("grid9Inner");
 
-  // Débloque <audio>
-  try {
-    if (newSound) {
-      newSound.muted = true;
-      const p = newSound.play();
-      if (p && p.then) {
-        p.then(() => {
-          newSound.pause();
-          newSound.currentTime = 0;
-          newSound.muted = false;
-          audioUnlocked = true;
-          console.log("[AUDIO] unlocked (HTMLAudio)");
-        }).catch(() => {});
+  // ====== AUDIO ======
+  let audioUnlocked = false;
+  let audioCtx = null;
+
+  function unlockAudio() {
+    if (audioUnlocked) return true;
+
+    try {
+      if (newSound) {
+        newSound.muted = true;
+        const p = newSound.play();
+        if (p && p.then) {
+          p.then(() => {
+            newSound.pause();
+            newSound.currentTime = 0;
+            newSound.muted = false;
+            audioUnlocked = true;
+          }).catch(() => {});
+        }
       }
-    }
-  } catch(e){}
+    } catch (e) {}
 
-  // Débloque WebAudio
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (Ctx && !audioCtx) audioCtx = new Ctx();
-    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
-    if (audioCtx && audioCtx.state === "running") {
-      audioUnlocked = true;
-      console.log("[AUDIO] unlocked (WebAudio)");
-    }
-  } catch(e){}
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx && !audioCtx) audioCtx = new Ctx();
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      if (audioCtx && audioCtx.state === "running") audioUnlocked = true;
+    } catch (e) {}
 
-  return audioUnlocked;
-}
-
-// IMPORTANT : au moins un de ces events arrivera sur ordi
-["pointerdown","mousedown","touchstart","keydown"].forEach(evt => {
-  document.addEventListener(evt, unlockAudio, { once:true, passive:true });
-});
-
- function playNewSound(){
-  try {
-    // visuel OK même si audio bloqué
-    document.body.style.transition = "background 0.2s ease";
-    document.body.style.background = "#1c2e52";
-    setTimeout(() => { document.body.style.background = ""; }, 250);
-
-    if (!unlockAudio()) {
-      console.warn("[AUDIO] blocked until user gesture");
-      return;
-    }
-
-    if (newSound) {
-      newSound.pause();
-      newSound.currentTime = 0;
-      newSound.volume = 1.0;
-      newSound.play().catch(() => beep());
-    } else {
-      beep();
-    }
-  } catch(e){}
-}
-
-function beep(){
-  if (!audioUnlocked) return; // <-- clé : pas d'erreur Chrome
-  try {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    if (!Ctx) return;
-    if (!audioCtx) audioCtx = new Ctx();
-    if (audioCtx.state === "suspended") audioCtx.resume();
-
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = "sine";
-    o.frequency.value = 880;
-    g.gain.value = 0.08;
-
-    o.connect(g);
-    g.connect(audioCtx.destination);
-
-    o.start();
-    setTimeout(() => { try { o.stop(); } catch(e){} }, 180);
-  } catch(e){}
-}
-
-  function formatPrice(p){
-    const n = Number(p ?? 0);
-    if (Number.isNaN(n)) return "—";
-    return n.toFixed(2).replace('.', ',') + " €";
+    return audioUnlocked;
   }
 
-  function proxify(url){
+  ["pointerdown", "mousedown", "touchstart", "keydown"].forEach((evt) => {
+    document.addEventListener(evt, unlockAudio, { once: true, passive: true });
+  });
+
+  function beep() {
+    if (!audioUnlocked) return;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      if (!audioCtx) audioCtx = new Ctx();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = 880;
+      g.gain.value = 0.08;
+
+      o.connect(g);
+      g.connect(audioCtx.destination);
+
+      o.start();
+      setTimeout(() => { try { o.stop(); } catch (e) {} }, 180);
+    } catch (e) {}
+  }
+
+  function playNewSound() {
+    try {
+      document.body.style.transition = "background 0.2s ease";
+      document.body.style.background = "#1c2e52";
+      setTimeout(() => { document.body.style.background = ""; }, 250);
+
+      if (!unlockAudio()) return;
+
+      if (newSound) {
+        newSound.pause();
+        newSound.currentTime = 0;
+        newSound.volume = 1.0;
+        newSound.play().catch(() => beep());
+      } else {
+        beep();
+      }
+    } catch (e) {}
+  }
+
+  // ====== HELPERS ======
+  function formatPrice(p) {
+    const n = Number(p ?? 0);
+    if (Number.isNaN(n)) return "—";
+    return n.toFixed(2).replace(".", ",") + " €";
+  }
+
+  function proxify(url) {
     if (!url) return "";
     if (url.includes("multimediaservices22.hiboutik.com/api/products_images/")) {
       return "https://shop.multimedia-services.fr/api/hiboutik/image?src=" + encodeURIComponent(url);
@@ -225,45 +318,152 @@ function beep(){
     return url;
   }
 
-  function firstImage(p){
-    const list = Array.isArray(p?.images) ? p.images : [];
-    const u = p?.image ?? p?.thumb ?? list[0] ?? "";
-    return proxify(u);
+  function pickFirstNonEmpty(arr) {
+    if (!Array.isArray(arr)) return "";
+    for (const u of arr) {
+      const s = String(u ?? "").trim();
+      if (s) return s;
+    }
+    return "";
   }
 
+  function firstImageRaw(p) {
+    const list = Array.isArray(p?.images) ? p.images : [];
+    return (
+      String(p?.image ?? "").trim() ||
+      String(p?.thumb ?? "").trim() ||
+      pickFirstNonEmpty(list)
+    );
+  }
+
+  function firstImage(p) {
+    const raw = firstImageRaw(p);
+    return String(proxify(raw) ?? "").trim();
+  }
+
+  function hasImage(p) { return !!firstImage(p); }
+
+  function normalizeProducts(list) {
+    // Dédoublonnage + garde le plus récent
+    const map = new Map();
+    for (const p of (Array.isArray(list) ? list : [])) {
+      const id = Number(p?.product_id || 0);
+      if (!id) continue;
+
+      if (!map.has(id)) map.set(id, p);
+      else {
+        const a = String(map.get(id)?.updated_at ?? "");
+        const b = String(p?.updated_at ?? "");
+        if (b && (!a || b > a)) map.set(id, p);
+      }
+    }
+    // Filtre strict : PAS de produits sans image
+    return Array.from(map.values()).filter(hasImage);
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  // ====== STATE ======
   let products = [];
   let index = 0;
+
+  let mode = "grid";              // "grid" | "slide"
+  let cycleStep = 0;              // compteur slides dans un cycle complet
+
   let slideTimer = null;
   let refreshTimer = null;
-
-  const newBannerEl = document.getElementById("newBanner");
+  let gridTimer = null;
   let highlightTimer = null;
 
-  function showNewBanner(ms = 8000){
+  // 🔒 Lock grille : tant que grille visible, aucun event ne peut la fermer
+  let gridLockUntil = 0;
+
+  // Event SSE en attente (le dernier gagne)
+  let pendingFocusId = 0;
+
+  function nowMs(){ return Date.now(); }
+
+  function showNewBanner(ms = 8000) {
     if (!newBannerEl) return;
     newBannerEl.classList.add("show");
     if (highlightTimer) clearTimeout(highlightTimer);
-    highlightTimer = setTimeout(() => {
-      newBannerEl.classList.remove("show");
-    }, ms);
+    highlightTimer = setTimeout(() => newBannerEl.classList.remove("show"), ms);
   }
 
-  function goToProductId(productId){
-    const idx = products.findIndex(p => Number(p?.product_id) === Number(productId));
-    if (idx >= 0) {
-      render(idx);
-      showNewBanner(8000);
-      startSlide();
-    }
+  // ====== GRID ======
+  function buildGrid() {
+    if (!grid9 || !grid9Inner) return;
+
+    const slice = products.slice(0, GRID_COUNT);
+
+    grid9Inner.innerHTML = slice.map((p) => {
+      const img = firstImage(p);
+      const hasPromo =
+        (p?.product_discount_price ?? "0") !== "0" &&
+        Number(p?.product_discount_price) > 0;
+
+      const price = formatPrice(hasPromo ? p.product_discount_price : p.product_price);
+      const name  = String(p?.product_model ?? "Produit");
+
+      return `
+        <div class="gridCard">
+          <div class="ph"><img src="${img}" alt="${escapeHtml(name)}"></div>
+          <div class="meta">
+            <div class="name">${escapeHtml(name)}</div>
+            <div class="p">${escapeHtml(price)}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
-  function render(i){
+  function hideGrid() {
+    if (gridTimer) { clearTimeout(gridTimer); gridTimer = null; }
+    if (grid9) grid9.classList.remove("show");
+  }
+
+  function showGrid() {
+    mode = "grid";
+    stopSlide();
+
+    buildGrid();
+    if (grid9) grid9.classList.add("show");
+
+    // 🔒 lock
+    gridLockUntil = nowMs() + GRID_SHOW_MS;
+
+    if (gridTimer) clearTimeout(gridTimer);
+    gridTimer = setTimeout(() => {
+      hideGrid();
+      startCycleSlides();   // démarrage diapo après la grille
+    }, GRID_SHOW_MS);
+
+    console.log("[GRID] show for", GRID_SHOW_MS, "ms");
+  }
+
+  // ====== SLIDESHOW ======
+  function stopSlide() {
+    if (slideTimer) clearInterval(slideTimer);
+    slideTimer = null;
+  }
+
+  function render(i) {
     if (!products.length) {
-      titleEl.textContent = "Aucun produit en stock";
+      hideGrid();
+      titleEl.textContent = "Aucun produit (avec image) en stock";
       priceEl.textContent = "—";
       oldPriceEl.style.display = "none";
       badgeEl.style.display = "none";
       imgEl.removeAttribute("src");
+      imgEl.alt = "";
+      stopSlide();
       return;
     }
 
@@ -272,6 +472,8 @@ function beep(){
 
     const img = firstImage(p);
     if (img) imgEl.src = img;
+    else imgEl.removeAttribute("src"); // sécurité (normalement impossible car filtré)
+
     imgEl.alt = p?.product_model ?? "Produit";
     titleEl.textContent = p?.product_model ?? "Produit";
 
@@ -292,47 +494,128 @@ function beep(){
     }
 
     if (products.length > 1) {
-      const next = products[(index + 1) % products.length];
-      const nextImg = firstImage(next);
+      const nextP = products[(index + 1) % products.length];
+      const nextImg = firstImage(nextP);
       if (nextImg) { const pre = new Image(); pre.src = nextImg; }
     }
   }
 
-  function next(){ render(index + 1); }
-  function startSlide(){ stopSlide(); slideTimer = setInterval(next, SLIDE_MS); }
-  function stopSlide(){ if (slideTimer) clearInterval(slideTimer); slideTimer = null; }
+  function startCycleSlides() {
+    mode = "slide";
+    cycleStep = 0;
 
-  async function loadProducts(focusId = 0){
+    // ✅ Si un product_updated est arrivé pendant la grille : on démarre dessus
+    if (pendingFocusId) {
+      const idx = products.findIndex(p => Number(p?.product_id) === Number(pendingFocusId));
+      if (idx >= 0) {
+        console.log("[SSE] applying pending focus:", pendingFocusId);
+        index = idx;
+      }
+      pendingFocusId = 0;
+    }
+
+    render(index);
+
+    stopSlide();
+    if (products.length > 1) {
+      slideTimer = setInterval(() => nextSlide(), SLIDE_MS);
+    }
+
+    console.log("[SLIDE] start cycle, products=", products.length);
+  }
+
+  function nextSlide() {
+    render(index + 1);
+    cycleStep++;
+
+    // fin de cycle => on a affiché N produits
+    if (products.length > 0 && cycleStep >= products.length) {
+      index = 0;
+      showGrid(); // <= la grille revient à chaque cycle
+    }
+  }
+
+  // clic : uniquement en mode slide (pendant grille -> rien)
+  stage.addEventListener("click", () => {
+    if (mode !== "slide") return;
+    if (products.length > 1) nextSlide();
+  });
+
+  // ====== LOAD PRODUCTS ======
+  async function loadProducts({ focusId = 0, forceRestart = false } = {}) {
     try {
       const res = await fetch(API_PRODUCTS, { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const json = await res.json();
 
-      const list = Array.isArray(json?.data) ? json.data : [];
-      products = list;
+      const raw = Array.isArray(json?.data) ? json.data : [];
+      products = normalizeProducts(raw);
 
-      if (focusId) {
-        goToProductId(focusId);
-      } else {
-        if (index >= products.length) index = 0;
-        render(index);
-        startSlide();
+      console.log(`[DATA] raw=${raw.length} kept(with image)=${products.length}`);
+
+      if (!products.length) {
+        render(0);
+        return;
       }
-    } catch(e) {
+
+      if (index >= products.length) index = 0;
+
+      // focus demandé (SSE)
+      if (focusId) {
+        // 🔒 si grille lock : on stocke et on applique après la grille
+        if (nowMs() < gridLockUntil || mode === "grid") {
+          pendingFocusId = Number(focusId);
+          console.log("[SSE] focus queued (grid locked):", pendingFocusId);
+          return; // IMPORTANT: ne ferme pas la grille
+        }
+
+        // sinon appliquer direct
+        const idx = products.findIndex(p => Number(p?.product_id) === Number(focusId));
+        if (idx >= 0) {
+          index = idx;
+          render(index);
+          showNewBanner(8000);
+          // on repart sur un cycle propre
+          stopSlide();
+          startCycleSlides();
+        }
+        return;
+      }
+
+      if (forceRestart) {
+        index = 0;
+        showGrid();
+        return;
+      }
+
+      // refresh normal : ne casse pas la grille si elle est lock
+      if (mode === "grid") {
+        buildGrid(); // met à jour le contenu sans reset timer
+      } else {
+        render(index);
+      }
+    } catch (e) {
+      console.error(e);
+      hideGrid();
       titleEl.textContent = "Impossible de charger les produits";
       priceEl.textContent = "Vérifier la connexion";
       oldPriceEl.style.display = "none";
       badgeEl.style.display = "none";
+      imgEl.removeAttribute("src");
       stopSlide();
     }
   }
 
-  // ===== SSE (api.multimedia-services.fr) : refresh diapo =====
-  let es = null;
+  function startRefresh() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => loadProducts({}), REFRESH_MS);
+  }
 
-  function connectSSE(){
+  // ====== SSE (refresh + son) ======
+  let es = null;
+  function connectSSE() {
     try {
-      if (es) { try { es.close(); } catch(e) {} es = null; }
+      if (es) { try { es.close(); } catch (e) {} es = null; }
 
       es = new EventSource("https://api.multimedia-services.fr/api/events");
 
@@ -340,52 +623,48 @@ function beep(){
         try {
           const data = JSON.parse(ev.data || "{}");
           const id = Number(data?.product_id || 0);
-          if (!id) return;
 
-          loadProducts(id);
+          // refresh + focus (mais RESPECTE la grille lock)
+          loadProducts({ focusId: id || 0 });
+
           playNewSound();
-        } catch(e) {}
+          showNewBanner(8000);
+        } catch (e) {}
       });
 
-      es.onerror = () => {
-        // optionnel : tu peux reconnecter ici si tu veux
-      };
-
+      es.onerror = () => {};
       return es;
-    } catch(e) {
+    } catch (e) {
       return null;
     }
   }
 
-  connectSSE();
-
-  stage.addEventListener('click', () => { if (products.length) next(); });
-
-  function startRefresh(){
-    if (refreshTimer) clearInterval(refreshTimer);
-    refreshTimer = setInterval(loadProducts, REFRESH_MS);
-  }
-
-  // ===== WS redirect =====
-  let ws=null, retry=0, retryTimer=null, pingTimer=null;
+  // ====== WS (redirect only) ======
+  let ws = null, retry = 0, retryTimer = null, pingTimer = null;
   const PING_EVERY_MS = 20000;
 
-  function wsUrl(){
-    const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+  function wsUrl() {
+    const proto = (location.protocol === "https:") ? "wss" : "ws";
     return `${proto}://${location.host}/ws-tablet?device=${encodeURIComponent(device)}&token=${encodeURIComponent(token)}`;
   }
-  function setWsState(t){ wsStateEl.textContent = t; }
-  function clearWsTimers(){
+
+  function setWsState(t) { wsStateEl.textContent = t; }
+
+  function clearWsTimers() {
     if (retryTimer) clearTimeout(retryTimer);
     if (pingTimer) clearInterval(pingTimer);
-    retryTimer=null; pingTimer=null;
+    retryTimer = null; pingTimer = null;
   }
-  function startPing(){
+
+  function startPing() {
     pingTimer = setInterval(() => {
-      try { if (ws && ws.readyState===1) ws.send(JSON.stringify({type:"ping", t:Date.now()})); } catch(e){}
+      try {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+      } catch (e) {}
     }, PING_EVERY_MS);
   }
-  function scheduleReconnect(){
+
+  function scheduleReconnect() {
     clearWsTimers();
     const delay = Math.min(15000, Math.round(800 * Math.pow(2, retry)));
     retry = Math.min(retry + 1, 6);
@@ -393,66 +672,51 @@ function beep(){
     retryTimer = setTimeout(connectWs, delay);
   }
 
-  function connectWs(){
+  function connectWs() {
     clearWsTimers();
 
-    try {
-      if (ws && (ws.readyState === 0 || ws.readyState === 1)) ws.close();
-    } catch (e) {}
-
+    try { if (ws && (ws.readyState === 0 || ws.readyState === 1)) ws.close(); } catch (e) {}
     setWsState("Connexion…");
 
-    try {
-      ws = new WebSocket(wsUrl());
-    } catch (e) {
-      scheduleReconnect();
-      return;
-    }
+    try { ws = new WebSocket(wsUrl()); }
+    catch (e) { scheduleReconnect(); return; }
 
-    ws.onopen = () => {
-      retry = 0;
-      setWsState("Connecté");
-      startPing();
-    };
-
-    ws.onerror = () => {
-      setWsState("Instable");
-    };
-
-    ws.onclose = () => {
-      scheduleReconnect();
-    };
+    ws.onopen  = () => { retry = 0; setWsState("Connecté"); startPing(); };
+    ws.onerror = () => setWsState("Instable");
+    ws.onclose = () => scheduleReconnect();
 
     ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-
-        if (msg && msg.type === "products_updated") {
-          loadProducts();
-          return;
-        }
-
-        if (msg && msg.url) {
-          location.href = msg.url;
-          return;
-        }
+        if (msg && msg.url) location.href = msg.url;
       } catch (err) {}
     };
   }
 
-  btnReco.addEventListener('click', () => { retry=0; connectWs(); loadProducts(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && (!ws || ws.readyState===3)) connectWs(); });
+  btnReco.addEventListener("click", () => {
+    retry = 0;
+    connectWs();
+    loadProducts({ forceRestart: true });
+  });
 
-  // Débloque l'audio sur 1er clic (iOS / Chrome policies)
-  document.addEventListener("click", () => {
-    if (newSound) newSound.play().then(()=>newSound.pause()).catch(()=>{});
-  }, { once: true });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && (!ws || ws.readyState === 3)) connectWs();
+  });
 
-  loadProducts();
+  // ====== INIT ======
+  // 1) charge produits et démarre grille
+  loadProducts({ forceRestart: true });
+
+  // 2) refresh
   startRefresh();
+
+  // 3) ws
   connectWs();
+
+  // 4) sse (après init : ok car grille lock empêche de la fermer)
+  connectSSE();
+
 })();
 </script>
-
 </body>
 </html>
