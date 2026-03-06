@@ -19,4 +19,9 @@
        class="item {{ app.request.attributes.get('_route') starts with 'admin_vendors_' ? 'active' : '' }}">
         👤 Vendeurs
     </a>
+
+     <a href="{{ path('admin_hiboutik_product_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_' ? 'active' : '' }}">
+        📱 Produits Hiboutik
+    </a>
 </div>

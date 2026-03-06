@@ -147,6 +147,11 @@
     <div class="muted" style="margin-top:.3rem">Les photos seront compressées en JPEG ≤ 1 Mo et stockées localement.</div>
   </div>
 
+  <div class="two fields">
+    <button class="ui primary button" type="submit">Enregistrer</button>
+    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
+  </div>
+
   {{ form_row(form._token) }}
   <input type="hidden" name="_go_sign" id="go-sign" value="0">
   {{ form_end(form, { render_rest: false }) }}
@@ -191,10 +196,7 @@
   {% endif %}
 {% endif %}
 
-<div class="two fields">
-    <button class="ui primary button" type="submit">Enregistrer</button>
-    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
-  </div>
+
 
 {# ========= Actions bas de page ========= #}
 <div class="ui right aligned basic segment">
@@ -233,68 +235,81 @@
 {# ======================= JS ======================= #}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-<script>
-(function(){
-  const csrf  = '{{ csrf_token("rachat_edit_" ~ rachat.id) }}';
-  const uploadCiUrl     = '{{ path("admin_rachats_upload_ci", { id: rachat.id }) }}';
 
-  const rectoInput  = document.getElementById('{{ form.pieceIdentiteRectoFile.vars.id|e('js') }}');
-  const versoInput  = document.getElementById('{{ form.pieceIdentiteVersoFile.vars.id|e('js') }}');
-  const ciSaved     = document.getElementById('ci-saved');
+<script>
+/* ===================== CI: crop + upload ===================== */
+(function () {
+  const csrf = '{{ csrf_token("rachat_edit_" ~ rachat.id) }}';
+  const uploadCiUrl = '{{ path("admin_rachats_upload_ci", { id: rachat.id }) }}';
+
+  const rectoInput = document.getElementById('{{ form.pieceIdentiteRectoFile.vars.id|e("js") }}');
+  const versoInput = document.getElementById('{{ form.pieceIdentiteVersoFile.vars.id|e("js") }}');
+  const ciSaved = document.getElementById('ci-saved');
   const ciSavedList = document.getElementById('ci-saved-list');
 
-  // --- aperçu recto/verso existants
-  {% if rachat.pieceIdentiteUrl %}
-  try {
-    const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
-    for (const k of ['recto','verso']) {
-      if (saved[k]) addSavedCiThumb(k, saved[k]);
-    }
-  } catch(e){}
-  {% endif %}
+  if (!ciSaved || !ciSavedList) return;
 
-  // --- fonction affichage vignettes
   function addSavedCiThumb(kind, url) {
     ciSaved.style.display = 'block';
-    const prev = ciSavedList.querySelector('[data-kind="'+kind+'"]');
+    const prev = ciSavedList.querySelector('[data-kind="' + kind + '"]');
     if (prev) prev.remove();
+
     const wrap = document.createElement('div');
     wrap.dataset.kind = kind;
-    wrap.style = 'border:1px dashed #ccc;border-radius:6px;padding:8px;width:240px;';
-    wrap.innerHTML = `<div style="font-weight:600">${kind}</div>
-                      <img src="${url}?v=${Date.now()}" style="max-width:100%;border-radius:6px">
-                      <a class="ui mini button" target="_blank" href="${url}">🔗 Ouvrir</a>`;
+    wrap.style.cssText = 'border:1px dashed #ccc;border-radius:6px;padding:8px;width:240px;';
+    wrap.innerHTML =
+      '<div style="font-weight:600">' + kind + '</div>' +
+      '<img src="' + url + '?v=' + Date.now() + '" style="max-width:100%;border-radius:6px">' +
+      '<a class="ui mini button" target="_blank" rel="noopener" href="' + url + '">🔗 Ouvrir</a>';
+
     ciSavedList.appendChild(wrap);
   }
 
-  // --- CROP + ENVOI ---
+  // Pré-affichage des URLs existantes
+  {% if rachat.pieceIdentiteUrl %}
+  try {
+    const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
+    ['recto','verso'].forEach(k => { if (saved && saved[k]) addSavedCiThumb(k, saved[k]); });
+  } catch(e) {}
+  {% endif %}
+
   function cropAndUpload(file, kind) {
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file || !file.type || !file.type.startsWith('image/')) return;
+
     const reader = new FileReader();
-    reader.onload = ev => {
+    reader.onload = (ev) => {
       const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+      overlay.style.cssText =
+        'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;' +
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;';
+
       const img = document.createElement('img');
       img.src = ev.target.result;
       img.style.maxWidth = '90%';
       img.style.maxHeight = '80vh';
       overlay.appendChild(img);
-      const btn = document.createElement('button');
-      btn.textContent = '✅ Valider recadrage';
-      btn.className = 'ui primary button';
-      btn.style.marginTop = '1rem';
-      overlay.appendChild(btn);
+
+      const btnValidate = document.createElement('button');
+      btnValidate.textContent = '✅ Valider recadrage';
+      btnValidate.className = 'ui primary button';
+      btnValidate.style.marginTop = '1rem';
+      overlay.appendChild(btnValidate);
+
       document.body.appendChild(overlay);
 
-      const cropper = new Cropper(img, { aspectRatio: 3/2, viewMode: 1, autoCropArea: 1 });
+      const cropper = new Cropper(img, {
+        aspectRatio: 3/2,
+        viewMode: 1,
+        autoCropArea: 1
+      });
 
-      btn.onclick = () => {
-        cropper.getCroppedCanvas({width:1200,height:800}).toBlob(async blob => {
+      btnValidate.addEventListener('click', () => {
+        cropper.getCroppedCanvas({ width: 1200, height: 800 }).toBlob(async (blob) => {
           overlay.remove();
-          const croppedFile = new File([blob], `${kind}.jpg`, { type: 'image/jpeg' });
+          const croppedFile = new File([blob], kind + '.jpg', { type: 'image/jpeg' });
           await uploadCi(croppedFile, kind);
         }, 'image/jpeg', 0.9);
-      };
+      });
     };
     reader.readAsDataURL(file);
   }
@@ -304,159 +319,195 @@
     fd.append('_token', csrf);
     fd.append('kind', kind);
     fd.append('ci', file, file.name);
+
     try {
       const res = await fetch(uploadCiUrl, { method: 'POST', body: fd });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error || res.statusText);
       addSavedCiThumb(kind, j.url);
-    } catch(e) {
+    } catch (e) {
       console.error('Erreur upload', e);
-      alert('Erreur upload '+kind+' : '+e.message);
+      alert('Erreur upload ' + kind + ' : ' + (e.message || e));
     }
   }
 
-  if (rectoInput) rectoInput.addEventListener('change', e => cropAndUpload(e.target.files[0], 'recto'));
-  if (versoInput) versoInput.addEventListener('change', e => cropAndUpload(e.target.files[0], 'verso'));
+  if (rectoInput) rectoInput.addEventListener('change', (e) => cropAndUpload(e.target.files[0], 'recto'));
+  if (versoInput) versoInput.addEventListener('change', (e) => cropAndUpload(e.target.files[0], 'verso'));
 })();
+</script>
 
-// ====== BOUTON SIGNER ======
-const btn = document.getElementById('btn-save-and-sign');
-const go  = document.getElementById('go-sign');
-const frm = document.getElementById('rachat-form');
-if (btn && go && frm) {
-  btn.addEventListener('click', function (e) {
+<script>
+/* ===================== Bouton "Signer" (NE TOUCHE PAS go-sign) ===================== */
+(function () {
+  const btnSaveAndSign = document.getElementById('btn-save-and-sign');
+  const go = document.getElementById('go-sign');      // on l’utilise tel quel
+  const frm = document.getElementById('rachat-form');
+
+  if (!btnSaveAndSign || !go || !frm) return;
+
+  btnSaveAndSign.addEventListener('click', (e) => {
     e.preventDefault();
     go.value = '1';
     frm.submit();
   });
-}
+})();
 </script>
 
 <script>
-(async () => {
+/* ===================== Recherche revendeur + appliquer ===================== */
+(function () {
   const inp = document.getElementById('rev-search');
   const results = document.getElementById('rev-results');
-  const token = document.getElementById('apply_revendeur_token').value;
+  const tokenEl = document.getElementById('apply_revendeur_token');
 
-  let t = null;
-  inp.addEventListener('input', () => {
-    clearTimeout(t);
-    const q = inp.value.trim();
-    if (q.length < 2) { results.innerHTML=''; return; }
+  if (!inp || !results || !tokenEl) return;
 
-    t = setTimeout(async () => {
-      const res = await fetch(`/admin/revendeurs/search?q=${encodeURIComponent(q)}`);
-      const list = await res.json();
+  const token = tokenEl.value;
+  let timer = null;
+  let abortCtl = null;
 
-      results.innerHTML = list.map(v => `
-        <div class="item" style="cursor:pointer" data-id="${v.id}">
-          <i class="user icon"></i>
-          <div class="content"><div class="header">${v.label}</div></div>
-        </div>
-      `).join('');
+  function render(list) {
+    results.innerHTML = (list || []).map(v => `
+      <div class="item" style="cursor:pointer" data-id="${v.id}">
+        <i class="user icon"></i>
+        <div class="content"><div class="header">${v.label}</div></div>
+      </div>
+    `).join('');
 
-      results.querySelectorAll('.item').forEach(el => {
-        el.addEventListener('click', async () => {
-          const revId = el.getAttribute('data-id');
-          const fd = new FormData();
-          fd.append('_token', token);
-          fd.append('revendeur_id', revId);
+    results.querySelectorAll('.item').forEach(el => {
+      el.addEventListener('click', async () => {
+        const revId = el.getAttribute('data-id');
 
-          const r = await fetch(`/admin/rachats/{{ rachat.id }}/apply-revendeur`, {
-            method: 'POST',
-            body: fd
-          });
-          const data = await r.json();
-          if (!data.ok) { alert(data.error || 'Erreur'); return; }
+        const fd = new FormData();
+        fd.append('_token', token);
+        fd.append('revendeur_id', revId);
 
-          // Remplir les champs du formulaire (adapte les IDs selon ton RachatType)
-          document.querySelector('[name="rachat[nom]"]').value = data.filled.nom;
-          document.querySelector('[name="rachat[prenom]"]').value = data.filled.prenom;
-          document.querySelector('[name="rachat[telephone]"]').value = data.filled.telephone;
-          document.querySelector('[name="rachat[email]"]').value = data.filled.email;
-          document.querySelector('[name="rachat[adresse]"]').value = data.filled.adresse;
-          document.querySelector('[name="rachat[code_postal]"]').value = data.filled.code_postal;
-
-          // Si tu as des previews CI dans la page, tu peux les mettre à jour ici :
-          // data.ci.recto / data.ci.verso
-
-          results.innerHTML = '';
-          inp.value = '';
+        const r = await fetch(`/admin/rachats/{{ rachat.id }}/apply-revendeur`, {
+          method: 'POST',
+          body: fd
         });
+        const data = await r.json();
+        if (!data.ok) { alert(data.error || 'Erreur'); return; }
+
+        const setVal = (name, value) => {
+          const el = document.querySelector(`[name="${name}"]`);
+          if (el) el.value = value ?? '';
+        };
+
+        setVal('rachat[nom]', data.filled?.nom);
+        setVal('rachat[prenom]', data.filled?.prenom);
+        setVal('rachat[telephone]', data.filled?.telephone);
+        setVal('rachat[email]', data.filled?.email);
+        setVal('rachat[adresse]', data.filled?.adresse);
+        setVal('rachat[codePostal]', data.filled?.codePostal ?? data.filled?.code_postal);
+
+        results.innerHTML = '';
+        inp.value = '';
       });
+    });
+  }
+
+  inp.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = inp.value.trim();
+
+    if (q.length < 2) { results.innerHTML = ''; return; }
+
+    timer = setTimeout(async () => {
+      try {
+        if (abortCtl) abortCtl.abort();
+        abortCtl = new AbortController();
+
+        const res = await fetch(`/admin/revendeurs/search?q=${encodeURIComponent(q)}`, {
+          signal: abortCtl.signal
+        });
+        const list = await res.json();
+        render(list);
+      } catch (e) {
+        // abort => silencieux
+      }
     }, 250);
   });
 })();
-
-
-
-
 </script>
 
-
 <script>
-(function(){
-  const btn = document.getElementById('btn-open-on-tablet');
-  if (!btn) return;
+/* ===================== Push tablette "Ouvrir sur tablette" ===================== */
+(function () {
+  const btnOpenTablet = document.getElementById('btn-open-on-tablet');
+  if (!btnOpenTablet) return;
 
-  btn.addEventListener('click', async () => {
-    const signUrl = "{{ path('admin_rachats_sign', {id: rachat.id}) }}";
-    const token   = "{{ tablet_socket_token }}"; // celui injecté par Symfony
+  btnOpenTablet.addEventListener('click', async () => {
+    try {
+      const signUrl = "{{ path('admin_rachats_sign', {id: rachat.id}) }}";
+      const token = "{{ tablet_socket_token|e('js') }}";
 
-    const payload = new URLSearchParams();
-    payload.append('device', 'TAB1');
-    payload.append('url', signUrl);
-    payload.append('token', token);
+      const payload = new URLSearchParams();
+      payload.append('device', 'TAB1');
+      payload.append('url', signUrl);
+      payload.append('token', token);
 
-    const res = await fetch('/ws-tablet-push', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: payload.toString(),
-    });
+      const res = await fetch('/ws-tablet-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: payload.toString(),
+      });
 
-    const data = await res.json();
-    console.log("TOKEN SYMFONY =", "{{ tablet_socket_token }}");
-    console.log('[TABLET] push', data);
+      const data = await res.json();
+      console.log('[TABLET] push', data);
 
-    if (!data.ok) {
-      alert("Push KO: " + (data.error || ''));
-      return;
+      if (!data.ok) {
+        alert("Push KO: " + (data.error || ''));
+        return;
+      }
+      alert("OK tablette !");
+    } catch (e) {
+      console.error(e);
+      alert('Erreur push tablette');
     }
-    alert("OK tablette !");
   });
 })();
 </script>
 
 <script>
-(async () => {
-  const btn = document.getElementById('btn-tablet-sign');
-  if (!btn) return;
+/* ===================== Bouton "Signer sur tablette" ===================== */
+(function () {
+  const btnTabletSign = document.getElementById('btn-tablet-sign');
+  if (!btnTabletSign) return;
 
-  btn.addEventListener('click', async () => {
-    const id = btn.dataset.id;
-    const device = btn.dataset.device || 'TAB1';
+  btnTabletSign.addEventListener('click', async () => {
+    try {
+      const id = btnTabletSign.dataset.id;
+      const device = btnTabletSign.dataset.device || 'TAB1';
 
-    // 1) créer lien public tablette
-    const res = await fetch(`/admin/rachats/${id}/tablet-link`, {
-      method: 'POST',
-      headers: {'X-Requested-With':'XMLHttpRequest'},
-    });
-    const j = await res.json();
-    console.log('Lien tablette =', j.url);
+      // 1) créer lien public tablette
+      const res = await fetch(`/admin/rachats/${id}/tablet-link`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const j = await res.json();
+      if (!j || !j.url) throw new Error('tablet-link: url manquante');
 
-    // 2) push vers tablette (WS service)
-    const push = await fetch(`/ws-tablet-push`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: new URLSearchParams({
-        device,
-        url: new URL(j.url).pathname + new URL(j.url).search,
-        token: '{{ tablet_socket_token|e('js') }}'
-      })
-    });
+      // 2) push vers tablette
+      const u = new URL(j.url, window.location.origin);
+      const push = await fetch(`/ws-tablet-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          device,
+          url: u.pathname + u.search,
+          token: '{{ tablet_socket_token|e("js") }}'
+        })
+      });
 
-    const pj = await push.json();
-    console.log('[TABLET] push', pj);
+      const pj = await push.json();
+      console.log('[TABLET] push', pj);
+
+      if (!pj.ok) alert('Push KO: ' + (pj.error || ''));
+    } catch (e) {
+      console.error(e);
+      alert('Erreur "Signer sur tablette"');
+    }
   });
 })();
 </script>

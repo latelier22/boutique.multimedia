@@ -1,0 +1,811 @@
+{# templates/bundles/SyliusAdminBundle/Rachat/index.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Rachats{% endblock %}
+
+{% block content %}
+
+<style>
+  #bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none;font-size:0.9rem}
+  .btn-secondary{background:#475569;border-color:#475569}
+  .btn-ghost{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#e5edff;color:#1e293b;cursor:pointer;text-decoration:none;font-size:0.9rem}
+  .muted{opacity:.7}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+  thead th{position:sticky;top:0;background:#0d6efd;color:#fff;z-index:1}
+  .actions{white-space:normal;}
+  .actions a,
+  .actions button,
+  .actions form{display:inline-block;margin-right:6px;margin-bottom:4px}
+  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
+  .pill-ok{background:#dcfce7;color:#166534}
+  .pill-off{background:#fee2e2;color:#991b1b}
+  .nowrap{white-space:nowrap}
+  th.select-col, td.select-col { width: 40px; text-align:center; }
+
+  tr.is-treated { background:#ecfdf5; }
+  tr.is-treated td { border-bottom-color:#bbf7d0; }
+
+  tr.revendeur-ok { background:#ecfdf5; }
+  tr.revendeur-ok td { border-bottom-color:#bbf7d0; }
+  .pill-blue{background:#dbeafe;color:#1e40af}
+
+  /* ─────────── RESPONSIVE MOBILE ─────────── */
+  @media (max-width: 768px) {
+    #bar{flex-direction:column;align-items:stretch;}
+
+    table#rachats,
+    table#rachats thead,
+    table#rachats tbody,
+    table#rachats th,
+    table#rachats td,
+    table#rachats tr{display:block;}
+
+    table#rachats thead{display:none;}
+    table#rachats tbody{padding:0;}
+
+    table#rachats tr{
+      margin-bottom:12px;
+      border:1px solid #e5e7eb;
+      border-radius:8px;
+      padding:8px;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+
+    table#rachats td{border-bottom:none;padding:4px 8px;}
+
+    table#rachats td::before{
+      content: attr(data-label);
+      display:block;
+      font-weight:600;
+      font-size:0.75rem;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      color:#64748b;
+      margin-bottom:2px;
+    }
+
+    td.select-col{text-align:left;}
+    td.select-col::before{content:"";}
+
+    .actions{
+      margin-top:4px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:4px;
+    }
+
+    .actions a,
+    .actions button{font-size:0.8rem;}
+
+    .btn[disabled], .btn-ghost[disabled], .ui.button[disabled]{
+      opacity:.45;
+      cursor:not-allowed !important;
+      pointer-events:none;
+    }
+    a.is-disabled{
+      opacity:.45;
+      pointer-events:none;
+      cursor:not-allowed;
+    }
+
+    .btn-ghost[disabled]{
+      opacity:.45;
+      cursor:not-allowed;
+    }
+  }
+</style>
+
+<style>
+  :root{
+    --sylius-topbar-h: 0px;
+    --rachats-bar-h: 0px;
+    --rachats-offset: 0px;
+  }
+
+  #bar{
+    display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;
+    position: sticky;
+    top: var(--sylius-topbar-h);
+    z-index: 1000;
+    background: #fff;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,.08);
+    box-shadow: 0 6px 12px rgba(0,0,0,.05);
+  }
+
+  thead th{
+    position: sticky;
+    top: calc(var(--sylius-topbar-h) + var(--rachats-bar-h));
+    background:#0d6efd;
+    color:#fff;
+    z-index: 999;
+  }
+
+  tr[id^="rachat-"]{
+    scroll-margin-top: var(--rachats-offset);
+  }
+</style>
+
+<script>
+  function computeRachatsOffsets() {
+    const topbar = document.querySelector('.admin-layout__topbar');
+    const bar = document.getElementById('bar');
+
+    const topbarH = topbar ? topbar.offsetHeight : 0;
+    const barH = bar ? bar.offsetHeight : 0;
+
+    document.documentElement.style.setProperty('--sylius-topbar-h', topbarH + 'px');
+    document.documentElement.style.setProperty('--rachats-bar-h', barH + 'px');
+    document.documentElement.style.setProperty('--rachats-offset', (topbarH + barH + 16) + 'px');
+  }
+
+  function scrollToHashRachat() {
+    const hash = location.hash || '';
+    if (!hash.startsWith('#rachat-')) return;
+
+    const el = document.querySelector(hash);
+    if (!el) return;
+
+    const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rachats-offset')) || 0;
+    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+
+    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+
+    el.style.outline = '3px solid rgba(13,110,253,.35)';
+    el.style.borderRadius = '8px';
+    setTimeout(() => el.style.outline = '', 1200);
+  }
+
+  window.addEventListener('load', () => {
+    computeRachatsOffsets();
+    scrollToHashRachat();
+  });
+  window.addEventListener('resize', computeRachatsOffsets);
+  window.addEventListener('hashchange', () => {
+    computeRachatsOffsets();
+    scrollToHashRachat();
+  });
+</script>
+
+<style>
+  .iconbtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;height:34px;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    cursor:pointer;
+    text-decoration:none;
+    padding:0;
+    margin-right:4px;
+  }
+  .iconbtn:hover{ background:#f8fafc; }
+  .iconbtn:active{ transform:translateY(1px); }
+  .iconbtn-muted{ opacity:.45; cursor:not-allowed; pointer-events:none; }
+  .iconbtn-green{ border-color:#86efac; background:#ecfdf5; }
+  .iconbtn-red{ border-color:#fecaca; background:#fef2f2; }
+  .iconbtn-blue{ border-color:#bfdbfe; background:#eff6ff; }
+  .iconbtn-amber{ border-color:#fde68a; background:#fffbeb; }
+  .iconbtn-violet{ border-color:#ddd6fe; background:#f5f3ff; }
+</style>
+
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+{# ===================== FILTRE GET (avant POST) ===================== #}
+<form method="get" action="{{ path('admin_rachats_index') }}"
+      class="ui form"
+      style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+
+  <input type="hidden" name="enabled" value="{{ enabled }}"/>
+
+  {# ✅ NAV MOIS : cachée si mode "all" #}
+  {% if filters.ym != 'all' %}
+    <a class="ui button" href="{{ prevUrl }}" title="Mois précédent (pagination mensuelle)">
+      <i class="chevron left icon"></i> {{ prevYm }}
+    </a>
+
+    <div class="ui label" title="Mois affiché">
+      <i class="calendar alternate outline icon"></i> {{ monthLabel }}
+    </div>
+
+    <a class="ui button" href="{{ nextUrl }}" title="Mois suivant (pagination mensuelle)">
+      {{ nextYm }} <i class="chevron right icon"></i>
+    </a>
+  {% else %}
+    <div class="ui label" title="Mois affiché">
+      <i class="calendar alternate outline icon"></i> Tous
+    </div>
+  {% endif %}
+
+  {# ✅ Switch "Tous" : quand coché => envoie ym=all #}
+  <div class="field" title="Afficher tous les rachats (désactive le filtre mois)">
+    <div class="ui checkbox">
+      <input type="checkbox" id="ym_all" {{ filters.ym == 'all' ? 'checked' : '' }}>
+      <label for="ym_all">Tous</label>
+    </div>
+    {# champ réellement envoyé #}
+    <input type="hidden" name="ym" id="ym_hidden" value="{{ filters.ym }}">
+  </div>
+
+  {# ✅ Mois : désactivé si mode all #}
+  <div class="field" title="Choisir un mois">
+    <input type="month" id="ym_month"
+           value="{{ filters.ym != 'all' ? filters.ym : '' }}"
+           {{ filters.ym == 'all' ? 'disabled' : '' }}>
+  </div>
+
+  <div class="field" title="Recherche texte (nom, prénom, IMEI, email, téléphone, revendeur...)">
+    <div class="ui icon input">
+      <input type="text" name="q" placeholder="Recherche…" value="{{ filters.q }}" style="min-width:220px">
+      <i class="search icon"></i>
+    </div>
+  </div>
+
+  <div class="field" title="Filtrer par paiement">
+    <select name="paid" class="ui dropdown">
+      <option value=""  {{ filters.paid=='' ? 'selected' : '' }}>💶 Paiement: Tous</option>
+      <option value="0" {{ filters.paid=='0' ? 'selected' : '' }}>⏳ Non payés</option>
+      <option value="1" {{ filters.paid=='1' ? 'selected' : '' }}>✅ Payés</option>
+    </select>
+  </div>
+
+  <div class="field" title="Filtrer par revendeur">
+    <select name="revendeur" class="ui dropdown">
+      <option value=""  {{ filters.revendeur=='' ? 'selected' : '' }}>👤 Revendeur: Tous</option>
+      <option value="0" {{ filters.revendeur=='0' ? 'selected' : '' }}>🚫 Sans revendeur</option>
+      <option value="1" {{ filters.revendeur=='1' ? 'selected' : '' }}>✅ Avec revendeur</option>
+    </select>
+  </div>
+
+  <div class="field" title="Filtrer par arrivage Hiboutik (hib_inventory_input_id)">
+    <select name="arrivage" class="ui dropdown">
+      <option value=""  {{ filters.arrivage=='' ? 'selected' : '' }}>📦 Arrivage: Tous</option>
+      <option value="0" {{ filters.arrivage=='0' ? 'selected' : '' }}>➖ Pas en arrivage</option>
+      <option value="1" {{ filters.arrivage=='1' ? 'selected' : '' }}>✅ Déjà en arrivage</option>
+    </select>
+  </div>
+
+  <button class="ui primary button" type="submit" title="Appliquer le filtre">
+    <i class="filter icon"></i> Filtrer
+  </button>
+
+  <a class="ui button" href="{{ path('admin_rachats_index', { enabled: enabled }) }}" title="Réinitialiser les filtres">
+    <i class="undo icon"></i> Reset
+  </a>
+</form>
+
+<script>
+(function(){
+  const all  = document.getElementById('ym_all');
+  const hid  = document.getElementById('ym_hidden');
+  const mon  = document.getElementById('ym_month');
+  if (!all || !hid || !mon) return;
+
+  function sync(){
+    if (all.checked) {
+      hid.value = 'all';
+      mon.disabled = true;
+    } else {
+      mon.disabled = false;
+      hid.value = mon.value || ''; // vide => contrôleur mettra le mois courant
+    }
+  }
+
+  all.addEventListener('change', sync);
+  mon.addEventListener('change', sync);
+
+  sync();
+})();
+</script>
+
+{# ===================== FORM POST (batch actions) ===================== #}
+<form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
+  <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
+
+  <div id="bar">
+
+    <a class="ui primary button" href="{{ path('admin_rachats_create') }}" title="Créer un rachat rapidement">
+      <i class="plus icon"></i> Créer (Quick)
+    </a>
+
+    {% set viewingDisabled = enabled == 0 %}
+    <a class="ui button {{ viewingDisabled ? '' : 'primary' }}"
+       href="{{ path('admin_rachats_index', { enabled: 1 }) }}"
+       title="Afficher les rachats actifs (enabled=1)">
+      <i class="eye icon"></i>
+    </a>
+    <a class="ui button {{ viewingDisabled ? 'primary' : '' }}"
+       href="{{ path('admin_rachats_index', { enabled: 0 }) }}"
+       title="Afficher les rachats masqués (enabled=0)">
+      <i class="eye slash icon"></i>
+    </a>
+
+    <button type="submit" name="val" value="0" class="btn btn-secondary" title="Masquer tous les rachats sélectionnés">
+      <i class="ban icon"></i> Masquer sélection
+    </button>
+    <button type="submit" name="val" value="1" class="btn" title="Réactiver (enabled=1) les rachats sélectionnés">
+      <i class="check icon"></i> Sélection
+    </button>
+
+    <span class="muted">|</span>
+
+    <label class="muted" title="Méthode de paiement appliquée au batch Encaisser">
+      <i class="credit card outline icon"></i> Paiement :
+      <select name="method" id="method_select">
+        <option value="ESP" selected>ESP</option>
+        <option value="CB">CB</option>
+        <option value="VIR">VIR</option>
+        <option value="CHQ">CHQ</option>
+        <option value="AUTRE">AUTRE</option>
+      </select>
+    </label>
+
+    <input type="text"
+           name="other_label"
+           placeholder="Libellé si AUTRE"
+           title="Libellé libre si méthode = AUTRE"
+           style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5f5;max-width:180px;">
+
+    <button type="submit"
+            formaction="{{ path('admin_rachats_encaissement_batch') }}"
+            class="btn-ghost"
+            title="Encaisser TOUS les rachats sélectionnés (si au moins un non payé)">
+      <i class="euro sign icon"></i> Encaisser sélection
+    </button>
+
+    <input type="hidden" name="arrivage_label" id="arrivage_label" value="">
+
+    <a class="ui primary button" href="{{ path('admin_till_index') }}" title="Ouvrir la caisse (Sylius)">
+      <i class="cash register icon"></i> VOIR CAISSE
+    </a>
+  </div>
+
+  <table id="rachats">
+    <thead>
+      <tr>
+        <th class="select-col" title="Tout sélectionner / tout désélectionner">
+          <input type="checkbox" id="check_all" title="Tout sélectionner">
+        </th>
+        <th class="nowrap" title="Identifiant interne">#</th>
+        <th title="Marque / modèle (champ marque_modele)">📱 Modèle</th>
+        <th title="Prix d’achat">💶 Prix</th>
+        <th class="nowrap" title="Date de cession">📅 Date</th>
+        <th title="Nom">👤 Nom</th>
+        <th title="Prénom">👤 Prénom</th>
+        <th class="nowrap" title="Téléphone">📞</th>
+        <th title="Email">✉️</th>
+        <th class="nowrap" title="PDF">📄</th>
+        <th class="nowrap" title="Pièce d’identité">🪪</th>
+        <th class="nowrap" title="Paiement">💳</th>
+        <th class="nowrap" title="Revendeur">🧑‍💼</th>
+        <th title="Actions">⚙️</th>
+      </tr>
+    </thead>
+
+    <tbody>
+    {% for row in rows %}
+      {% set revId = (row.revendeur_id|default(0)) + 0 %}
+      {% set hasRevendeur = revId > 0 %}
+      {% set hasSupplier = (row.hib_supplier_id|default(0)) + 0 > 0 %}
+      {% set isProcessed = hasRevendeur or (row.vendorProcessedAt is defined and row.vendorProcessedAt) %}
+      {% set hibProductId = (row.hib_product_id|default(0)) + 0 %}
+      {% set hibInputId   = (row.hib_inventory_input_id|default(0)) + 0 %}
+      {% set alreadyHibArrivage = hibInputId > 0 %}
+
+      {% set returnUrl = path('admin_rachats_index', { enabled: enabled }) ~ '#rachat-' ~ row.id %}
+
+      <tr id="rachat-{{ row.id }}"
+          data-id="{{ row.id }}"
+          data-paid="{{ row.paidAt ? 1 : 0 }}"
+          data-supplier="{{ row.hib_supplier_id|default(revId)|default(0) }}"
+          data-hib-product="{{ hibProductId }}"
+          data-hib-arrivage="{{ alreadyHibArrivage ? 1 : 0 }}"
+          style="{{ isProcessed ? 'background:#ecfeff' : '' }}">
+
+        <td class="select-col" data-label="">
+          <input type="checkbox" name="ids[]" value="{{ row.id }}">
+        </td>
+
+        <td class="nowrap" data-label="ID">#{{ row.id }}</td>
+        <td data-label="Modèle">{{ row.marqueModele ?: '—' }}</td>
+        <td data-label="Prix rachat">{{ row.prixAchat ?: '—' }}</td>
+        <td class="nowrap" data-label="Date cession">{{ row.dateCession ?: '—' }}</td>
+        <td data-label="Nom">{{ row.nom ?: '—' }}</td>
+        <td data-label="Prénom">{{ row.prenom ?: '—' }}</td>
+        <td class="nowrap" data-label="Téléphone">{{ row.telephone ?: '—' }}</td>
+        <td data-label="Email">{{ row.email ?: '—' }}</td>
+
+        <td class="nowrap" data-label="PDF">
+          {% if row.pdfUrl %}
+            <a class="iconbtn iconbtn-blue"
+               title="Ouvrir le PDF du rachat"
+               href="{{ row.pdfUrl }}" target="_blank" rel="noopener">
+              <i class="file pdf outline icon"></i>
+            </a>
+          {% else %}—{% endif %}
+        </td>
+
+        <td class="nowrap" data-label="Pièce ID">
+          {% if row.pieceIdentiteUrl %}
+            <a class="iconbtn iconbtn-violet"
+               title="Voir la pièce d'identité"
+               href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">
+              <i class="id card outline icon"></i>
+            </a>
+          {% else %}—{% endif %}
+        </td>
+
+        <td class="nowrap" data-label="Payé ?">
+          {% if row.paidAt %}
+            <span class="pill pill-ok" title="Payé via {{ row.paidMethod ?: 'ESP' }} ({{ row.paidAt }})">
+              <i class="check circle icon"></i> {{ row.paidMethod ?: 'ESP' }}
+            </span>
+          {% else %}
+            <span class="pill pill-off" title="Non payé">
+              <i class="clock outline icon"></i> Non
+            </span>
+          {% endif %}
+        </td>
+
+        <td class="nowrap" data-label="Revendeur">
+          {% if hasRevendeur %}
+            <span class="pill pill-ok" title="Revendeur lié: #{{ revId }}">
+              <i class="user check icon"></i> #{{ revId }}
+            </span>
+          {% else %}
+            <span class="pill pill-off" title="Aucun revendeur lié">
+              <i class="user times icon"></i> Non
+            </span>
+          {% endif %}
+        </td>
+
+        <td class="actions" data-label="Actions">
+
+          {# 👁 Voir #}
+          <a class="iconbtn iconbtn-blue"
+             href="{{ path('admin_rachats_show', { id: row.id }) }}"
+             title="Voir le rachat (détail)">
+            <i class="eye icon"></i>
+          </a>
+
+          {# ✏️ Éditer #}
+          <a class="iconbtn iconbtn-amber"
+             href="{{ row.__edit_url }}"
+             title="Modifier le rachat">
+            <i class="edit icon"></i>
+          </a>
+
+          {# 🔄 Autre rachat #}
+          {% if row.__autre_url %}
+            <a class="iconbtn"
+               href="{{ row.__autre_url }}"
+               title="Créer un autre rachat (pré-rempli)">
+              <i class="exchange alternate icon"></i>
+            </a>
+          {% endif %}
+
+          {# 💶 Encaisser / ❌ Annuler paiement #}
+          {% if not row.paidAt %}
+            <button type="submit"
+                    class="iconbtn iconbtn-green"
+                    formaction="{{ path('admin_rachats_encaissement_one', { id: row.id }) }}"
+                    name="method"
+                    value="ESP"
+                    title="Encaisser ce rachat (ESP)">
+              <i class="euro sign icon"></i>
+            </button>
+          {% else %}
+            <button type="submit"
+                    class="iconbtn iconbtn-red"
+                    formaction="{{ path('admin_rachats_annuler_encaissement_one', { id: row.id }) }}"
+                    onclick="return confirm('Annuler le paiement de ce rachat ?');"
+                    title="Annuler le paiement">
+              <i class="undo icon"></i>
+            </button>
+          {% endif %}
+
+          {# 📦 Produit + arrivage (bouton par ligne) #}
+          {% if alreadyHibArrivage %}
+            <button type="button"
+                    class="iconbtn iconbtn-muted"
+                    disabled
+                    title="Déjà ajouté à l’arrivage #{{ row.hib_inventory_input_id }}">
+              <i class="boxes icon"></i>
+            </button>
+          {% elseif not hasSupplier %}
+            <button type="button"
+                    class="iconbtn iconbtn-muted"
+                    disabled
+                    title="Impossible: il faut d’abord un revendeur (ou hib_supplier_id)">
+              <i class="ban icon"></i>
+            </button>
+          {% else %}
+            <button type="submit"
+                    class="iconbtn iconbtn-violet"
+                    formaction="{{ path('admin_rachats_create_hib_product_arrivage', { id: row.id }) }}"
+                    title="Créer le produit Hiboutik + l’ajouter à l’arrivage">
+              <i class="box icon"></i>
+            </button>
+          {% endif %}
+
+          {# 👤 Lier / Voir revendeur #}
+          {% if not hasRevendeur %}
+            <button type="button"
+                    class="iconbtn iconbtn-blue js-link-revendeur"
+                    title="Lier ce rachat à un revendeur existant"
+                    data-rachat-id="{{ row.id }}"
+                    data-nom="{{ row.nom|e('html_attr') }}"
+                    data-prenom="{{ row.prenom|e('html_attr') }}"
+                    data-telephone="{{ row.telephone|e('html_attr') }}"
+                    data-email="{{ row.email|e('html_attr') }}"
+                    data-csrf="{{ csrf_token('apply_revendeur_' ~ row.id) }}"
+                    data-csrf-process="{{ csrf_token('process_revendeur_' ~ row.id) }}"
+                    data-back-enabled="{{ enabled }}"
+                    data-return="{{ returnUrl|e('html_attr') }}">
+              <i class="user plus icon"></i>
+            </button>
+
+            <form method="post"
+                  action="{{ path('admin_rachats_process_revendeur', { id: row.id }) }}"
+                  style="display:inline">
+              <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ row.id) }}">
+              <input type="hidden" name="_return" value="{{ returnUrl }}">
+              <input type="hidden" name="_back_enabled" value="{{ enabled }}">
+              <button class="iconbtn iconbtn-amber" type="submit"
+                      title="Créer automatiquement un revendeur (si aucun existant) et le lier"
+                      onclick="return confirm('Créer un nouveau revendeur (si aucun existant) ?');">
+                <i class="magic icon"></i>
+              </button>
+            </form>
+          {% else %}
+            <a class="iconbtn iconbtn-blue"
+               href="{{ path('admin_revendeurs_show', { id: revId }) }}"
+               title="Voir le revendeur #{{ revId }}">
+              <i class="user icon"></i>
+            </a>
+            <a class="iconbtn iconbtn-amber"
+               href="{{ path('admin_revendeurs_edit', { id: revId }) }}"
+               title="Éditer le revendeur #{{ revId }}">
+              <i class="user edit icon"></i>
+            </a>
+          {% endif %}
+
+        </td>
+      </tr>
+
+    {% else %}
+      <tr>
+        <td colspan="14" class="muted">Aucun rachat.</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</form>
+
+<div class="ui modal" id="revendeurModal">
+  <i class="close icon"></i>
+  <div class="header"><i class="user icon"></i> Associer un revendeur existant</div>
+
+  <div class="content">
+    <div class="ui form">
+      <div class="field">
+        <label><i class="search icon"></i> Recherche (email / téléphone / nom)</label>
+        <input type="text" id="revendeurSearchInput" placeholder="ex: 06..., mail@..., DUPONT">
+      </div>
+    </div>
+
+    <div class="ui relaxed divided list" id="revendeurResults" style="max-height: 40vh; overflow:auto;"></div>
+
+    <div class="ui message" id="revendeurHint" style="display:none;"></div>
+  </div>
+
+  <div class="actions">
+    <div class="ui button deny"><i class="times icon"></i> Annuler</div>
+
+    <div class="ui teal button" id="revendeurCreateBtn" title="Créer un nouveau revendeur et le lier automatiquement">
+      <i class="plus icon"></i> Créer + lier (auto)
+    </div>
+
+    <div class="ui primary button" id="revendeurApplyBtn" disabled title="Associer le revendeur sélectionné au rachat">
+      <i class="linkify icon"></i> Associer
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const checkAll = document.getElementById('check_all');
+  if (!checkAll) return;
+
+  checkAll.addEventListener('change', function (e) {
+    const checked = e.target.checked;
+    document.querySelectorAll('input[name="ids[]"]').forEach(cb => { cb.checked = checked; });
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  let current = {
+    rachatId: 0,
+    csrf: '',
+    csrfProcess: '',
+    selectedRevId: 0,
+    returnUrl: '',
+    backEnabled: 1
+  };
+
+  const $modal = window.jQuery ? jQuery('#revendeurModal') : null;
+  const input = document.getElementById('revendeurSearchInput');
+  const results = document.getElementById('revendeurResults');
+  const hint = document.getElementById('revendeurHint');
+  const applyBtn = document.getElementById('revendeurApplyBtn');
+  const createBtn = document.getElementById('revendeurCreateBtn');
+
+  function renderResults(list) {
+    results.innerHTML = '';
+    current.selectedRevId = 0;
+    applyBtn.setAttribute('disabled', 'disabled');
+
+    if (!list || !list.length) {
+      hint.style.display = 'block';
+      hint.className = 'ui message';
+      hint.textContent = 'Aucun revendeur trouvé. Clique sur “Créer + lier (auto)”.';
+      return;
+    }
+    hint.style.display = 'none';
+
+    list.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.style.cursor = 'pointer';
+      div.dataset.id = item.id;
+
+      div.innerHTML = `
+        <i class="user icon"></i>
+        <div class="content">
+          <div class="header">#${item.id} — ${item.label}</div>
+        </div>
+      `;
+
+      div.addEventListener('click', () => {
+        [...results.querySelectorAll('.item')].forEach(x => x.classList.remove('active'));
+        div.classList.add('active');
+        current.selectedRevId = parseInt(item.id, 10);
+        applyBtn.removeAttribute('disabled');
+      });
+
+      results.appendChild(div);
+    });
+  }
+
+  async function searchRevendeurs(q) {
+    const url = "{{ path('admin_revendeurs_search') }}" + "?q=" + encodeURIComponent(q || '');
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+    if (!res.ok) return [];
+    return await res.json();
+  }
+
+  function createAndLinkViaProcess() {
+    if (!current.rachatId) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "/admin/rachats/" + current.rachatId + "/process-revendeur";
+
+    const add = (name, value) => {
+      const i = document.createElement('input');
+      i.type = 'hidden';
+      i.name = name;
+      i.value = value ?? '';
+      form.appendChild(i);
+    };
+
+    add('_token', current.csrfProcess);
+    add('_return', current.returnUrl);
+    add('_back_enabled', String(current.backEnabled));
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  createBtn.addEventListener('click', createAndLinkViaProcess);
+
+  let t = null;
+  input.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(async () => {
+      const q = input.value.trim();
+      if (q.length < 2) { renderResults([]); return; }
+      const list = await searchRevendeurs(q);
+      renderResults(list);
+    }, 250);
+  });
+
+  async function applyRevendeur() {
+    if (!current.rachatId || !current.selectedRevId) return;
+
+    const url = "/admin/rachats/" + current.rachatId + "/apply-revendeur";
+    const fd = new FormData();
+    fd.append('_token', current.csrf);
+    fd.append('revendeur_id', String(current.selectedRevId));
+
+    const res = await fetch(url, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' }});
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data || !data.ok) {
+      alert((data && data.error) ? data.error : "Erreur lors de l'association.");
+      return;
+    }
+    window.location.reload();
+  }
+
+  applyBtn.addEventListener('click', applyRevendeur);
+
+  document.querySelectorAll('.js-link-revendeur').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      current.rachatId = parseInt(btn.dataset.rachatId, 10);
+      current.csrf = btn.dataset.csrf;
+      current.csrfProcess = btn.dataset.csrfProcess;
+      current.returnUrl = btn.dataset.return || '';
+      current.backEnabled = parseInt(btn.dataset.backEnabled || '1', 10);
+
+      const nom = (btn.dataset.nom || '').trim();
+      let q = nom;
+
+      input.value = q;
+      renderResults([]);
+
+      if ($modal && $modal.modal) $modal.modal('show');
+      else document.getElementById('revendeurModal').style.display = 'block';
+
+      if (q.length >= 2) {
+        const list = await searchRevendeurs(q);
+        renderResults(list);
+      }
+      input.focus();
+    });
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('rachats_form');
+  if (!form) return;
+
+  const btnMasquer = form.querySelector('button[name="val"][value="0"]');
+  const btnReveler = form.querySelector('button[name="val"][value="1"]');
+  const btnEncaisser = form.querySelector('button[formaction*="encaissement_batch"]');
+
+  function getSelectedRows() {
+    const ids = [...form.querySelectorAll('input[name="ids[]"]:checked')].map(cb => cb.value);
+    return ids.map(id => document.querySelector('#rachat-' + id)).filter(Boolean);
+  }
+
+  function refreshBarState() {
+    const rows = getSelectedRows();
+    const any = rows.length > 0;
+
+    if (btnMasquer) btnMasquer.disabled = !any;
+    if (btnReveler) btnReveler.disabled = !any;
+
+    if (btnEncaisser) {
+      const hasUnpaid = rows.some(tr => tr.dataset.paid !== '1');
+      btnEncaisser.disabled = !(any && hasUnpaid);
+      btnEncaisser.title = (!any) ? "Sélection requise" : (!hasUnpaid ? "Tout est déjà payé" : "Encaisser la sélection");
+    }
+  }
+
+  form.addEventListener('change', (e) => {
+    if (e.target && e.target.matches('input[name="ids[]"], #check_all')) refreshBarState();
+  });
+
+  refreshBarState();
+});
+</script>
+
+{% endblock %}

@@ -23,10 +23,10 @@ class Rachat
     private ?string $imei = null;
 
     /** @ORM\Column(name="numero_ci", type="string", length=255, nullable=true) */
-    private ?string $numeroCi = null;
+    private ?string $numero_ci = null;
 
     /** @ORM\Column(name="prix_achat", type="string", length=255, nullable=true) */
-    private ?string $prixAchat = null;
+    private ?string $prix_achat = null;
 
     /** @ORM\Column(name="nom", type="string", length=255, nullable=true) */
     private ?string $nom = null;
@@ -38,31 +38,31 @@ class Rachat
     private ?string $telephone = null;
 
     /** @ORM\Column(name="marque_modele", type="string", length=255, nullable=true) */
-    private ?string $marqueModele = null;
+    private ?string $marque_modele = null;
 
     /** @ORM\Column(name="piece_identite_url", type="text", nullable=true) */
-    private ?string $pieceIdentiteUrl = null;
+    private ?string $piece_identite_url = null;
 
     /** @ORM\Column(name="date_cession", type="datetime_immutable", nullable=true) */
-    private ?\DateTimeImmutable $dateCession = null;
+    private ?\DateTimeImmutable $date_cession = null;
 
     /** @ORM\Column(name="adresse", type="text", nullable=true) */
     private ?string $adresse = null;
 
     /** @ORM\Column(name="code_postal", type="string", length=64, nullable=true) */
-    private ?string $codePostal = null;
+    private ?string $code_postal = null;
 
     /** @ORM\Column(name="email", type="string", length=255, nullable=true) */
     private ?string $email = null;
 
     /** @ORM\Column(name="signature_url", type="text", nullable=true) */
-    private ?string $signatureUrl = null;
+    private ?string $signature_url = null;
 
     /** @ORM\Column(name="pdf_url", type="text", nullable=true) */
-    private ?string $pdfUrl = null;
+    private ?string $pdf_url = null;
 
     /** @ORM\Column(name="photos_json", type="text", nullable=true) */
-    private ?string $photosJson = null;
+    private ?string $photos_json = null;
 
     /** @ORM\Column(name="photo1", type="text", nullable=true) */
     private ?string $photo1 = null;
@@ -86,7 +86,7 @@ class Rachat
     private ?string $colonne4 = null;
 
     /** @ORM\Column(name="created_at", type="datetime_immutable", nullable=true) */
-    private ?\DateTimeImmutable $createdAt = null;
+    private ?\DateTimeImmutable $created_at = null;
 
     /** @ORM\Column(name="hib_supplier_id", type="integer", nullable=true) */
     private ?int $hibSupplierId = null;
@@ -216,8 +216,8 @@ public function setRevendeur(?Revendeur $v): self
     /** @ORM\PrePersist */
     public function prePersist(): void
     {
-        if ($this->createdAt === null) {
-            $this->createdAt = new \DateTimeImmutable();
+        if ($this->created_at === null) {
+            $this->created_at = new \DateTimeImmutable();
         }
     }
 
@@ -239,21 +239,21 @@ public function setRevendeur(?Revendeur $v): self
 
     public function getNumeroCi(): ?string
     {
-        return $this->numeroCi;
+        return $this->numero_ci;
     }
     public function setNumeroCi(?string $v): self
     {
-        $this->numeroCi = $v;
+        $this->numero_ci = $v;
         return $this;
     }
 
     public function getPrixAchat(): ?string
     {
-        return $this->prixAchat;
+        return $this->prix_achat;
     }
     public function setPrixAchat(?string $v): self
     {
-        $this->prixAchat = $v;
+        $this->prix_achat = $v;
         return $this;
     }
 
@@ -289,41 +289,41 @@ public function setRevendeur(?Revendeur $v): self
 
     public function getMarqueModele(): ?string
     {
-        return $this->marqueModele;
+        return $this->marque_modele;
     }
     public function setMarqueModele(?string $v): self
     {
-        $this->marqueModele = $v;
+        $this->marque_modele = $v;
         return $this;
     }
 
     public function getPieceIdentiteUrl(): ?string
     {
-        return $this->pieceIdentiteUrl;
+        return $this->piece_identite_url;
     }
     public function setPieceIdentiteUrl(?string $v): self
     {
-        $this->pieceIdentiteUrl = $v;
+        $this->piece_identite_url = $v;
         return $this;
     }
 
     public function getDateCession(): ?\DateTimeImmutable
     {
-        return $this->dateCession;
+        return $this->date_cession;
     }
     public function setDateCession(?\DateTimeImmutable $v): self
     {
-        $this->dateCession = $v;
+        $this->date_cession = $v;
         return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeImmutable
     {
-        return $this->createdAt;
+        return $this->created_at;
     }
     public function setCreatedAt(?\DateTimeImmutable $v): self
     {
-        $this->createdAt = $v;
+        $this->created_at = $v;
         return $this;
     }
 
@@ -339,11 +339,11 @@ public function setRevendeur(?Revendeur $v): self
 
     public function getCodePostal(): ?string
     {
-        return $this->codePostal;
+        return $this->code_postal;
     }
     public function setCodePostal(?string $v): self
     {
-        $this->codePostal = $v;
+        $this->code_postal = $v;
         return $this;
     }
 
@@ -359,31 +359,31 @@ public function setRevendeur(?Revendeur $v): self
 
     public function getSignatureUrl(): ?string
     {
-        return $this->signatureUrl;
+        return $this->signature_url;
     }
     public function setSignatureUrl(?string $v): self
     {
-        $this->signatureUrl = $v;
+        $this->signature_url = $v;
         return $this;
     }
 
     public function getPdfUrl(): ?string
     {
-        return $this->pdfUrl;
+        return $this->pdf_url;
     }
     public function setPdfUrl(?string $v): self
     {
-        $this->pdfUrl = $v;
+        $this->pdf_url = $v;
         return $this;
     }
 
     public function getPhotosJson(): ?string
     {
-        return $this->photosJson;
+        return $this->photos_json;
     }
     public function setPhotosJson(?string $v): self
     {
-        $this->photosJson = $v;
+        $this->photos_json = $v;
         return $this;
     }
 

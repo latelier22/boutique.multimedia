@@ -66,14 +66,14 @@ final class RachatStatisticsController extends AbstractController
         // - soit date_cession dans l’intervalle
         // - soit pas de date_cession et created_at dans l’intervalle
         $qb = $repo->createQueryBuilder('r')
-            ->where('r.date_cession IS NOT NULL AND r.date_cession >= :start AND r.date_cession < :end')
-            ->orWhere('r.date_cession IS NULL AND r.created_at >= :start AND r.created_at < :end')
+            ->where('r.dateCession IS NOT NULL AND r.dateCession >= :start AND r.dateCession < :end')
+            ->orWhere('r.dateCession IS NULL AND r.createdAt >= :start AND r.createdAt < :end')
             ->setParameters([
                 'start' => $start,
                 'end'   => $end,
             ])
-            ->orderBy('r.date_cession', 'ASC')
-            ->addOrderBy('r.created_at', 'ASC');
+            ->orderBy('r.dateCession', 'ASC')
+            ->addOrderBy('r.createdAt', 'ASC');
 
         /** @var Rachat[] $rachats */
         $rachats = $qb->getQuery()->getResult();
@@ -158,8 +158,8 @@ final class RachatStatisticsController extends AbstractController
             }
 
             $results = $repo->createQueryBuilder('r')
-                ->select('COALESCE(r.date_cession, r.created_at) AS date, r.prix_achat')
-                ->where('COALESCE(r.date_cession, r.created_at) BETWEEN :start AND :end')
+                ->select('COALESCE(r.dateCession, r.createdAt) AS date, r.prixAchat')
+                ->where('COALESCE(r.dateCession, r.createdAt) BETWEEN :start AND :end')
                 ->setParameters(['start' => $start, 'end' => $end])
                 ->orderBy('date', 'ASC')
                 ->getQuery()
@@ -197,8 +197,8 @@ final class RachatStatisticsController extends AbstractController
             }
 
             $results = $repo->createQueryBuilder('r')
-                ->select('COALESCE(r.date_cession, r.created_at) AS date, r.prix_achat')
-                ->where('COALESCE(r.date_cession, r.created_at) BETWEEN :start AND :end')
+                ->select('COALESCE(r.dateCession, r.createdAt) AS date, r.prixAchat')
+                ->where('COALESCE(r.dateCession, r.createdAt) BETWEEN :start AND :end')
                 ->setParameters(['start' => $start, 'end' => $end])
                 ->orderBy('date', 'ASC')
                 ->getQuery()
@@ -228,8 +228,8 @@ final class RachatStatisticsController extends AbstractController
             $series = array_fill_keys($labels, 0);
 
             $results = $repo->createQueryBuilder('r')
-                ->select('COALESCE(r.date_cession, r.created_at) AS date, r.prix_achat')
-                ->where('COALESCE(r.date_cession, r.created_at) BETWEEN :start AND :end')
+                ->select('COALESCE(r.dateCession, r.createdAt) AS date, r.prixAchat')
+                ->where('COALESCE(r.dateCession, r.createdAt) BETWEEN :start AND :end')
                 ->setParameters(['start' => $start, 'end' => $end])
                 ->orderBy('date', 'ASC')
                 ->getQuery()
@@ -264,8 +264,8 @@ final class RachatStatisticsController extends AbstractController
             }
 
             $results = $repo->createQueryBuilder('r')
-                ->select('COALESCE(r.date_cession, r.created_at) AS date, r.prix_achat')
-                ->where('COALESCE(r.date_cession, r.created_at) BETWEEN :start AND :end')
+                ->select('COALESCE(r.dateCession, r.createdAt) AS date, r.prixAchat')
+                ->where('COALESCE(r.dateCession, r.createdAt) BETWEEN :start AND :end')
                 ->setParameters(['start' => $start, 'end' => $end])
                 ->orderBy('date', 'ASC')
                 ->getQuery()

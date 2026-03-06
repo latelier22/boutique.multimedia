@@ -1,0 +1,91 @@
+{# templates/bundles/SyliusAdminBundle/Hiboutik/Products/edit.html.twig #}
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Éditer produit Hiboutik #{{ product.product_id ?? id }}{% endblock %}
+
+{% block content %}
+<h1 class="ui header">
+  <i class="edit icon"></i>
+  Éditer produit Hiboutik #{{ product.product_id ?? id }}
+</h1>
+
+{% if error %}
+  <div class="ui negative message">
+    <div class="header">Erreur</div>
+    <p>{{ error }}</p>
+  </div>
+{% endif %}
+
+<form class="ui form" method="post">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hiboutik_edit_' ~ (product.product_id ?? id)) }}"/>
+
+  <div class="field">
+    <label>Nom (product_model)</label>
+    <input name="product_model" value="{{ product.product_model ?? '' }}" />
+  </div>
+
+  <div class="two fields">
+    <div class="field">
+      <label>Prix (product_price)</label>
+      <input name="product_price" value="{{ product.product_price ?? '' }}" />
+    </div>
+
+    <div class="field">
+      <label>Prix promo (product_discount_price)</label>
+      <input name="product_discount_price" value="{{ product.product_discount_price ?? '' }}" />
+    </div>
+  </div>
+
+  <div class="two fields">
+    <div class="field">
+      <label>Catégorie</label>
+      <select name="product_category" class="ui search dropdown">
+        <option value="0">—</option>
+        {% for c in categories %}
+          <option value="{{ c.category_id }}"
+            {% if (product.product_category ?? 0) == c.category_id %}selected{% endif %}>
+            {{ c.name ?: ('CAT #' ~ c.category_id) }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Marque</label>
+      <select name="product_brand" class="ui search dropdown">
+        <option value="0">—</option>
+        {% for b in brands %}
+          <option value="{{ b.brand_id }}"
+            {% if (product.product_brand ?? 0) == b.brand_id %}selected{% endif %}>
+            {{ b.brand_name ?: (b.name ?: ('BRAND #' ~ b.brand_id)) }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="ui toggle checkbox">
+      <input type="checkbox" name="product_display_www" value="1"
+        {% if product.product_display_www %}checked{% endif %}>
+      <label>En ligne (WWW)</label>
+    </div>
+  </div>
+
+  <div class="ui divider"></div>
+
+  <button class="ui primary button" type="submit">
+    <i class="save icon"></i> Enregistrer
+  </button>
+
+  <a class="ui button" href="{{ path('admin_hiboutik_product_index', {focus: (product.product_id ?? id)}) }}">
+    <i class="arrow left icon"></i> Retour
+  </a>
+</form>
+
+<script>
+  // active Semantic UI dropdown/checkbox si pas déjà globalement fait
+  if (window.$ && $.fn.dropdown) $('.ui.dropdown').dropdown();
+  if (window.$ && $.fn.checkbox) $('.ui.checkbox').checkbox();
+</script>
+{% endblock %}

@@ -3,180 +3,594 @@
 {% block title %}Rachats{% endblock %}
 
 {% block content %}
-<style>
-  #bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
-  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none;font-size:0.9rem}
-  .btn-secondary{background:#475569;border-color:#475569}
-  .btn-ghost{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#e5edff;color:#1e293b;cursor:pointer;text-decoration:none;font-size:0.9rem}
-  .muted{opacity:.7}
-  table{width:100%;border-collapse:collapse;background:#fff}
-  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
-  thead th{position:sticky;top:0;background:#0d6efd;color:#fff;z-index:1}
-  .actions{white-space:normal;}
-  .actions a,
-  .actions button,
-  .actions form{display:inline-block;margin-right:6px;margin-bottom:4px}
-  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
-  .pill-ok{background:#dcfce7;color:#166534}
-  .pill-off{background:#fee2e2;color:#991b1b}
-  .nowrap{white-space:nowrap}
-  th.select-col, td.select-col { width: 40px; text-align:center; }
 
-  /* ✅ ligne traitée revendeur */
-  tr.is-treated { background:#ecfdf5; }
-  tr.is-treated td { border-bottom-color:#bbf7d0; }
+{% set colsDef = colsCfg.columns|default({}) %}
+{% set presets = colsCfg.presets|default({}) %}
 
-    tr.revendeur-ok { background:#ecfdf5; }
-  tr.revendeur-ok td { border-bottom-color:#bbf7d0; }
-  .pill-blue{background:#dbeafe;color:#1e40af}
+{# preset optionnel uniquement si passé explicitement #}
+{% set preset = app.request.query.get('preset', '') %}
+{% if preset not in ['desktop', 'tablet', 'mobile'] %}
+  {% set preset = '' %}
+{% endif %}
 
+{% set selectedCols = app.request.query.all('cols') %}
+{% set hasSelectedCols = selectedCols is iterable and selectedCols|length > 0 %}
 
-  /* ─────────── RESPONSIVE MOBILE ─────────── */
-  @media (max-width: 768px) {
-    #bar{flex-direction:column;align-items:stretch;}
+{% set activeCols = [] %}
 
-    table#rachats,
-    table#rachats thead,
-    table#rachats tbody,
-    table#rachats th,
-    table#rachats td,
-    table#rachats tr{display:block;}
+{# priorité :
+   1) cols[] explicites
+   2) preset explicite
+   3) defaults de colsCfg.columns #}
+{% if hasSelectedCols %}
+  {% for c in selectedCols %}
+    {% if attribute(colsDef, c) is defined %}
+      {% set activeCols = activeCols|merge([c]) %}
+    {% endif %}
+  {% endfor %}
+{% elseif preset != '' and attribute(presets, preset) is defined %}
+  {% set activeCols = attribute(presets, preset) %}
+{% else %}
+  {% for key, conf in colsDef %}
+    {% if conf.default|default(false) %}
+      {% set activeCols = activeCols|merge([key]) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
 
-    table#rachats thead{display:none;}
-    table#rachats tbody{padding:0;}
+{# en mobile, on affiche aussi les colonnes actives réelles #}
+{% set mobileCols = activeCols %}
+{% set showMonthNav = filters.ym != 'all' %}
 
-    table#rachats tr{
-      margin-bottom:12px;
-      border:1px solid #e5e7eb;
-      border-radius:8px;
-      padding:8px;
-      box-shadow:0 1px 2px rgba(0,0,0,.04);
-    }
-
-    table#rachats td{border-bottom:none;padding:4px 8px;}
-
-    table#rachats td::before{
-      content: attr(data-label);
-      display:block;
-      font-weight:600;
-      font-size:0.75rem;
-      text-transform:uppercase;
-      letter-spacing:.03em;
-      color:#64748b;
-      margin-bottom:2px;
-    }
-
-    td.select-col{text-align:left;}
-    td.select-col::before{content:"";}
-
-    .actions{
-      margin-top:4px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:4px;
-    }
-
-    .actions a,
-    .actions button{font-size:0.8rem;}
-
-    .btn[disabled], .btn-ghost[disabled], .ui.button[disabled]{
-  opacity:.45;
-  cursor:not-allowed !important;
-  pointer-events:none;
-}
-a.is-disabled{
-  opacity:.45;
-  pointer-events:none;
-  cursor:not-allowed;
-}
-
-  .btn-ghost[disabled]{
-  opacity:.45;
-  cursor:not-allowed;
-}
-
-
-  }
-</style>
 <style>
   :root{
     --sylius-topbar-h: 0px;
     --rachats-bar-h: 0px;
     --rachats-offset: 0px;
+
+    --r-bg:#f6f8fb;
+    --r-card:#ffffff;
+    --r-line:#e5e7eb;
+    --r-line-2:#dbe3ec;
+    --r-text:#1f2937;
+    --r-muted:#6b7280;
+    --r-primary:#2563eb;
+    --r-primary-dark:#1d4ed8;
+    --r-success:#10b981;
+    --r-success-dark:#059669;
+    --r-soft:#f8fafc;
+    --r-soft-2:#eef2f7;
+    --r-danger:#ef4444;
+    --r-danger-soft:#fff1f2;
+    --r-radius:18px;
+    --r-shadow:0 8px 28px rgba(15,23,42,.06);
   }
 
+  .rachatsPage{
+    color:var(--r-text);
+  }
+
+  .muted{ color:var(--r-muted); }
+  .nowrap{ white-space:nowrap; }
+
+  /* ===================== FILTRES ===================== */
+  .filtersPanel{
+    background:var(--r-card);
+    border:1px solid var(--r-line);
+    border-radius:18px;
+    box-shadow:var(--r-shadow);
+    margin-bottom:14px;
+    overflow:hidden;
+  }
+
+  .filtersDetails{
+    display:block;
+  }
+
+  .filtersSummary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:14px 16px;
+    font-weight:800;
+    user-select:none;
+    background:#fff;
+  }
+
+  .filtersSummary::-webkit-details-marker{
+    display:none;
+  }
+
+  .filtersSummaryLeft{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .filtersSummary::after{
+    content:"▾";
+    color:#64748b;
+    font-size:1rem;
+    margin-left:auto;
+  }
+
+  .filtersDetails[open] .filtersSummary::after{
+    content:"▴";
+  }
+
+  .filtersInner{
+    padding:0 16px 16px 16px;
+    border-top:1px solid #eef2f7;
+  }
+
+  .monthNav{
+    display:grid;
+    grid-template-columns:140px 1fr 140px;
+    gap:10px;
+    align-items:center;
+    margin:14px 0;
+  }
+
+  .monthBtn{
+    min-height:44px;
+    border-radius:14px;
+    border:1px solid var(--r-line-2);
+    background:#f8fafc;
+    color:#334155;
+    text-decoration:none;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:0 10px;
+  }
+
+  .monthBtn:hover{
+    background:#f1f5f9;
+  }
+
+  .monthNavCenter{
+    min-height:44px;
+    border:1px solid var(--r-line);
+    border-radius:14px;
+    background:var(--r-soft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:800;
+  }
+
+  .filtersGrid{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0,1fr));
+    gap:12px;
+    align-items:end;
+  }
+
+  .fieldBlock label{
+    display:block;
+    font-size:.82rem;
+    font-weight:700;
+    color:var(--r-muted);
+    margin-bottom:6px;
+  }
+
+  .fieldBlock input[type="text"],
+  .fieldBlock input[type="month"],
+  .fieldBlock select{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    border:1px solid #d7dee8;
+    border-radius:12px;
+    padding:0 12px;
+    background:#fff;
+    box-sizing:border-box;
+  }
+
+  .checkboxLine{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-height:44px;
+    padding:0 4px;
+  }
+
+  .checkboxLine label{
+    margin:0;
+    font-size:.95rem;
+    font-weight:600;
+    color:#1f2937;
+  }
+
+  .filtersActions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+
+  .advancedCols{
+    margin-top:14px;
+    border-top:1px dashed #d7dee8;
+    padding-top:14px;
+  }
+
+  .advancedCols details{
+    background:#fafcff;
+    border:1px solid #e6edf5;
+    border-radius:14px;
+    padding:12px 14px;
+  }
+
+  .advancedCols summary{
+    cursor:pointer;
+    list-style:none;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .advancedCols summary::-webkit-details-marker{
+    display:none;
+  }
+
+  .advancedCols summary::after{
+    content:"▾";
+    color:#64748b;
+  }
+
+  .advancedCols details[open] summary::after{
+    content:"▴";
+  }
+
+  .columnsGrid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px 14px;
+    margin-top:12px;
+  }
+
+  .columnsGrid label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:.92rem;
+    color:#1f2937;
+    margin:0;
+  }
+
+  /* ===================== BOUTONS ===================== */
+  .rbtn{
+    min-height:42px;
+    border:none;
+    border-radius:12px;
+    padding:10px 12px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-weight:700;
+    text-decoration:none;
+    cursor:pointer;
+    transition:.18s ease;
+    box-shadow:0 1px 0 rgba(255,255,255,.4) inset;
+  }
+  .rbtn:hover{ transform:translateY(-1px); }
+  .rbtn:active{ transform:translateY(0); }
+
+  .rbtn-primary{ background:var(--r-primary); color:#fff; }
+  .rbtn-primary:hover{ background:var(--r-primary-dark); }
+
+  .rbtn-success{ background:var(--r-success); color:#fff; }
+  .rbtn-success:hover{ background:var(--r-success-dark); }
+
+  .rbtn-soft{ background:var(--r-soft-2); color:#334155; border:1px solid #dbe2ea; }
+  .rbtn-danger-soft{ background:var(--r-danger-soft); color:#b91c1c; border:1px solid #fecdd3; }
+  .rbtn-disabled{ opacity:.45; pointer-events:none; }
+
+  /* ===================== BARRE ACTIONS ===================== */
   #bar{
-    display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;
-
-    /* ✅ STICKY sous la topbar Sylius */
-    position: sticky;
-    top: var(--sylius-topbar-h);
-    z-index: 1000;
-    background: #fff;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(0,0,0,.08);
-    box-shadow: 0 6px 12px rgba(0,0,0,.05);
+    position:sticky;
+    top:var(--sylius-topbar-h);
+    z-index:1000;
+    background:rgba(255,255,255,.96);
+    backdrop-filter:blur(10px);
+    border:1px solid rgba(229,231,235,.95);
+    border-radius:18px;
+    box-shadow:0 10px 30px rgba(15,23,42,.08);
+    padding:12px;
+    margin:14px 0;
   }
 
-  .btn{padding:6px 10px;border-radius:6px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;cursor:pointer;text-decoration:none;font-size:0.9rem}
-  .btn-secondary{background:#475569;border-color:#475569}
-  .btn-ghost{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#e5edff;color:#1e293b;cursor:pointer;text-decoration:none;font-size:0.9rem}
-  .muted{opacity:.7}
-
-  table{width:100%;border-collapse:collapse;background:#fff}
-  th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
-
-  /* ✅ le header du tableau devient sticky SOUS (topbar + bar) */
-  thead th{
-    position: sticky;
-    top: calc(var(--sylius-topbar-h) + var(--rachats-bar-h));
-    background:#0d6efd;
-    color:#fff;
-    z-index: 999;
+  .batchGrid{
+    display:grid;
+    grid-template-columns:1.2fr 1fr;
+    gap:12px;
+    align-items:stretch;
   }
 
-  .actions{white-space:normal;}
-  .actions a,
-  .actions button,
-  .actions form{display:inline-block;margin-right:6px;margin-bottom:4px}
-  .pill{display:inline-block;padding:2px 6px;border-radius:999px;font-size:.85em}
-  .pill-ok{background:#dcfce7;color:#166534}
-  .pill-off{background:#fee2e2;color:#991b1b}
-  .nowrap{white-space:nowrap}
-  th.select-col, td.select-col { width: 40px; text-align:center; }
+  .batchCard{
+    background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);
+    border:1px solid var(--r-line);
+    border-radius:14px;
+    padding:12px;
+  }
 
-  tr.is-treated { background:#ecfdf5; }
-  tr.is-treated td { border-bottom-color:#bbf7d0; }
+  .batchTitle{
+    font-size:.85rem;
+    font-weight:800;
+    color:var(--r-muted);
+    margin-bottom:10px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
 
-  tr.revendeur-ok { background:#ecfdf5; }
-  tr.revendeur-ok td { border-bottom-color:#bbf7d0; }
-  .pill-blue{background:#dbeafe;color:#1e40af}
+  .btnRow{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:10px;
+  }
 
-  /* ✅ le hash #rachat-XXX ne sera plus caché */
+  .btnRow + .btnRow{
+    margin-top:10px;
+  }
+
+  .payGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:10px;
+  }
+
+  .payGrid select,
+  .payGrid input{
+    width:100%;
+    min-width:0;
+    min-height:42px;
+    border:1px solid #d7dee8;
+    border-radius:12px;
+    padding:0 12px;
+    background:#fff;
+    box-sizing:border-box;
+  }
+
+  /* ===================== TABLE ===================== */
+  .tableWrap{
+    overflow:auto;
+    background:#fff;
+    border:1px solid var(--r-line);
+    border-radius:18px;
+    box-shadow:var(--r-shadow);
+  }
+
+  table#rachatsTable{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+  }
+
+  table#rachatsTable th,
+  table#rachatsTable td{
+    padding:12px 10px;
+    border-bottom:1px solid #edf1f5;
+    text-align:left;
+    vertical-align:middle;
+  }
+
+  table#rachatsTable thead th{
+    position:sticky;
+    top:calc(var(--sylius-topbar-h) + var(--rachats-bar-h));
+    background:#f8fbff;
+    color:#334155;
+    z-index:999;
+    font-weight:800;
+    border-bottom:1px solid #dbe5ef;
+  }
+
+  th.select-col, td.select-col{
+    width:44px;
+    text-align:center;
+  }
+
   tr[id^="rachat-"]{
-    scroll-margin-top: var(--rachats-offset);
+    scroll-margin-top:var(--rachats-offset);
   }
 
-  /* ─────────── RESPONSIVE MOBILE ─────────── */
-  @media (max-width: 768px) {
-    #bar{flex-direction:column;align-items:stretch;}
+  .iconbtn{
+    width:38px;
+    height:38px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:11px;
+    text-decoration:none;
+    border:1px solid #d7dee8;
+    background:#fff;
+    color:#334155;
+    margin-right:6px;
+  }
 
-    table#rachats,
-    table#rachats thead,
-    table#rachats tbody,
-    table#rachats th,
-    table#rachats td,
-    table#rachats tr{display:block;}
+  .iconbtn-blue{ background:#eff6ff; border-color:#bfdbfe; color:#2563eb; }
+  .iconbtn-amber{ background:#fffbeb; border-color:#fde68a; color:#d97706; }
+  .iconbtn-violet{ background:#f5f3ff; border-color:#ddd6fe; color:#7c3aed; }
 
-    table#rachats thead{display:none;}
-    table#rachats tbody{padding:0;}
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:.84rem;
+    white-space:nowrap;
+    font-weight:700;
+  }
+  .pill-ok{ background:#dcfce7; color:#166534; }
+  .pill-off{ background:#fee2e2; color:#991b1b; }
+
+  .priceTag{
+    font-weight:800;
+  }
+
+  /* ===================== CARDS MOBILE ===================== */
+  .cardsWrap{ display:none; }
+
+  .cardRow{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    gap:12px;
+    align-items:start;
+    background:#fff;
+    border:1px solid var(--r-line);
+    border-radius:18px;
+    box-shadow:var(--r-shadow);
+    padding:14px;
+    margin-bottom:12px;
+  }
+
+  .cardCheck{
+    padding-top:4px;
+  }
+
+  .cardMain{
+    min-width:0;
+  }
+
+  .cardTitle{
+    font-size:1.05rem;
+    font-weight:900;
+    line-height:1.2;
+    margin-bottom:8px;
+  }
+
+  .cardMeta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#f1f5f9;
+    border:1px solid #e2e8f0;
+    color:#0f172a;
+    font-size:.87rem;
+  }
+
+  .cardActions{
+    display:grid;
+    grid-template-columns:repeat(2, 42px);
+    gap:8px;
+    justify-content:end;
+  }
+
+  .cardActions .iconbtn{
+    width:42px;
+    height:42px;
+    margin-right:0;
+  }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 1100px){
+    .filtersGrid{
+      grid-template-columns:1fr 1fr;
+    }
+
+    .columnsGrid{
+      grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+
+    .batchGrid{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width: 768px){
+    .monthNav{
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+      margin:12px 0;
+    }
+
+    .monthBtn,
+    .monthNavCenter{
+      min-height:42px;
+      font-size:.92rem;
+      padding:0 8px;
+    }
+
+    .filtersGrid{
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .filtersActions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .filtersActions > *{
+      width:100%;
+      justify-content:center;
+    }
+
+    .columnsGrid{
+      grid-template-columns:1fr 1fr;
+    }
+
+    .btnRow{
+      grid-template-columns:1fr 1fr;
+    }
+
+    .payGrid{
+      grid-template-columns:1fr 1fr;
+    }
+
+    .tableWrap{
+      display:none;
+    }
+
+    .cardsWrap{
+      display:block;
+    }
+  }
+
+  @media (max-width: 520px){
+    .monthBtn span.hide-xs{
+      display:none;
+    }
+
+    .columnsGrid{
+      grid-template-columns:1fr;
+    }
+
+    .cardRow{
+      grid-template-columns:auto 1fr;
+    }
+
+    .cardActions{
+      grid-column:2;
+      margin-top:10px;
+      justify-content:start;
+      grid-template-columns:repeat(4, 42px);
+    }
   }
 </style>
+
 <script>
   function computeRachatsOffsets() {
     const topbar = document.querySelector('.admin-layout__topbar');
     const bar = document.getElementById('bar');
-
     const topbarH = topbar ? topbar.offsetHeight : 0;
     const barH = bar ? bar.offsetHeight : 0;
 
@@ -188,317 +602,456 @@ a.is-disabled{
   function scrollToHashRachat() {
     const hash = location.hash || '';
     if (!hash.startsWith('#rachat-')) return;
-
     const el = document.querySelector(hash);
     if (!el) return;
 
     const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rachats-offset')) || 0;
     const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-
     window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 
-    el.style.outline = '3px solid rgba(13,110,253,.35)';
-    el.style.borderRadius = '8px';
+    el.style.outline = '3px solid rgba(37,99,235,.25)';
+    el.style.borderRadius = '12px';
     setTimeout(() => el.style.outline = '', 1200);
   }
 
-  window.addEventListener('load', () => {
-    computeRachatsOffsets();
-    scrollToHashRachat();
-  });
-
-  window.addEventListener('resize', () => {
-    computeRachatsOffsets();
-  });
-
-  // si le hash change (rare mais utile)
-  window.addEventListener('hashchange', () => {
-    computeRachatsOffsets();
-    scrollToHashRachat();
-  });
+  window.addEventListener('load', () => { computeRachatsOffsets(); scrollToHashRachat(); });
+  window.addEventListener('resize', computeRachatsOffsets);
+  window.addEventListener('hashchange', () => { computeRachatsOffsets(); scrollToHashRachat(); });
 </script>
 
-{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+<div class="rachatsPage">
+  {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
 
+  <div class="filtersPanel">
+    <details class="filtersDetails">
+      <summary class="filtersSummary">
+        <div class="filtersSummaryLeft">
+          <i class="filter icon"></i>
+          <span>Filtres et affichage</span>
+        </div>
+        <div class="muted">
+          {{ rows|length }} résultat{{ rows|length > 1 ? 's' : '' }}
+        </div>
+      </summary>
 
+      <div class="filtersInner">
+        {% if showMonthNav %}
+          <div class="monthNav">
+            <a class="monthBtn" href="{{ prevUrl }}">
+              <i class="chevron left icon"></i>
+              <span class="hide-xs">{{ prevYm }}</span>
+            </a>
 
+            <div class="monthNavCenter">
+              <i class="calendar alternate outline icon"></i>&nbsp;{{ monthLabel }}
+            </div>
 
+            <a class="monthBtn" href="{{ nextUrl }}">
+              <span class="hide-xs">{{ nextYm }}</span>
+              <i class="chevron right icon"></i>
+            </a>
+          </div>
+        {% endif %}
 
-<form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
-  <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
+        <form method="get" action="{{ path('admin_rachats_index') }}" class="ui form">
+          <input type="hidden" name="enabled" value="{{ enabled }}"/>
 
-  <div id="bar">
-    <a class="ui primary button" href="{{ path('admin_rachats_create') }}">➕ Créer (Quick)</a>
+          <div class="filtersGrid">
+            <div class="fieldBlock">
+              <label>Période</label>
+              <div class="checkboxLine">
+                <input type="checkbox" id="ym_all" {{ filters.ym == 'all' ? 'checked' : '' }}>
+                <label for="ym_all">Tous les mois</label>
+              </div>
+              <input type="hidden" name="ym" id="ym_hidden" value="{{ filters.ym }}">
+            </div>
 
-    <a href="{{ path('admin_rachats_multi_wizard_form') }}" class="ui teal button">
-      <i class="users icon"></i> rachats multi
-    </a>
+            <div class="fieldBlock">
+              <label>Mois</label>
+              <input
+                type="month"
+                id="ym_month"
+                value="{{ filters.ym != 'all' ? filters.ym : '' }}"
+                {{ filters.ym == 'all' ? 'disabled' : '' }}
+              >
+            </div>
 
-    {% set viewingDisabled = enabled == 0 %}
-    <a class="ui button {{ viewingDisabled ? '' : 'primary' }}"
-       href="{{ path('admin_rachats_index', { enabled: 1 }) }}">👀 Actifs</a>
-    <a class="ui button {{ viewingDisabled ? 'primary' : '' }}"
-       href="{{ path('admin_rachats_index', { enabled: 0 }) }}">🙈 Masqués</a>
+            <div class="fieldBlock">
+              <label>Recherche</label>
+              <input type="text" name="q" placeholder="Nom, modèle, téléphone, IMEI…" value="{{ filters.q }}">
+            </div>
 
-    <button type="submit" name="val" value="0" class="btn btn-secondary">
-      🙈 Masquer sélection
-    </button>
-    <button type="submit" name="val" value="1" class="btn">
-      👀 Révéler sélection
-    </button>
+            <div class="fieldBlock">
+              <label>Arrivage</label>
+              <select name="arrivage">
+                <option value=""  {{ filters.arrivage=='' ? 'selected' : '' }}>Tous</option>
+                <option value="0" {{ filters.arrivage=='0' ? 'selected' : '' }}>Pas en arrivage</option>
+                <option value="1" {{ filters.arrivage=='1' ? 'selected' : '' }}>Déjà en arrivage</option>
+              </select>
+            </div>
 
-    <span class="muted">|</span>
+            <div class="fieldBlock">
+              <label>Paiement</label>
+              <select name="paid">
+                <option value=""  {{ filters.paid=='' ? 'selected' : '' }}>Tous</option>
+                <option value="0" {{ filters.paid=='0' ? 'selected' : '' }}>Non payé</option>
+                <option value="1" {{ filters.paid=='1' ? 'selected' : '' }}>Payé</option>
+              </select>
+            </div>
 
-    <label class="muted">Paiement :
-      <select name="method" id="method_select">
-        <option value="ESP" selected>ESP (Espèces)</option>
-        <option value="CB">CB</option>
-        <option value="VIR">Virement</option>
-        <option value="CHQ">Chèque</option>
-        <option value="AUTRE">Autre</option>
-      </select>
-    </label>
+            <div class="fieldBlock">
+              <label>Revendeur</label>
+              <select name="revendeur">
+                <option value=""  {{ filters.revendeur=='' ? 'selected' : '' }}>Tous</option>
+                <option value="0" {{ filters.revendeur=='0' ? 'selected' : '' }}>Sans revendeur</option>
+                <option value="1" {{ filters.revendeur=='1' ? 'selected' : '' }}>Avec revendeur</option>
+              </select>
+            </div>
 
-    <input type="text"
-           name="other_label"
-           placeholder="Libellé si AUTRE"
-           style="padding:4px 6px;border-radius:4px;border:1px solid #cbd5f5;max-width:180px;">
+            <div class="fieldBlock">
+              <label>Preset d’affichage</label>
+              <select name="preset">
+                <option value="" {{ preset == '' ? 'selected' : '' }}>Par défaut</option>
+                <option value="desktop" {{ preset == 'desktop' ? 'selected' : '' }}>Desktop</option>
+                <option value="tablet"  {{ preset == 'tablet' ? 'selected' : '' }}>Tablette</option>
+                <option value="mobile"  {{ preset == 'mobile' ? 'selected' : '' }}>Mobile</option>
+              </select>
+            </div>
+          </div>
 
-    <button type="submit"
-            formaction="{{ path('admin_rachats_encaissement_batch') }}"
-            class="btn-ghost">
-      💶 Encaisser sélection
-    </button>
+          <div class="filtersActions">
+            <button class="rbtn rbtn-primary" type="submit">
+              <i class="filter icon"></i> Appliquer
+            </button>
+            <a class="rbtn rbtn-soft" href="{{ path('admin_rachats_index', { enabled: enabled }) }}">
+              <i class="undo icon"></i> Reset
+            </a>
+          </div>
 
-    <input type="hidden" name="arrivage_label" id="arrivage_label" value="">
-
-    <button type="submit"
-            id="btn_create_arrivage"
-            formaction="{{ path('admin_rachats_arrivage_create_batch') }}"
-            class="btn-ghost">
-      📦 Créer arrivage
-    </button>
-
-    <button type="submit"
-            formaction="{{ path('admin_arrivages_create_from_rachats') }}"
-            class="btn-ghost">
-      📦 Créer / ajouter à arrivage (sélection)
-    </button>
-
-    <a class="ui primary button" href="{{ path('admin_till_index') }}">VOIR CAISSE</a>
+          <div class="advancedCols">
+            <details>
+              <summary>Réglages avancés des colonnes</summary>
+              <div class="columnsGrid">
+                {% for key, conf in colsDef %}
+                  <label>
+                    <input type="checkbox" name="cols[]" value="{{ key }}" {{ key in activeCols ? 'checked' : '' }}>
+                    <span>{{ conf.label|default(key) }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </details>
+          </div>
+        </form>
+      </div>
+    </details>
   </div>
 
-  <table id="rachats">
-    <thead>
-      <tr>
-        <th class="select-col">
-          <input type="checkbox" id="check_all" title="Tout sélectionner">
-        </th>
-        <th class="nowrap">ID</th>
-        <th>Modèle</th>
-        <th>Prix rachat</th>
-        <th class="nowrap">Date cession</th>
-        <th>Nom</th>
-        <th>Prénom</th>
-        <th class="nowrap">Téléphone</th>
-        <th>Email</th>
-        <th class="nowrap">PDF</th>
-        <th class="nowrap">Pièce ID</th>
-        <th class="nowrap">Payé ?</th>
-        <th class="nowrap">Revendeur</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
+  <script>
+  (function(){
+    const all  = document.getElementById('ym_all');
+    const hid  = document.getElementById('ym_hidden');
+    const mon  = document.getElementById('ym_month');
+    if (!all || !hid || !mon) return;
 
-    <tbody>
-    {% for row in rows %}
-      {% set revId = (row.revendeur_id|default(0)) + 0 %}
-      {% set hasRevendeur = revId > 0 %}
-      {% set hasSupplier = (row.hib_supplier_id|default(0)) + 0 > 0 %}
-      {% set isProcessed = hasRevendeur or (row.vendorProcessedAt is defined and row.vendorProcessedAt) %}
-      {% set hibProductId = (row.hib_product_id|default(0)) + 0 %}
-      {% set hibInputId   = (row.hib_inventory_input_id|default(0)) + 0 %}
-      {% set alreadyHibArrivage = hibInputId > 0 %}
+    function syncYmOnly(){
+      if (all.checked) {
+        hid.value = 'all';
+        mon.disabled = true;
+      } else {
+        mon.disabled = false;
+        hid.value = mon.value || '';
+      }
+    }
 
-      {# ✅ URL de retour garantie + hash sur cette ligne #}
-      {% set returnUrl = path('admin_rachats_index', { enabled: enabled }) ~ '#rachat-' ~ row.id %}
+    syncYmOnly();
+    all.addEventListener('change', syncYmOnly);
+    mon.addEventListener('change', syncYmOnly);
+  })();
+  </script>
 
-      <tr id="rachat-{{ row.id }}"
-          data-id="{{ row.id }}"
-          data-paid="{{ row.paidAt ? 1 : 0 }}"
-          data-supplier="{{ row.hib_supplier_id|default(revId)|default(0) }}"
-          data-hib-product="{{ hibProductId }}"
-          data-hib-arrivage="{{ alreadyHibArrivage ? 1 : 0 }}"
-          style="{{ isProcessed ? 'background:#ecfeff' : '' }}">
-
-        <td class="select-col" data-label="">
-          <input type="checkbox" name="ids[]" value="{{ row.id }}">
-        </td>
-
-        <td class="nowrap" data-label="ID">{{ row.id }}</td>
-        <td data-label="Modèle">{{ row.marque_modele ?: '—' }}</td>
-        <td data-label="Prix rachat">{{ row.prix_achat ?: '—' }}</td>
-        <td class="nowrap" data-label="Date cession">{{ row.date_cession ?: '—' }}</td>
-        <td data-label="Nom">{{ row.nom ?: '—' }}</td>
-        <td data-label="Prénom">{{ row.prenom ?: '—' }}</td>
-        <td class="nowrap" data-label="Téléphone">{{ row.telephone ?: '—' }}</td>
-        <td data-label="Email">{{ row.email ?: '—' }}</td>
-
-        <td class="nowrap" data-label="PDF">
-          {% if row.pdf_url %}
-            <a title="Ouvrir le PDF" href="{{ row.pdf_url }}" target="_blank" rel="noopener">📄</a>
-          {% else %}—{% endif %}
-        </td>
-
-        <td class="nowrap" data-label="Pièce ID">
-          {% if row.piece_identite_url %}
-            <a title="Voir la pièce d'identité" href="{{ path('admin_rachats_ci_page', { id: row.id }) }}">🪪</a>
-          {% else %}—{% endif %}
-        </td>
-
-        <td class="nowrap" data-label="Payé ?">
-          {% if row.paidAt %}
-            <span class="pill pill-ok">
-              ✔ {{ row.paidMethod ?: 'ESP' }}<br>
-              <span class="muted">{{ row.paidAt }}</span>
-            </span>
-          {% else %}
-            <span class="pill pill-off">Non payé</span>
-          {% endif %}
-        </td>
-
-        <td class="nowrap" data-label="Revendeur">
-          {% if hasRevendeur %}
-            <span class="pill pill-ok">OK #{{ revId }}</span>
-          {% else %}
-            <span class="pill pill-off">Non</span>
-          {% endif %}
-        </td>
-
-        <td class="actions" data-label="Actions">
-          <a class="btn btn-secondary" href="{{ path('admin_rachats_show', { id: row.id }) }}">👁️ Voir</a>
-          <a class="btn" href="{{ row.__edit_url }}">✏️ Éditer</a>
-
-          {% if row.__autre_url %}
-            <a href="{{ row.__autre_url }}" class="btn">Autre rachat</a>
-          {% endif %}
-
-          {% if not row.paidAt %}
-            <button type="submit"
-                    class="btn-ghost"
-                    formaction="{{ path('admin_rachats_encaissement_one', { id: row.id }) }}"
-                    name="method"
-                    value="ESP">
-              💶 ESP
-            </button>
-          {% else %}
-            <button type="submit"
-                    class="btn-ghost"
-                    formaction="{{ path('admin_rachats_annuler_encaissement_one', { id: row.id }) }}"
-                    onclick="return confirm('Annuler le paiement de ce rachat ?');">
-              ❌ Annuler paiement
-            </button>
-          {% endif %}
-
-          {% if alreadyArrivage %}
-  <button type="button"
-          class="btn-ghost muted"
-          disabled
-          title="Déjà ajouté à l’arrivage #{{ row.hib_inventory_input_id }}">
-    ✅ Déjà en arrivage
-  </button>
-
-{% elseif not hasSupplier %}
-  <button type="button"
-          class="btn-ghost muted"
-          disabled
-          title="Créer ou lier un revendeur avant d’envoyer en arrivage">
-    🚫 Produit + arrivage
-  </button>
-
-{% else %}
-  <button type="submit"
-          class="btn-ghost"
-          formaction="{{ path('admin_rachats_create_hib_product_arrivage', { id: row.id }) }}">
-    📦 Produit + arrivage
-  </button>
-{% endif %}
-
-          {% if not hasRevendeur %}
-            <button type="button"
-                    class="btn-ghost js-link-revendeur"
-                    data-rachat-id="{{ row.id }}"
-                    data-nom="{{ row.nom|e('html_attr') }}"
-                    data-prenom="{{ row.prenom|e('html_attr') }}"
-                    data-telephone="{{ row.telephone|e('html_attr') }}"
-                    data-email="{{ row.email|e('html_attr') }}"
-                    data-csrf="{{ csrf_token('apply_revendeur_' ~ row.id) }}"
-                    data-csrf-process="{{ csrf_token('process_revendeur_' ~ row.id) }}"
-                    data-back-enabled="{{ enabled }}"
-                    data-return="{{ returnUrl|e('html_attr') }}">
-              👤 Lier / choisir revendeur
-            </button>
-
-            {# ✅ Création auto : _return GARANTI avec hash #}
-            <form method="post"
-                  action="{{ path('admin_rachats_process_revendeur', { id: row.id }) }}"
-                  style="display:inline">
-              <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ row.id) }}">
-              <input type="hidden" name="_return" value="{{ returnUrl }}">
-              <input type="hidden" name="_back_enabled" value="{{ enabled }}">
-              <button class="btn-ghost" type="submit"
-                      onclick="return confirm('Créer un nouveau revendeur (si aucun existant) ?');">
-                ➕ Créer nouveau
-              </button>
-            </form>
-          {% else %}
-            <a class="btn-ghost" href="{{ path('admin_revendeurs_show', { id: revId }) }}">👤 Voir revendeur</a>
-            <a class="btn-ghost" href="{{ path('admin_revendeurs_edit', { id: revId }) }}">✏️ Éditer revendeur</a>
-          {% endif %}
-        </td>
-      </tr>
-
-    {% else %}
-      <tr>
-        <td colspan="14" class="muted">Aucun rachat.</td>
-      </tr>
+  <form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
+    <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
+    <input type="hidden" name="_back_q" value="{{ filters.q }}">
+    <input type="hidden" name="_back_ym" value="{{ filters.ym }}">
+    <input type="hidden" name="_back_paid" value="{{ filters.paid }}">
+    <input type="hidden" name="_back_revendeur" value="{{ filters.revendeur }}">
+    <input type="hidden" name="_back_arrivage" value="{{ filters.arrivage }}">
+    <input type="hidden" name="_back_preset" value="{{ preset }}">
+    {% for c in activeCols %}
+      <input type="hidden" name="_back_cols[]" value="{{ c }}">
     {% endfor %}
-    </tbody>
-  </table>
-</form>
 
-<div class="ui modal" id="revendeurModal">
-  <i class="close icon"></i>
-  <div class="header">Associer un revendeur existant</div>
+    <div id="bar">
+      <div class="batchGrid">
+        <div class="batchCard">
+          <div class="batchTitle">Actions sur la sélection</div>
 
-  <div class="content">
-    <div class="ui form">
-      <div class="field">
-        <label>Recherche (email / téléphone / nom)</label>
-        <input type="text" id="revendeurSearchInput" placeholder="ex: 06..., mail@..., DUPONT">
+          <div class="btnRow">
+            <a class="rbtn rbtn-success" href="{{ path('admin_rachats_create') }}">
+              <i class="plus icon"></i> Créer
+            </a>
+
+            {% set viewingDisabled = enabled == 0 %}
+            <a class="rbtn {{ viewingDisabled ? 'rbtn-soft' : 'rbtn-primary' }}"
+               href="{{ path('admin_rachats_index', {
+                 enabled: 1,
+                 q: filters.q,
+                 ym: filters.ym,
+                 paid: filters.paid,
+                 revendeur: filters.revendeur,
+                 arrivage: filters.arrivage,
+                 preset: preset,
+                 cols: activeCols
+               }) }}">
+              <i class="eye icon"></i> Actifs
+            </a>
+          </div>
+
+          <div class="btnRow">
+            <a class="rbtn {{ viewingDisabled ? 'rbtn-primary' : 'rbtn-soft' }}"
+               href="{{ path('admin_rachats_index', {
+                 enabled: 0,
+                 q: filters.q,
+                 ym: filters.ym,
+                 paid: filters.paid,
+                 revendeur: filters.revendeur,
+                 arrivage: filters.arrivage,
+                 preset: preset,
+                 cols: activeCols
+               }) }}">
+              <i class="eye slash icon"></i> Masqués
+            </a>
+
+            <button type="submit" name="val" value="0" class="rbtn rbtn-danger-soft">
+              <i class="ban icon"></i> Masquer
+            </button>
+          </div>
+
+          <div class="btnRow">
+            <button type="submit" name="val" value="1" class="rbtn rbtn-primary">
+              <i class="check icon"></i> Réactiver
+            </button>
+            <div></div>
+          </div>
+        </div>
+
+        <div class="batchCard">
+          <div class="batchTitle">Paiement</div>
+
+          <div class="payGrid">
+            <select name="method" id="method_select">
+              <option value="ESP" selected>ESP</option>
+              <option value="CB">CB</option>
+              <option value="VIR">VIR</option>
+              <option value="CHQ">CHQ</option>
+              <option value="AUTRE">AUTRE</option>
+            </select>
+
+            <input type="text" name="other_label" placeholder="Libellé si AUTRE">
+          </div>
+
+          <div class="btnRow">
+            <button type="submit" formaction="{{ path('admin_rachats_encaissement_batch') }}" class="rbtn rbtn-soft">
+              <i class="euro sign icon"></i> Encaisser
+            </button>
+
+            <a class="rbtn rbtn-success" href="{{ path('admin_till_index') }}">
+              <i class="cash register icon"></i> Voir caisse
+            </a>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="ui relaxed divided list" id="revendeurResults" style="max-height: 40vh; overflow:auto;"></div>
+    <div class="tableWrap">
+      <table id="rachatsTable">
+        <thead>
+          <tr>
+            {% if 'select' in activeCols %}<th class="select-col"><input type="checkbox" id="check_all"></th>{% endif %}
+            {% if 'id' in activeCols %}<th class="nowrap">#</th>{% endif %}
+            {% if 'modele' in activeCols %}<th>Modèle</th>{% endif %}
+            {% if 'prix' in activeCols %}<th>Prix</th>{% endif %}
+            {% if 'date' in activeCols %}<th class="nowrap">Date</th>{% endif %}
+            {% if 'nom' in activeCols %}<th>Nom</th>{% endif %}
+            {% if 'prenom' in activeCols %}<th>Prénom</th>{% endif %}
+            {% if 'tel' in activeCols %}<th>Téléphone</th>{% endif %}
+            {% if 'email' in activeCols %}<th>Email</th>{% endif %}
+            {% if 'pdf' in activeCols %}<th class="nowrap">PDF</th>{% endif %}
+            {% if 'ci' in activeCols %}<th class="nowrap">Pièce ID</th>{% endif %}
+            {% if 'paiement' in activeCols %}<th>Paiement</th>{% endif %}
+            {% if 'revendeur' in activeCols %}<th class="nowrap">Revendeur</th>{% endif %}
+            {% if 'actions' in activeCols %}<th>Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          {% set revId = (row.revendeurId|default(0)) + 0 %}
+          {% set hasRevendeur = revId > 0 %}
+          {% set paid = row.paidAt ? 1 : 0 %}
 
-    <div class="ui message" id="revendeurHint" style="display:none;"></div>
-  </div>
-
-  <div class="actions">
-    <div class="ui button deny">Annuler</div>
-
-    <div class="ui teal button" id="revendeurCreateBtn">
-      ➕ Créer nouveau + lier (auto)
+          <tr id="rachat-{{ row.id }}">
+            {% if 'select' in activeCols %}
+              <td class="select-col"><input type="checkbox" name="ids[]" value="{{ row.id }}"></td>
+            {% endif %}
+            {% if 'id' in activeCols %}
+              <td class="nowrap"><strong>#{{ row.id }}</strong></td>
+            {% endif %}
+            {% if 'modele' in activeCols %}
+              <td>{{ row.marqueModele ?: '—' }}</td>
+            {% endif %}
+            {% if 'prix' in activeCols %}
+              <td class="priceTag">{{ row.prixAchat ?: '—' }}</td>
+            {% endif %}
+            {% if 'date' in activeCols %}
+              <td class="nowrap">{{ row.dateCession ?: '—' }}</td>
+            {% endif %}
+            {% if 'nom' in activeCols %}
+              <td>{{ row.nom ?: '—' }}</td>
+            {% endif %}
+            {% if 'prenom' in activeCols %}
+              <td>{{ row.prenom ?: '—' }}</td>
+            {% endif %}
+            {% if 'tel' in activeCols %}
+              <td class="nowrap">{{ row.telephone ?: '—' }}</td>
+            {% endif %}
+            {% if 'email' in activeCols %}
+              <td>{{ row.email ?: '—' }}</td>
+            {% endif %}
+            {% if 'pdf' in activeCols %}
+              <td class="nowrap">
+                {% if row.pdfUrl %}
+                  <a class="iconbtn iconbtn-blue" href="{{ row.pdfUrl }}" target="_blank" title="PDF">
+                    <i class="file pdf outline icon"></i>
+                  </a>
+                {% else %}—{% endif %}
+              </td>
+            {% endif %}
+            {% if 'ci' in activeCols %}
+              <td class="nowrap">
+                {% if row.pieceIdentiteUrl %}
+                  <a class="iconbtn iconbtn-violet" href="{{ row.pieceIdentiteUrl }}" target="_blank" title="Pièce d'identité">
+                    <i class="id card outline icon"></i>
+                  </a>
+                {% else %}—{% endif %}
+              </td>
+            {% endif %}
+            {% if 'paiement' in activeCols %}
+              <td>
+                {% if paid %}
+                  <span class="pill pill-ok"><i class="check circle icon"></i> {{ row.paidMethod ?: 'Payé' }}</span>
+                {% else %}
+                  <span class="pill pill-off"><i class="clock outline icon"></i> Non payé</span>
+                {% endif %}
+              </td>
+            {% endif %}
+            {% if 'revendeur' in activeCols %}
+              <td class="nowrap">
+                {% if hasRevendeur %}
+                  <span class="pill pill-ok"><i class="user check icon"></i> #{{ revId }}</span>
+                {% else %}
+                  <span class="pill pill-off"><i class="user times icon"></i> Non</span>
+                {% endif %}
+              </td>
+            {% endif %}
+            {% if 'actions' in activeCols %}
+              <td class="nowrap">
+                <a class="iconbtn iconbtn-blue" href="{{ path('admin_rachats_show', { id: row.id }) }}" title="Voir">
+                  <i class="eye icon"></i>
+                </a>
+                <a class="iconbtn iconbtn-amber" href="{{ row.editUrl }}" title="Éditer">
+                  <i class="edit icon"></i>
+                </a>
+              </td>
+            {% endif %}
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="{{ activeCols|length > 0 ? activeCols|length : 10 }}" class="muted">Aucun rachat.</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    <div class="ui primary button" id="revendeurApplyBtn" disabled>
-      Associer au rachat
+    <div class="cardsWrap">
+      {% for row in rows %}
+        {% set revId = (row.revendeurId|default(0)) + 0 %}
+        {% set hasRevendeur = revId > 0 %}
+        {% set paid = row.paidAt ? 1 : 0 %}
+
+        <div class="cardRow" id="rachat-{{ row.id }}">
+          {% if 'select' in mobileCols %}
+            <div class="cardCheck">
+              <input type="checkbox" name="ids[]" value="{{ row.id }}">
+            </div>
+          {% endif %}
+
+          <div class="cardMain">
+            <div class="cardTitle">
+              {% if 'id' in mobileCols %}#{{ row.id }} — {% endif %}{{ row.marqueModele ?: '—' }}
+            </div>
+
+            <div class="cardMeta">
+              {% if 'prix' in mobileCols %}
+                <span class="badge"><i class="euro sign icon"></i> {{ row.prixAchat ?: '—' }}</span>
+              {% endif %}
+              {% if 'date' in mobileCols %}
+                <span class="badge"><i class="calendar icon"></i> {{ row.dateCession ?: '—' }}</span>
+              {% endif %}
+              {% if 'nom' in mobileCols %}
+                <span class="badge"><i class="user icon"></i> {{ row.nom ?: '—' }}</span>
+              {% endif %}
+              {% if 'tel' in mobileCols %}
+                <span class="badge"><i class="phone icon"></i> {{ row.telephone ?: '—' }}</span>
+              {% endif %}
+
+              {% if 'paiement' in mobileCols %}
+                {% if paid %}
+                  <span class="pill pill-ok"><i class="check circle icon"></i> {{ row.paidMethod ?: 'Payé' }}</span>
+                {% else %}
+                  <span class="pill pill-off"><i class="clock outline icon"></i> Non payé</span>
+                {% endif %}
+              {% endif %}
+
+              {% if 'revendeur' in mobileCols %}
+                {% if hasRevendeur %}
+                  <span class="pill pill-ok"><i class="user check icon"></i> Revendeur #{{ revId }}</span>
+                {% else %}
+                  <span class="pill pill-off"><i class="user times icon"></i> Sans revendeur</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="cardActions">
+            {% if 'actions' in mobileCols %}
+              <a class="iconbtn iconbtn-blue" href="{{ path('admin_rachats_show', { id: row.id }) }}" title="Voir">
+                <i class="eye icon"></i>
+              </a>
+              <a class="iconbtn iconbtn-amber" href="{{ row.editUrl }}" title="Éditer">
+                <i class="edit icon"></i>
+              </a>
+            {% endif %}
+
+            {% if 'pdf' in mobileCols and row.pdfUrl %}
+              <a class="iconbtn iconbtn-blue" href="{{ row.pdfUrl }}" target="_blank" title="PDF">
+                <i class="file pdf outline icon"></i>
+              </a>
+            {% endif %}
+
+            {% if 'ci' in mobileCols and row.pieceIdentiteUrl %}
+              <a class="iconbtn iconbtn-violet" href="{{ row.pieceIdentiteUrl }}" target="_blank" title="Pièce ID">
+                <i class="id card outline icon"></i>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="filtersPanel muted" style="padding:16px;">Aucun rachat.</div>
+      {% endfor %}
     </div>
-  </div>
+  </form>
 </div>
-```
-
-
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -512,182 +1065,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  let current = {
-    rachatId: 0,
-    csrf: '',              // apply_revendeur
-    csrfProcess: '',       // process_revendeur
-    selectedRevId: 0,
-    returnUrl: '',
-    backEnabled: 1
-  };
-
-  const $modal = window.jQuery ? jQuery('#revendeurModal') : null;
-  const input = document.getElementById('revendeurSearchInput');
-  const results = document.getElementById('revendeurResults');
-  const hint = document.getElementById('revendeurHint');
-  const applyBtn = document.getElementById('revendeurApplyBtn');
-  const createBtn = document.getElementById('revendeurCreateBtn');
-
-  function renderResults(list) {
-    results.innerHTML = '';
-    current.selectedRevId = 0;
-    applyBtn.setAttribute('disabled', 'disabled');
-
-    if (!list || !list.length) {
-      hint.style.display = 'block';
-      hint.className = 'ui message';
-      hint.textContent = 'Aucun revendeur trouvé. Clique sur “Créer nouveau + lier (auto)”.';
-      return;
-    }
-    hint.style.display = 'none';
-
-    list.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.style.cursor = 'pointer';
-      div.dataset.id = item.id;
-
-      div.innerHTML = `
-        <i class="user icon"></i>
-        <div class="content">
-          <div class="header">#${item.id} — ${item.label}</div>
-        </div>
-      `;
-
-      div.addEventListener('click', () => {
-        [...results.querySelectorAll('.item')].forEach(x => x.classList.remove('active'));
-        div.classList.add('active');
-        current.selectedRevId = parseInt(item.id, 10);
-        applyBtn.removeAttribute('disabled');
-      });
-
-      results.appendChild(div);
-    });
-  }
-
-  async function searchRevendeurs(q) {
-    const url = "{{ path('admin_revendeurs_search') }}" + "?q=" + encodeURIComponent(q || '');
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
-    if (!res.ok) return [];
-    return await res.json();
-  }
-
-  // ✅ création + lien via TON endpoint processRevendeur
-  function createAndLinkViaProcess() {
-    if (!current.rachatId) return;
-
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = "/admin/rachats/" + current.rachatId + "/process-revendeur";
-
-    const add = (name, value) => {
-      const i = document.createElement('input');
-      i.type = 'hidden';
-      i.name = name;
-      i.value = value ?? '';
-      form.appendChild(i);
-    };
-
-    add('_token', current.csrfProcess);
-    add('_return', current.returnUrl);
-    add('_back_enabled', String(current.backEnabled));
-
-    document.body.appendChild(form);
-    form.submit(); // ➜ redirect normal (comme avant)
-  }
-
-  createBtn.addEventListener('click', createAndLinkViaProcess);
-
-  let t = null;
-  input.addEventListener('input', () => {
-    clearTimeout(t);
-    t = setTimeout(async () => {
-      const q = input.value.trim();
-      if (q.length < 2) { renderResults([]); return; }
-      const list = await searchRevendeurs(q);
-      renderResults(list);
-    }, 250);
-  });
-
-  async function applyRevendeur() {
-    if (!current.rachatId || !current.selectedRevId) return;
-
-    const url = "/admin/rachats/" + current.rachatId + "/apply-revendeur";
-    const fd = new FormData();
-    fd.append('_token', current.csrf);
-    fd.append('revendeur_id', String(current.selectedRevId));
-
-    const res = await fetch(url, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' }});
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok || !data || !data.ok) {
-      alert((data && data.error) ? data.error : "Erreur lors de l'association.");
-      return;
-    }
-    window.location.reload();
-  }
-
-  applyBtn.addEventListener('click', applyRevendeur);
-
-  document.querySelectorAll('.js-link-revendeur').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      current.rachatId = parseInt(btn.dataset.rachatId, 10);
-      current.csrf = btn.dataset.csrf;
-      current.csrfProcess = btn.dataset.csrfProcess;
-      current.returnUrl = btn.dataset.return || '';
-      current.backEnabled = parseInt(btn.dataset.backEnabled || '1', 10);
-
-      const email = (btn.dataset.email || '').trim();
-      const tel = (btn.dataset.telephone || '').trim();
-      const nom = (btn.dataset.nom || '').trim();
-      const prenom = (btn.dataset.prenom || '').trim();
-
-      //let q = '';
-      //if (email) q = email;
-      //else if (tel) q = tel;
-      let  q = (nom);
-
-      input.value = q;
-      renderResults([]);
-
-      if ($modal && $modal.modal) $modal.modal('show');
-      else document.getElementById('revendeurModal').style.display = 'block';
-
-      if (q.length >= 2) {
-        const list = await searchRevendeurs(q);
-        renderResults(list);
-      }
-      input.focus();
-    });
-  });
-});
-
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btn_create_arrivage');
-  const input = document.getElementById('arrivage_label');
-  const form = document.getElementById('rachats_form');
-  if (!btn || !input || !form) return;
-
-  btn.addEventListener('click', (e) => {
-    const anyChecked = [...document.querySelectorAll('input[name="ids[]"]')].some(cb => cb.checked);
-    if (!anyChecked) return; // le controller affichera "sélection requise"
-
-    e.preventDefault();
-    const label = prompt("Libellé de l’arrivage :", "Arrivage " + new Date().toLocaleDateString('fr-FR'));
-    if (label === null) return;
-    input.value = label.trim() || "Arrivage";
-
-    form.requestSubmit(btn);
-  });
-});
-</script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('rachats_form');
@@ -696,52 +1073,32 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnMasquer = form.querySelector('button[name="val"][value="0"]');
   const btnReveler = form.querySelector('button[name="val"][value="1"]');
   const btnEncaisser = form.querySelector('button[formaction*="encaissement_batch"]');
-  const btnArrivage = form.querySelector('button[formaction*="admin_arrivages_create_from_rachats"]');
 
-  function getSelectedRows() {
-    const ids = [...form.querySelectorAll('input[name="ids[]"]:checked')].map(cb => cb.value);
-    return ids
-      .map(id => document.querySelector('#rachat-' + id))
-      .filter(Boolean);
+  function getSelected(){
+    return [...form.querySelectorAll('input[name="ids[]"]:checked')];
   }
 
-  function refreshBarState() {
-    const rows = getSelectedRows();
-    const any = rows.length > 0;
-
-    // Masquer/Révéler: juste besoin d’une sélection
-    if (btnMasquer) btnMasquer.disabled = !any;
-    if (btnReveler) btnReveler.disabled = !any;
-
-    // Encaisser: sélection + au moins un non payé
-    if (btnEncaisser) {
-      const hasUnpaid = rows.some(tr => tr.dataset.paid !== '1');
-      btnEncaisser.disabled = !(any && hasUnpaid);
-      btnEncaisser.title = (!any) ? "Sélection requise" : (!hasUnpaid ? "Tout est déjà payé" : "");
-    }
-
-    // Arrivage: sélection + supplier unique (évite ton erreur controller)
-    if (btnArrivage) {
-      const suppliers = new Set(rows.map(tr => (tr.dataset.supplier || '0')).filter(x => x !== '0'));
-      const uniqueSupplier = suppliers.size <= 1; // 0 (inconnu) ou 1 ok
-      btnArrivage.disabled = !(any && uniqueSupplier);
-
-      if (!any) btnArrivage.title = "Sélection requise";
-      else if (!uniqueSupplier) btnArrivage.title = "Sélection invalide: plusieurs revendeurs différents";
-      else btnArrivage.title = "";
-    }
+  function setDisabled(el, disabled){
+    if (!el) return;
+    el.disabled = disabled;
+    el.classList.toggle('rbtn-disabled', disabled);
   }
 
-  // écoute sélection
-  form.addEventListener('change', (e) => {
+  function refresh(){
+    const any = getSelected().length > 0;
+    setDisabled(btnMasquer, !any);
+    setDisabled(btnReveler, !any);
+    setDisabled(btnEncaisser, !any);
+  }
+
+  form.addEventListener('change', function(e){
     if (e.target && e.target.matches('input[name="ids[]"], #check_all')) {
-      refreshBarState();
+      refresh();
     }
   });
 
-  refreshBarState();
+  refresh();
 });
 </script>
-
 
 {% endblock %}
