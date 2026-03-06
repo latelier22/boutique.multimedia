@@ -10,6 +10,11 @@
         💶 Caisse
     </a>
 
+    <a href="{{ path('admin_dashboard_rachats_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_dashboard_rachats_' ? 'active' : '' }}">
+       ➜] Export comptable
+    </a>    
+
     <a href="{{ path('admin_arrivages_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_arrivages_' ? 'active' : '' }}">
         📦 Arrivages
@@ -25,3 +30,4 @@
         📱 Produits Hiboutik
     </a>
 </div>
+

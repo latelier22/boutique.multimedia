@@ -14,17 +14,29 @@ final class RachatStatisticsController extends AbstractController
     public function __construct(private EntityManagerInterface $em) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
-    {
-        // ✅ Par défaut : 15 derniers jours
-        $data = $this->getStats('week');
+public function index(Request $request): Response
+{
+    // ✅ Par défaut : année en cours et mois précédent
+    $now = new \DateTimeImmutable('now');
+    $currentYear = $now->format('Y');
+    $currentMonth = (int) $now->format('m');
+    $lastMonth = $currentMonth === 1 ? 12 : $currentMonth - 1; // Mois précédent
 
-        return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics.html.twig', [
-            'statistics'       => $data['summary'],
-            'sales_summary'    => $data['series'],
-            'defaultInterval'  => 'week',
-        ]);
-    }
+    // Si aucun paramètre "year" ou "month" n'est passé, on utilise ceux par défaut
+    $year = $request->query->get('year', $currentYear); // année par défaut : année actuelle
+    $month = $request->query->get('month', $lastMonth); // mois par défaut : mois précédent
+
+    // Récupère les stats pour la période demandée
+    $data = $this->getStats('month'); // Tu peux ici choisir la période par défaut ou en fonction du paramètre
+
+    return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics.html.twig', [
+        'statistics'       => $data['summary'],
+        'sales_summary'    => $data['series'],
+        'defaultInterval'  => 'month',  // ou 'week', 'year' en fonction de ton paramètre
+        'currentYear'      => $year,
+        'currentMonth'     => $month,
+    ]);
+}
 
     #[Route('/stats', name: 'stats', methods: ['GET'])]
     public function stats(Request $request): JsonResponse

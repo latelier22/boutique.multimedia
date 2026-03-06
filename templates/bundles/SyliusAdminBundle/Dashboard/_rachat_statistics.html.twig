@@ -6,46 +6,48 @@
   <div class="column">
     <div class="stats">
       <div class="ui top attached action header">
-      <div class="ui segment">
-    <h4 class="ui header">Export comptable des rachats</h4>
+        <div class="ui segment">
+          <h4 class="ui header">Export comptable des rachats</h4>
 
-    <form method="get" action="{{ path('admin_dashboard_rachats_export') }}" class="ui form">
-        <div class="fields">
-            <div class="field">
-                <label>Période</label>
-                <select name="period" class="ui dropdown">
-                    <option value="month">Mensuelle</option>
-                    <option value="year">Annuelle</option>
-                </select>
-            </div>
+          <form method="get" action="{{ path('admin_dashboard_rachats_export') }}" class="ui form">
+              <div class="fields">
+                  <div class="field">
+                      <label>Période</label>
+                      <select name="period" class="ui dropdown">
+                          <option value="month" {% if defaultInterval == 'month' %} selected {% endif %}>Mensuelle</option>
+                          <option value="year" {% if defaultInterval == 'year' %} selected {% endif %}>Annuelle</option>
+                      </select>
+                  </div>
 
-            <div class="field">
-                <label>Année</label>
-                {% set currentYear = "now"|date("Y") %}
-                <select name="year" class="ui dropdown">
-                    {% for y in (currentYear-3)..(currentYear+1) %}
-                        <option value="{{ y }}">{{ y }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+                  <div class="field">
+                      <label>Année</label>
+                      {% set currentYear = "now"|date("Y") %}
+                      <select name="year" class="ui dropdown">
+                          {% for y in (currentYear-3)..(currentYear+1) %}
+                              <option value="{{ y }}" {% if y == currentYear %} selected {% endif %}>{{ y }}</option>
+                          {% endfor %}
+                      </select>
+                  </div>
 
-            <div class="field">
-                <label>Mois (si mensuel)</label>
-                <select name="month" class="ui dropdown">
-                    {% for m in 1..12 %}
-                        <option value="{{ m }}">{{ '%02d'|format(m) }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+                  <div class="field">
+                      <label>Mois (si mensuel)</label>
+                      <select name="month" class="ui dropdown">
+                          {% for m in 1..12 %}
+                              <option value="{{ m }}" {% if m == currentMonth %} selected {% endif %}>
+                                  {{ '%02d'|format(m) }}
+                              </option>
+                          {% endfor %}
+                      </select>
+                  </div>
+              </div>
+
+              <button type="submit" class="ui button">
+                  Exporter pour le comptable (CSV)
+              </button>
+          </form>
+
+          <small>Le CSV ne contient aucune donnée personnelle des vendeurs.</small>
         </div>
-
-        <button type="submit" class="ui button">
-            Exporter pour le comptable (CSV)
-        </button>
-    </form>
-
-    <small>Le CSV ne contient aucune donnée personnelle des vendeurs.</small>
-</div>
 
         <i class="chart bar icon"></i>
         Rachats
@@ -53,7 +55,7 @@
         <div class="ui buttons" style="margin-left: 1rem;">
             <button class="ui basic button active green" data-rachat-stats="week" data-url="{{ path('admin_dashboard_rachats_stats') }}">15 derniers jours</button>
             <button class="ui basic button" data-rachat-stats="month" data-url="{{ path('admin_dashboard_rachats_stats') }}">Mois courant</button>
-            <button class="ui basic button" data-rachat-stats="year" data-url="{{ path('admin_dashboard_rachats_stats') }}">Année {{ "now"|date("Y") }}</button>
+            <button class="ui basic button" data-rachat-stats="year" data-url="{{ path('admin_dashboard_rachats_stats') }}">Année {{ currentYear }}</button>
             <button class="ui basic button" data-rachat-stats="last12" data-url="{{ path('admin_dashboard_rachats_stats') }}">12 derniers mois</button>
         </div>
       </div>
