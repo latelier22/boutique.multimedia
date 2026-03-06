@@ -31,19 +31,6 @@
     "behat/transliterator": {
         "version": "v1.2.0"
     },
-    "bitbag/wishlist-plugin": {
-        "version": "4.4",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "4.4",
-            "ref": "96b9eb4312dca97d006d107069c271fabf333e57"
-        },
-        "files": [
-            "config/packages/bitbag_wishlist_plugin.yaml",
-            "config/routes/bitbag_wishlist_plugin.yaml"
-        ]
-    },
     "clue/stream-filter": {
         "version": "v1.4.0"
     },
@@ -139,21 +126,6 @@
     },
     "fig/link-util": {
         "version": "1.1.1"
-    },
-    "flux-se/payum-stripe-bundle": {
-        "version": "v2.0.1"
-    },
-    "flux-se/sylius-payum-stripe-plugin": {
-        "version": "2.0",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "2.0",
-            "ref": "04fbe1af8361502462ab7f8c1fd3152508f93f57"
-        },
-        "files": [
-            "config/packages/flux_se_sylius_payum_stripe.yaml"
-        ]
     },
     "friends-of-behat/mink": {
         "version": "v1.8.0"
@@ -413,8 +385,17 @@
             "ref": "5ef2976310e8f9621c1a722a73bfbe115c1559a3"
         }
     },
-    "odiseoteam/sylius-banner-plugin": {
-        "version": "v1.3.1"
+    "nyholm/psr7": {
+        "version": "1.8",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "1.0",
+            "ref": "4a8c0345442dcca1d8a2c65633dcf0285dd5a5a2"
+        },
+        "files": [
+            "config/packages/nyholm_psr7.yaml"
+        ]
     },
     "openlss/lib-array2xml": {
         "version": "0.0.10"
@@ -425,9 +406,6 @@
     "payum/iso4217": {
         "version": "1.0.1"
     },
-    "payum/payum": {
-        "version": "1.5.0"
-    },
     "payum/payum-bundle": {
         "version": "2.3.1"
     },
@@ -436,21 +414,6 @@
     },
     "phar-io/version": {
         "version": "1.0.1"
-    },
-    "php-http/discovery": {
-        "version": "1.19",
-        "recipe": {
-            "repo": "github.com/symfony/recipes",
-            "branch": "main",
-            "version": "1.18",
-            "ref": "f45b5dd173a27873ab19f5e3180b2f661c21de02"
-        },
-        "files": [
-            "config/packages/http_discovery.yaml"
-        ]
-    },
-    "php-http/guzzle6-adapter": {
-        "version": "v1.1.1"
     },
     "php-http/httplug": {
         "version": "v1.1.0"
@@ -472,9 +435,6 @@
     },
     "phpdocumentor/type-resolver": {
         "version": "0.4.0"
-    },
-    "phpseclib/phpseclib": {
-        "version": "2.0.30"
     },
     "phpspec/php-diff": {
         "version": "v1.1.0"
@@ -596,9 +556,6 @@
     "sonata-project/block-bundle": {
         "version": "3.12.1"
     },
-    "sonata-project/cache": {
-        "version": "2.0.1"
-    },
     "sonata-project/doctrine-extensions": {
         "version": "1.1.0"
     },
@@ -678,9 +635,6 @@
     },
     "sylius/mailer-bundle": {
         "version": "v1.4.4"
-    },
-    "sylius/paypal-plugin": {
-        "version": "v1.0.1"
     },
     "sylius/registry": {
         "version": "v1.4.1"
@@ -1075,18 +1029,6 @@
     },
     "twig/twig": {
         "version": "v2.5.0"
-    },
-    "vich/uploader-bundle": {
-        "version": "1.23",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "1.13",
-            "ref": "1b3064c2f6b255c2bc2f56461aaeb76b11e07e36"
-        },
-        "files": [
-            "config/packages/vich_uploader.yaml"
-        ]
     },
     "webmozart/assert": {
         "version": "1.3.0"

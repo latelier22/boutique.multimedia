@@ -218,10 +218,11 @@ sylius_ui:
 
         sylius.shop.homepage:
             blocks:
+                    priority: 60
                 # latest_products:
                 #     template: "@SyliusShop/Homepage/_latestProducts.html.twig"
                 #     priority: 0
-                isFront_taxons:
+                isFrontt_taxons:
                     template: "@SyliusShop/Homepage/_isFrontTaxons.html.twig"
                     priority: 55
                 # mis_en_avant_products:
@@ -892,6 +893,7 @@ sylius_ui:
                 content:
                     template: "@SyliusShop/Layout/Header/_content.html.twig"
                     priority: 50
+                    priority: 40
                 cart:
                     template: "@SyliusShop/Layout/Header/_cart.html.twig"
                     priority: 30
