@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<style>
+body {
+    margin:0;
+    background:#0b0f1a;
+    color:white;
+    font-family:Inter;
+}
+
+.container {
+    padding:20px;
+}
+
+h2 {
+    margin-top:30px;
+}
+
+input, textarea {
+    width:100%;
+    padding:15px;
+    margin-bottom:15px;
+    border-radius:10px;
+    border:none;
+    font-size:18px;
+}
+
+button {
+    width:100%;
+    padding:18px;
+    font-size:20px;
+    border:none;
+    border-radius:12px;
+    background:#2F5FB8;
+    color:white;
+}
+</style>
+
+<div class="container">
+
+<h1>Client #{{ customer.customers_id }}</h1>
+
+<form method="post">
+
+<h2>Client</h2>
+
+<label>Nom</label>
+<input name="last_name" value="{{ customer.last_name }}">
+
+<label>Prénom</label>
+<input name="first_name" value="{{ customer.first_name }}">
+
+<label>Société</label>
+<input name="company" value="{{ customer.company }}">
+
+<label>Email</label>
+<input name="email" value="{{ customer.email }}">
+
+<label>Téléphone</label>
+<input name="phone" value="{{ customer.phone }}">
+
+<label>Pays</label>
+<input name="country" value="{{ customer.country }}">
+
+<h2>Adresse</h2>
+
+<textarea name="address_address">{{ address.address ?? '' }}</textarea>
+
+<input name="address_zip_code" value="{{ address.zip_code ?? '' }}" placeholder="Code postal">
+<input name="address_city" value="{{ address.city ?? '' }}" placeholder="Ville">
+<input name="address_state" value="{{ address.state ?? '' }}" placeholder="Département">
+<input name="address_country" value="{{ address.country ?? 'FRA' }}" placeholder="Pays">
+
+<button type="submit">ENREGISTRER</button>
+
+</form>
+
+<div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:15px;">
+
+  <a href="{{ path('tablet_wait', {device: 'TAB1'}) }}"
+     style="
+       flex:1;
+       text-align:center;
+       padding:15px;
+       border-radius:12px;
+       background:#444;
+       color:white;
+       text-decoration:none;
+       font-size:18px;
+     ">
+    ⬅ Retour
+  </a>
+
+
+</div>
+
+</div>
+
+
+
+{% endblock %}

@@ -2,8 +2,8 @@
 
 namespace App\Service;
 
-use App\Entity\Rachat;
-use App\Entity\Revendeur;
+use App\Entity\Rachat\Rachat;
+use App\Entity\Rachat\Revendeur;
 
 final class RachatFactory
 {

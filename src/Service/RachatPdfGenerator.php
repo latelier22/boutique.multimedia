@@ -6,7 +6,7 @@ use Twig\Environment as Twig;
 use Knp\Snappy\Pdf;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Filesystem\Filesystem;
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 
 final class RachatPdfGenerator
 {

@@ -1,123 +1,126 @@
 {% set img = p.image ?? p.thumb ?? null %}
-<div style="font-family:sans-serif;padding:15px;font-size:14px;">
-  <h3 style="margin:0 0 8px;">🧩 {{ p.product_model }}</h3>
+{% set miscRaw = p.misc_text|default('') %}
 
-  <div>
-    <b>Marque:</b> {{ brandName ?: ('ID ' ~ (p.product_brand ?? '—')) }}<br>
-    <b>Catégorie:</b> {{ catName ?: ('ID ' ~ (p.product_category ?? '—')) }}<br>
-    <b>Prix:</b> {{ p.product_price ?? '—' }} €<br>
-    <b>WWW:</b> {{ p.product_display_www ?? 0 }}<br>
+<div style="font-family:sans-serif;padding:15px;font-size:14px;color:#111827;">
+
+  <h3 style="margin:0 0 10px;">🧩 {{ p.product_model ?? p.product_name ?? ('Produit #' ~ (p.product_id ?? '')) }}</h3>
+
+  <div style="line-height:1.6;">
+    <b>Marque :</b> {{ brandName ?: ('ID ' ~ (p.product_brand ?? '—')) }}<br>
+    <b>Catégorie :</b> {{ catName ?: ('ID ' ~ (p.product_category ?? '—')) }}<br>
+    <b>Prix :</b> {{ p.product_price ?? '—' }} €<br>
+    <b>WWW :</b> {{ p.product_display_www ?? 0 }}<br>
   </div>
 
-  <hr>
+  <hr style="margin:14px 0;">
 
-  <h4>🧾 MISC</h4>
-  <div><b>misc_varchar:</b> {{ p.misc_varchar ?? '—' }}</div>
-  <div><b>misc_varchar2:</b> {{ p.misc_varchar2 ?? '—' }}</div>
-  <div><b>misc_int:</b> {{ p.misc_int ?? '—' }}</div>
-  <div><b>misc_decimal:</b> {{ p.misc_decimal ?? '—' }}</div>
-  <div style="margin-top:6px;"><b>misc_text:</b><br>
-    <div style="white-space:pre-wrap;border:1px dashed #ddd;padding:8px;border-radius:8px;background:#fff;">
-      {{ p.misc_text ?? '—' }}
+  <h4 style="margin:0 0 10px;">🧾 Champs MISC</h4>
+
+  {% if miscFields is defined and miscFields|length > 0 %}
+    <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;background:#fff;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f3f4f6;">
+            <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Label</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Valeur</th>
+            <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Code</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for field in miscFields %}
+            <tr>
+              <td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:600;vertical-align:top;">
+                {{ field.label|default('—') ?: '—' }}
+              </td>
+              <td style="padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:top;">
+                {% if field.value is defined and field.value is not empty %}
+                  {{ field.value }}
+                {% else %}
+                  <span style="color:#9ca3af;">—</span>
+                {% endif %}
+              </td>
+              <td style="padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#6b7280;font-family:monospace;font-size:12px;">
+                {{ field.code|default('—') ?: '—' }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  {% else %}
+    <div style="padding:10px;border:1px dashed #d1d5db;border-radius:10px;background:#fff;color:#6b7280;">
+      Aucun champ MISC structuré.
+    </div>
+  {% endif %}
+
+  <div style="margin-top:12px;">
+    <div><b>misc_varchar :</b> {{ p.misc_varchar ?? '—' }}</div>
+    <div><b>misc_varchar2 :</b> {{ p.misc_varchar2 ?? '—' }}</div>
+    <div><b>misc_int :</b> {{ p.misc_int ?? '—' }}</div>
+    <div><b>misc_decimal :</b> {{ p.misc_decimal ?? '—' }}</div>
   </div>
 
   <div style="margin-top:12px;">
-  <textarea id="misc_text_input" style="width:100%;min-height:80px;"></textarea>
-  <button id="saveBtn" style="margin-top:8px;">💾 Sauver misc_text</button>
-  <span id="msg"></span>
-</div>
+    <details>
+      <summary style="cursor:pointer;font-weight:700;">Afficher le JSON brut de misc_text</summary>
+      <div style="margin-top:8px;white-space:pre-wrap;border:1px dashed #ddd;padding:8px;border-radius:8px;background:#fff;">
+        {{ miscRaw ?: '—' }}
+      </div>
+    </details>
+  </div>
 
-  <hr>
+  <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+    <div style="font-weight:700;margin-bottom:6px;">📝 Commentaire / misc_text</div>
 
+    <textarea
+      id="miscText"
+      style="width:100%;min-height:90px;padding:8px;border:1px solid #d1d5db;border-radius:8px;"
+      placeholder="Ex: état, couleur, stockage, batterie à changer..."
+    >{{ p.misc_text|default('') }}</textarea>
 
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+      <button
+        type="button"
+        id="btnSaveMisc"
+        style="padding:8px 12px;border-radius:8px;border:0;background:#111827;color:white;cursor:pointer;"
+      >
+        Enregistrer
+      </button>
 
+      <span id="saveState" style="font-size:13px;"></span>
+    </div>
+  </div>
 
+  <hr style="margin:14px 0;">
 
-  <h4>🏷️ Tags</h4>
+  <h4 style="margin:0 0 8px;">🏷️ Tags</h4>
   {% set tags = p.tags ?? [] %}
   {% if tags|length %}
-    {% for t in tags %}
-      <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#f3f4f6;margin:2px 4px 0 0;">
-        {{ t.tag_label }}
-      </span>
-    {% endfor %}
+    <div>
+      {% for t in tags %}
+        <span style="display:inline-block;padding:3px 8px;border-radius:999px;background:#f3f4f6;margin:2px 4px 0 0;">
+          {{ t.tag_label }}
+        </span>
+      {% endfor %}
+    </div>
   {% else %}
     <em>Aucun</em>
   {% endif %}
 
-  <hr>
+  <hr style="margin:14px 0;">
 
-  <h4>📦 Fournisseur</h4>
+  <h4 style="margin:0 0 8px;">📦 Fournisseur</h4>
   {% if supplier %}
-    <b>Nom:</b> {{ supplier.supplier_name ?? '—' }}<br>
-    <b>Email:</b> {{ supplier.supplier_email ?? '—' }}<br>
-    <b>Tél:</b> {{ supplier.supplier_contact ?? '—' }}<br>
+    <b>Nom :</b> {{ supplier.supplier_name ?? '—' }}<br>
+    <b>Email :</b> {{ supplier.supplier_email ?? '—' }}<br>
+    <b>Tél :</b> {{ supplier.supplier_contact ?? '—' }}<br>
   {% else %}
     <em>Aucun</em>
   {% endif %}
 
   {% if img %}
-    <div style="margin-top:10px;">
+    <div style="margin-top:12px;">
       <img src="{{ img }}" style="max-width:100%;border-radius:10px;border:1px solid #e5e7eb;">
     </div>
   {% endif %}
 </div>
-
-<div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
-  <div style="font-weight:700;margin-bottom:6px;">📝 Commentaire (misc_text)</div>
-
-  <textarea id="miscText" style="width:100%;min-height:90px;padding:8px;border:1px solid #d1d5db;border-radius:8px;"
-    placeholder="Ex: état, couleur, stockage, batterie à changer...">{{ p.misc_text|default('') }}</textarea>
-
-  <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-    <button type="button" id="btnSaveMisc"
-      style="padding:8px 12px;border-radius:8px;border:0;background:#111827;color:white;cursor:pointer;">
-      Enregistrer
-    </button>
-
-    <span id="saveState" style="font-size:13px;"></span>
-  </div>
-</div>
-
-<script>
-(function(){
-  const btn = document.getElementById('btnSaveMisc');
-  const ta  = document.getElementById('miscText');
-  const st  = document.getElementById('saveState');
-  if (!btn || !ta || !st) return;
-
-  function setState(msg, ok){
-    st.textContent = msg;
-    st.style.color = ok ? '#166534' : '#991b1b';
-  }
-
-  btn.addEventListener('click', async () => {
-    try {
-      setState('Envoi...', true);
-
-      const res = await fetch('/hiboutik/widget/product/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: {{ p.product_id|default(0) }},
-          misc_text: ta.value
-        })
-      });
-
-      const json = await res.json().catch(() => ({}));
-
-      if (!res.ok || !json.ok) {
-        console.error('SAVE FAIL', res.status, json);
-        setState('Erreur: ' + (json.error || json.raw || res.status), false);
-        return;
-      }
-
-      setState('✅ Enregistré', true);
-    } catch (e) {
-      console.error(e);
-      setState('Erreur réseau', false);
-    }
-  });
-})();
-</script>

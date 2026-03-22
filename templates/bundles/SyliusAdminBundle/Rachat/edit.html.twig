@@ -86,8 +86,11 @@
     <div class="field">{{ form_row(form.marqueModele) }}</div>
     <div class="field">{{ form_row(form.imei) }}</div>
     <div class="field">{{ form_row(form.hibBrandId) }}</div>
-    <div class="field">{{ form_row(form.hibCategoryId) }}</div>
+        <div class="field">{{ form_row(form.hibCategoryId) }}</div>
   </div>
+
+
+  {% include '@SyliusAdmin/Rachat/_attributes.html.twig' with { rachat: rachat } %}
 
   <div class="three fields">
     <div class="field">{{ form_row(form.numeroCi) }}</div>
@@ -147,15 +150,27 @@
     <div class="muted" style="margin-top:.3rem">Les photos seront compressées en JPEG ≤ 1 Mo et stockées localement.</div>
   </div>
 
-  <div class="two fields">
+  <div class="two fields right aligned">
     <button class="ui primary button" type="submit">Enregistrer</button>
     <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
+    
   </div>
+
+  
 
   {{ form_row(form._token) }}
   <input type="hidden" name="_go_sign" id="go-sign" value="0">
   {{ form_end(form, { render_rest: false }) }}
 </div>
+
+
+{# <iframe 
+  src="{{ path('admin_rachats_attributes', {id: rachat.id}) }}" 
+  style="width:100%; height:300px; border:none;">
+</iframe> #}
+
+{% include '@SyliusAdmin/Rachat/_attributes.html.twig' with { rachat: rachat } %}
+
 
 {# ========= Photos locales : conteneur TOUJOURS PRÉSENT + placeholder ========= #}
 <h4 class="ui dividing header">Photos locales</h4>
@@ -231,6 +246,60 @@
     </div>
   {% endif %}
 </div>
+{# 
+<form method="post"
+      action="{{ path('admin_rachats_create_hib_product_arrivage', {id: rachat.id}) }}"
+      style="display:inline-block">
+  <button type="submit" class="ui orange button">
+    <i class="cube icon"></i>
+    Créer produit Hiboutik + ajout arrivage mensuel
+  </button>
+</form> #}
+
+<div class="ui segment">
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+
+    {% if rachat.hibProductId %}
+      <span class="ui green label">
+        Produit Hiboutik lié : #{{ rachat.hibProductId }}
+      </span>
+
+      <button type="button" class="ui button disabled">
+        <i class="plus icon"></i>
+        Créer Hib product
+      </button>
+
+      <form method="post"
+            action="{{ path('admin_rachats_hib_product_update', {id: rachat.id}) }}"
+            style="display:inline-block;">
+        <button type="submit" class="ui primary button">
+          <i class="refresh icon"></i>
+          MAJ produit Hib
+        </button>
+      </form>
+    {% else %}
+      <span class="ui grey label">
+        Aucun produit Hiboutik
+      </span>
+
+      <form method="post"
+            action="{{ path('admin_rachats_create_hib_product_arrivage', {id: rachat.id}) }}"
+            style="display:inline-block;">
+        <button type="submit" class="ui green button">
+          <i class="plus icon"></i>
+          Créer Hib product
+        </button>
+      </form>
+
+      <button type="button" class="ui button disabled">
+        <i class="refresh icon"></i>
+        MAJ produit Hib
+      </button>
+    {% endif %}
+
+  </div>
+</div>
+
 
 {# ======================= JS ======================= #}
 

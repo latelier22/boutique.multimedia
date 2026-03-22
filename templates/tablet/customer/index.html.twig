@@ -1,0 +1,370 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Clients tablette{% endblock %}
+
+{% block body %}
+<style>
+  :root{
+    --bg:#070b14;
+    --panel:#101827;
+    --panel-2:#172033;
+    --text:#eef3ff;
+    --muted:rgba(238,243,255,.68);
+    --line:rgba(255,255,255,.08);
+    --accent:#2f5fb8;
+    --accent-2:#7fa6e6;
+    --danger:#d9534f;
+    --radius:18px;
+  }
+
+  *{box-sizing:border-box}
+
+  body{
+    margin:0;
+    background:linear-gradient(180deg,#05070d 0%, #0a1020 100%);
+    color:var(--text);
+    font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+
+  .tablet-shell{
+    min-height:100vh;
+    padding:18px;
+  }
+
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+    padding:16px 18px;
+    background:rgba(16,24,39,.9);
+    border:1px solid var(--line);
+    border-radius:22px;
+    box-shadow:0 12px 30px rgba(0,0,0,.25);
+    backdrop-filter: blur(8px);
+  }
+
+  .topbar__title{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+
+  .topbar__title h1{
+    margin:0;
+    font-size:26px;
+    line-height:1.1;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+
+  .topbar__title p{
+    margin:0;
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  .topbar__actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    appearance:none;
+    border:none;
+    text-decoration:none;
+    cursor:pointer;
+    border-radius:14px;
+    padding:14px 18px;
+    font-size:16px;
+    font-weight:700;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:48px;
+  }
+
+  .btn--ghost{
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    border:1px solid var(--line);
+  }
+
+  .btn--primary{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:white;
+  }
+
+  .search-card{
+    background:rgba(16,24,39,.92);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+
+  .search-form{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap:12px;
+    align-items:end;
+  }
+
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+
+  .field label{
+    font-size:14px;
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  .field input{
+    width:100%;
+    min-height:54px;
+    border:none;
+    outline:none;
+    border-radius:16px;
+    padding:0 16px;
+    font-size:18px;
+    background:#0b1220;
+    color:var(--text);
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .summary{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin:8px 2px 14px;
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  .list{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+
+  .card{
+    display:block;
+    text-decoration:none;
+    color:inherit;
+    background:linear-gradient(180deg, rgba(23,32,51,.96), rgba(12,18,31,.96));
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);
+  }
+
+  .card:active{
+    transform:scale(.995);
+  }
+
+  .card__top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:10px;
+  }
+
+  .identity{
+    min-width:0;
+  }
+
+  .identity__name{
+    margin:0;
+    font-size:24px;
+    font-weight:800;
+    line-height:1.15;
+    word-break:break-word;
+  }
+
+  .identity__company{
+    margin-top:6px;
+    color:var(--muted);
+    font-size:15px;
+    word-break:break-word;
+  }
+
+  .badge{
+    flex:0 0 auto;
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:13px;
+    font-weight:800;
+    background:rgba(127,166,230,.14);
+    color:#cfe0ff;
+    border:1px solid rgba(127,166,230,.2);
+  }
+
+  .meta{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px 14px;
+    margin-top:8px;
+  }
+
+  .meta__item{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:16px;
+    padding:10px 12px;
+    min-height:64px;
+  }
+
+  .meta__label{
+    color:var(--muted);
+    font-size:12px;
+    margin-bottom:5px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    font-weight:700;
+  }
+
+  .meta__value{
+    font-size:16px;
+    font-weight:700;
+    word-break:break-word;
+  }
+
+  .card__footer{
+    margin-top:12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    color:var(--muted);
+    font-size:13px;
+  }
+
+  .empty{
+    background:rgba(16,24,39,.92);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:28px 18px;
+    text-align:center;
+    color:var(--muted);
+  }
+
+  @media (max-width: 700px){
+    .topbar{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .topbar__actions{
+      width:100%;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+    }
+
+    .search-form{
+      grid-template-columns:1fr;
+    }
+
+    .meta{
+      grid-template-columns:1fr;
+    }
+  }
+</style>
+
+<div class="tablet-shell">
+  <div class="topbar">
+    <div class="topbar__title">
+      <h1>Clients</h1>
+      <p>10 derniers clients Hiboutik</p>
+    </div>
+
+    <div class="topbar__actions">
+      <a class="btn btn--ghost" href="{{ path('tablet_wait', {device: device}) }}">Retour</a>
+      <a class="btn btn--primary" href="#">Nouveau client</a>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <form method="get" class="search-form">
+      <input type="hidden" name="device" value="{{ device }}">
+
+      <div class="field">
+        <label for="q">Recherche</label>
+        <input
+          id="q"
+          type="text"
+          name="q"
+          value="{{ q }}"
+          placeholder="Nom, prénom, téléphone, email, société..."
+          autofocus
+        >
+      </div>
+
+      <button class="btn btn--primary" type="submit">Rechercher</button>
+    </form>
+  </div>
+
+  <div class="summary">
+    <div>{{ customers|length }} client{{ customers|length > 1 ? 's' : '' }}</div>
+    <div>{{ q ? 'Filtre actif : "' ~ q ~ '"' : 'Affichage des plus récents' }}</div>
+  </div>
+
+  <div class="list">
+    {% for c in customers %}
+      <a class="card" href="#">
+        <div class="card__top">
+          <div class="identity">
+            <h2 class="identity__name">
+              {{ (c.first_name ?? '') ~ ' ' ~ (c.last_name ?? '') ?: 'Client sans nom' }}
+            </h2>
+
+            {% if c.company ?? '' %}
+              <div class="identity__company">{{ c.company }}</div>
+            {% endif %}
+          </div>
+
+          <div class="badge">#{{ c.customers_id }}</div>
+        </div>
+
+        <div class="meta">
+          <div class="meta__item">
+            <div class="meta__label">Téléphone</div>
+            <div class="meta__value">{{ c.phone ?: '—' }}</div>
+          </div>
+
+          <div class="meta__item">
+            <div class="meta__label">Email</div>
+            <div class="meta__value">{{ c.email ?: '—' }}</div>
+          </div>
+
+          <div class="meta__item">
+            <div class="meta__label">Pays</div>
+            <div class="meta__value">{{ c.country ?: '—' }}</div>
+          </div>
+
+          <div class="meta__item">
+            <div class="meta__label">Réf. externe</div>
+            <div class="meta__value">{{ c.customers_ref_ext ?: '—' }}</div>
+          </div>
+        </div>
+
+        <div class="card__footer">
+          <span>Mise à jour : {{ c.updated_at ?: '—' }}</span>
+          <span>Ouvrir</span>
+        </div>
+      </a>
+    {% else %}
+      <div class="empty">
+        Aucun client trouvé.
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

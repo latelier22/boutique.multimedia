@@ -19,41 +19,38 @@ final class HiboutikWidgetController extends AbstractController
         private string $login,
         private string $apiKey,
         private string $widgetSecret,
-        private LoggerInterface $logger, // ✅ ajoute ça
+        private LoggerInterface $logger,
         private HiboutikClient $hib,
     ) {}
 
-#[Route('/hiboutik/widget/product/save', name: 'hiboutik_widget_product_save', methods: ['POST','OPTIONS'])]
-public function save(Request $request): JsonResponse
-{
-    if (!$this->isValidHiboutikToken($request)) {
-        return $this->json(['ok' => false, 'error' => 'invalid token'], 403);
+    #[Route('/hiboutik/widget/product/save', name: 'hiboutik_widget_product_save', methods: ['POST','OPTIONS'])]
+    public function save(Request $request): JsonResponse
+    {
+        if (!$this->isValidHiboutikToken($request)) {
+            return $this->json(['ok' => false, 'error' => 'invalid token'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true) ?: [];
+        $productId = (int)($data['product_id'] ?? 0);
+        $miscText  = (string)($data['misc_text'] ?? '');
+
+        if ($productId <= 0) {
+            return $this->json(['ok' => false, 'error' => 'missing product_id'], 400);
+        }
+
+        $r = $this->hib->putProductAttributeSingle($productId, 'misc_text', $miscText);
+
+        return $this->json([
+            'ok' => (bool)($r['ok'] ?? false),
+            'status' => $r['status'] ?? 0,
+            'raw' => $r['raw'] ?? null,
+            'data' => $r['data'] ?? null,
+        ], ($r['ok'] ?? false) ? 200 : 502);
     }
-
-    $data = json_decode($request->getContent(), true) ?: [];
-    $productId = (int)($data['product_id'] ?? 0);
-    $miscText  = (string)($data['misc_text'] ?? '');
-
-    if ($productId <= 0) {
-        return $this->json(['ok' => false, 'error' => 'missing product_id'], 400);
-    }
-
-    // ✅ UTILISATION DE TA METHODE (via wrapper public)
-    $r = $this->hib->putProductAttributeSingle($productId, 'misc_text', $miscText);
-
-    // tu renvoies tel quel pour voir l'erreur hiboutik
-    return $this->json([
-        'ok' => (bool)($r['ok'] ?? false),
-        'status' => $r['status'] ?? 0,
-        'raw' => $r['raw'] ?? null,
-        'data' => $r['data'] ?? null,
-    ], ($r['ok'] ?? false) ? 200 : 502);
-}
 
     #[Route('/hiboutik/widget/product', name: 'hiboutik_widget_product', methods: ['GET','OPTIONS'])]
     public function product(Request $request): JsonResponse
     {
-        // 🔹 1️⃣ Préflight CORS (évite 405 sur OPTIONS)
         if ($request->isMethod('OPTIONS')) {
             return new JsonResponse(null, 204, [
                 'Access-Control-Allow-Origin' => '*',
@@ -64,39 +61,35 @@ public function save(Request $request): JsonResponse
         }
 
         try {
-
             $productId = (int)(
                 $request->query->get('sale_id')
                 ?? $request->query->get('product_id')
                 ?? 0
             );
 
-           $this->logger->info('[HIB_WIDGET] hit', [
-    'uri' => $request->getRequestUri(),
-    'sale_id' => $request->query->get('sale_id'),
-    'has_token' => (bool) $request->headers->get('X-HIBOUTIK-TOKEN'),
-    'has_time'  => (bool) $request->headers->get('X-HIBOUTIK-TOKEN-TIME'),
-]);
+            $this->logger->info('[HIB_WIDGET] hit', [
+                'uri' => $request->getRequestUri(),
+                'sale_id' => $request->query->get('sale_id'),
+                'has_token' => (bool)$request->headers->get('X-HIBOUTIK-TOKEN'),
+                'has_time'  => (bool)$request->headers->get('X-HIBOUTIK-TOKEN-TIME'),
+            ]);
 
             if ($productId <= 0) {
                 return $this->hibJson('Widget', '<p>❌ sale_id manquant</p>');
             }
 
-            // 🔹 2️⃣ Sécurité Token (bypass possible ?debug=1)
             $debug = $request->query->get('debug') === '1';
 
             if (!$debug && !$this->isValidHiboutikToken($request)) {
                 return $this->hibJson('Widget', '<p style="color:red;">❌ Token Hiboutik invalide</p>', 403);
             }
 
-            // 🔹 3️⃣ Produit
             $product = $this->hibGetFirst("products/$productId");
 
             if (!$product) {
                 return $this->hibJson('Widget', '<p>❌ Produit introuvable.</p>');
             }
 
-            // 🔹 4️⃣ Lookups sécurisés
             $brands    = $this->hibGet("brands") ?? [];
             $cats      = $this->hibGet("categories") ?? [];
             $suppliers = $this->hibGet("suppliers") ?? [];
@@ -121,18 +114,20 @@ public function save(Request $request): JsonResponse
                 (string)($product['product_supplier'] ?? '')
             );
 
-            // 🔹 5️⃣ Rendu HTML Twig
+            // ✅ seule vraie modif utile
+            $miscFields = $this->normalizeMiscFields((string)($product['misc_text'] ?? ''));
+
             $html = $this->renderView('hiboutik/widget/widget_product.html.twig', [
                 'p' => $product,
                 'brandName' => $brandName,
                 'catName' => $catName,
                 'supplier' => $supplier,
+                'miscFields' => $miscFields,
             ]);
 
             return $this->hibJson('Produit + MISC', $html);
 
         } catch (\Throwable $e) {
-
             return new JsonResponse([
                 'head' => ['title' => 'Widget ERROR', 'icon' => 'fa fa-bug'],
                 'body' => '<pre style="white-space:pre-wrap;color:#b91c1c;">'
@@ -143,13 +138,13 @@ public function save(Request $request): JsonResponse
         }
     }
 
-private function hibJson(string $title, string $body, int $status = 200): JsonResponse
-{
-    return new JsonResponse([
-        'head' => ['title' => $title, 'icon' => 'fa fa-cube'],
-        'body' => $body,
-    ], $status);
-}
+    private function hibJson(string $title, string $body, int $status = 200): JsonResponse
+    {
+        return new JsonResponse([
+            'head' => ['title' => $title, 'icon' => 'fa fa-cube'],
+            'body' => $body,
+        ], $status);
+    }
 
     private function isValidHiboutikToken(Request $request): bool
     {
@@ -220,5 +215,58 @@ private function hibJson(string $title, string $body, int $status = 200): JsonRe
             }
         }
         return null;
+    }
+
+    private function normalizeMiscFields(string $miscText): array
+    {
+        $miscText = trim($miscText);
+        if ($miscText === '') {
+            return [];
+        }
+
+        $decoded = json_decode($miscText, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $out = [];
+
+        // format moderne :
+        // [
+        //   {"code":"batterie","label":"Batterie","value":"87%"}
+        // ]
+        if (isset($decoded[0]) && is_array($decoded[0])) {
+            foreach ($decoded as $row) {
+                $code  = trim((string)($row['code'] ?? ''));
+                $label = trim((string)($row['label'] ?? ''));
+                $value = trim((string)($row['value'] ?? ''));
+
+                if ($code === '' && $label === '' && $value === '') {
+                    continue;
+                }
+
+                $out[] = [
+                    'code'  => $code,
+                    'label' => $label !== '' ? $label : $code,
+                    'value' => $value,
+                ];
+            }
+
+            return $out;
+        }
+
+        // ancien format objet :
+        // {"attr_xxx":"70","attr_yyy":"128Go"}
+        foreach ($decoded as $key => $value) {
+            $out[] = [
+                'code'  => (string)$key,
+                'label' => (string)$key,
+                'value' => is_scalar($value)
+                    ? trim((string)$value)
+                    : json_encode($value, JSON_UNESCAPED_UNICODE),
+            ];
+        }
+
+        return $out;
     }
 }

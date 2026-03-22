@@ -115,7 +115,17 @@
 {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
 
 <h1 class="ui header">📦 Produits Hiboutik</h1>
+<form method="post" action="{{ path('admin_hiboutik_product_import_external_brands') }}" style="margin-bottom:12px;">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_import_external_brands') }}">
+  <button class="ui button primary" type="submit">
+    <i class="download icon"></i>
+    Charger les marques externes
+  </button>
 
+  <button class="ui button" type="submit" name="dry" value="1">
+    Test à blanc
+  </button>
+</form>
 <div id="stickyTop">
   {# ======= FILTRES GET ======= #}
   <form id="filtersForm" method="get" action="{{ path('admin_hiboutik_product_index') }}"
@@ -195,18 +205,59 @@
   </form>
 
   {# ======= ACTIONS POST ======= #}
-  <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_www_batch') }}" style="margin:0">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_www_batch') }}"/>
+  <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_batch') }}" style="margin:0">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_batch') }}"/>
 
-    <div id="bar">
-      <button type="submit" name="val" value="1" class="btn"><i class="check icon"></i> WWW=Oui (sélection)</button>
-      <button type="submit" name="val" value="0" class="btn btn-secondary"><i class="ban icon"></i> WWW=Non (sélection)</button>
-      <span class="muted" style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <i class="info circle icon"></i> Sélectionne des lignes puis clique.
-      </span>
-    </div>
-  </form>
-</div>
+  <div id="bar">
+
+    {# ===== WWW ===== #}
+    <button type="submit" name="val" value="1" class="btn">
+      <i class="check icon"></i> WWW=Oui
+    </button>
+
+    <button type="submit" name="val" value="0" class="btn btn-secondary">
+      <i class="ban icon"></i> WWW=Non
+    </button>
+
+  
+    <select name="discount_percent" class="ui dropdown">
+  <option value="">💸 Promo</option>
+  <option value="10">-10%</option>
+  <option value="20">-20%</option>
+  <option value="30">-30%</option>
+</select>
+
+<button type="submit" name="action" value="apply_discount" class="btn">
+  💸 Appliquer promo
+</button>
+
+<button type="submit" name="action" value="reset_discount" class="btn btn-secondary">
+  ♻️ Reset promo
+</button>
+
+    {# ===== TAGS ===== #}
+    <select name="tag_id" class="ui dropdown">
+      <option value="">🏷️ Tag</option>
+      {% for label,id in tagChoices %}
+        <option value="{{ id }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+
+    <button type="submit" name="action" value="add_tag" class="btn">
+      ➕ Ajouter tag
+    </button>
+
+    <button type="submit" name="action" value="remove_tag" class="btn btn-secondary">
+      ➖ Retirer tag
+    </button>
+
+    <span class="muted">
+      <i class="info circle icon"></i>
+      Sélectionne des lignes puis clique
+    </span>
+
+  </div>
+</form>
 
 {# ===================== TABLE DESKTOP ===================== #}
 <table id="hibTable">
@@ -221,6 +272,7 @@
       <th>Catégorie</th>
       <th>Fournisseur</th>
       <th>Tags</th>
+      
       <th class="nowrap">WWW</th>
       <th class="nowrap">⚙️</th>
     </tr>
@@ -229,22 +281,27 @@
   {% for p in products %}
     {% set pid = (p.product_id ?? 0) + 0 %}
     {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
-    {% set imgs = p.images ?? [] %}
-    {% set mini = (imgs|length > 0) ? (imgs[0].url ?? '') : '' %}
+   {% set imgs = p.images ?? [] %}
+{% set mini = (imgs|length > 0) ? imgs[0] : '' %}
+
 
     {# ✅ marque : Hiboutik renvoie souvent product_brand_name #}
     {% set brandName = p.product_brand_name ?? p.brand_name ?? '—' %}
 
     {# ✅ tags robustes #}
    {# ✅ TAGS (sans break) #}
-{% set tagsList = (p.tags is iterable) ? p.tags : [] %}
 
-    <tr id="p-{{ pid }}">
+
+    <tr id="p-{{ pid }}" style="{{ mini ? '' : 'background:#fff7ed' }}">
       <td class="select-col"><input type="checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></td>
       <td class="nowrap mono">#{{ pid }}</td>
-      <td class="nowrap">
-        {% if mini %}<img class="thumb" src="{{ mini }}" alt="mini {{ pid }}">{% else %}<span class="muted">—</span>{% endif %}
-      </td>
+     <td>
+  {% if mini %}
+    <img src="{{ mini }}" style="width:40px;height:40px;object-fit:cover;">
+  {% else %}
+    NO IMG
+  {% endif %}
+</td>
       <td class="trunc">{{ p.product_model ?? '—' }}</td>
       <td class="trunc">{{ brandName }}</td>
       <td class="nowrap">{{ p.product_price ?? '—' }}</td>
@@ -252,12 +309,17 @@
       <td class="trunc">{{ p.supplier_name ?? '—' }}</td>
 
       <td>
-     
+{% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
+
 {% if tagsList|length %}
   {% for t in tagsList|slice(0,4) %}
-    <span class="pill pill-info"><i class="tag icon"></i> {{ t.tag_label }}</span>
+    <span class="pill pill-info">
+      <i class="tag icon"></i> {{ t }}
+    </span>
   {% endfor %}
-  {% if tagsList|length > 4 %}<span class="muted">+{{ tagsList|length - 4 }}</span>{% endif %}
+  {% if tagsList|length > 4 %}
+    <span class="muted">+{{ tagsList|length - 4 }}</span>
+  {% endif %}
 {% else %}
   <span class="muted">—</span>
 {% endif %}

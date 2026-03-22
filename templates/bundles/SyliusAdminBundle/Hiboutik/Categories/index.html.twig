@@ -9,130 +9,275 @@
     <div class="ui list" style="margin-left: {{ level * 18 }}px">
       {% for c in kids %}
         {% set id = c.category_id|default(0) %}
+
         <div class="item">
           <i class="folder outline icon"></i>
+
           <div class="content">
             <div class="header">
-              <strong>{{ c.category_name|default('—') }}</strong>
+
+              <!-- 🔥 CLICK CAT -->
+              <strong style="cursor:pointer"
+                onclick="selectCategory({{ id }}, '{{ c.category_name|e('js') }}')">
+                {{ c.category_name|default('—') }}
+              </strong>
+
               <span class="ui tiny basic label">#{{ id }}</span>
-              <span class="ui tiny basic label">parent {{ c.category_id_parent|default(0) }}</span>
 
-              {% if c.category_enabled|default(0) %}
-                <span class="ui tiny green label">Actif</span>
-              {% else %}
-                <span class="ui tiny red label">Inactif</span>
-              {% endif %}
-              <form class="js-toggle-www" method="post"
-      action="{{ path('admin_hiboutik_categories_toggle_www', {id: c.category_id}) }}"
-      style="display:inline">
-  <input type="hidden" name="_token" value="{{ csrf_token('hib_cat_toggle_www_' ~ c.category_id) }}">
-  <input type="hidden" name="current" value="{{ c.category_enabled_www|default(0) }}">
-
-  {% set isWww = c.category_enabled_www|default(0) %}
-  <button type="submit" class="ui tiny {{ isWww ? 'blue' : 'grey' }} button">
-    {{ isWww ? 'WWW: Oui' : 'WWW: Non' }}
-  </button>
-</form>
             </div>
 
             {{ self.renderTree(childrenByParent, id, level + 1) }}
           </div>
         </div>
+
       {% endfor %}
     </div>
   {% endif %}
 {% endmacro %}
 
 {% block content %}
-  <h1 class="ui header">🗂️ Catégories Hiboutik</h1>
 
-  <div class="ui message">
-    <strong>Total :</strong> {{ categories|length }}
-    — <strong>Racines :</strong> {{ roots|length }}
-  </div>
+<div style="display:flex">
 
-  {% import _self as self %}
+  <!-- GAUCHE -->
+  <div style="width:40%">
 
-  <div class="ui list">
+    <h1 class="ui header">Catégories Hiboutik</h1>
+
+    {% import _self as self %}
+
     {% for r in roots %}
       <div class="item">
-        <i class="sitemap icon"></i>
-        <div class="content">
-          <div class="header">
-  <strong>{{ r.category_name|default('—') }}</strong>
-  <span class="ui tiny basic label">#{{ r.category_id|default('—') }}</span>
-  <span class="ui tiny basic label">parent {{ r.category_id_parent|default(0) }}</span>
 
-  {% if r.category_enabled|default(0) %}
-    <span class="ui tiny green label">Actif</span>
-  {% else %}
-    <span class="ui tiny red label">Inactif</span>
-  {% endif %}
+        <!-- 🔥 CLICK ROOT -->
+        <strong style="cursor:pointer"
+          onclick="selectCategory({{ r.category_id }}, '{{ r.category_name|e('js') }}')">
+          {{ r.category_name }}
+        </strong>
 
-  <form class="js-toggle-www" method="post"
-        action="{{ path('admin_hiboutik_categories_toggle_www', {id: r.category_id}) }}"
-        style="display:inline">
-    <input type="hidden" name="_token" value="{{ csrf_token('hib_cat_toggle_www_' ~ r.category_id) }}">
-    <input type="hidden" name="current" value="{{ r.category_enabled_www|default(0) }}">
+        {{ self.renderTree(childrenByParent, r.category_id, 1) }}
 
-    {% set isWww = r.category_enabled_www|default(0) %}
-    <button type="submit" class="ui tiny {{ isWww ? 'blue' : 'grey' }} button">
-      {{ isWww ? 'WWW: Oui' : 'WWW: Non' }}
-    </button>
-  </form>
-</div>
-
-          {{ self.renderTree(childrenByParent, r.category_id|default(0), 1) }}
-        </div>
       </div>
-    {% else %}
-      <div class="ui warning message">Aucune catégorie.</div>
     {% endfor %}
+
   </div>
 
+  <!-- DROITE -->
+  <div style="width:60%; padding-left:20px">
+
+  <h3 id="catTitle">Clique une catégorie</h3>
+
+  <div id="attrList"></div>
+
+  <hr>
+
+  <div class="ui form">
+    <div class="field">
+      <label>Label</label>
+      <input id="label" placeholder="Nom">
+    </div>
+
+    <div class="field">
+      <label>Type</label>
+      <select id="type">
+        <option value="text">Texte</option>
+        <option value="select">Liste</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Options</label>
+      <input id="options" placeholder="64Go,128Go,Violet,Noir">
+    </div>
+
+    <div class="field">
+      <label>Code</label>
+      <input id="codePreview" placeholder="généré automatiquement" disabled>
+      <div style="font-size:12px;color:#666;margin-top:4px;">
+        Le code n’est pas modifié en édition pour ne pas casser les données déjà saisies.
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="ui primary button" type="button" onclick="saveAttr()" id="saveBtn">Créer</button>
+      <button class="ui button" type="button" onclick="resetForm()">Annuler</button>
+    </div>
+  </div>
+
+</div>
+
 <script>
-document.addEventListener('submit', async (e) => {
-  const form = e.target;
-  if (!form.classList.contains('js-toggle-www')) return;
-  e.preventDefault();
+let CURRENT_CAT = null;
+let CURRENT_EDIT_ID = null;
+let CURRENT_ATTRS = [];
 
-  const btn = form.querySelector('button');
-  const fd = new FormData(form);
+// SELECT CAT
+function selectCategory(catId, catName){
+  CURRENT_CAT = catId;
+  CURRENT_EDIT_ID = null;
+  document.getElementById('catTitle').innerText = catName;
+  resetForm(false);
+  loadAttributes();
+}
 
-  btn.classList.add('loading');
+// LOAD ATTR
+async function loadAttributes(){
+  if(!CURRENT_CAT) return;
 
-  try {
-    const res = await fetch(form.action, {
-      method: 'POST',
-      body: fd,
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
+  const res = await fetch('/admin/hiboutik/categories/attributes/' + CURRENT_CAT);
 
-    const txt = await res.text(); // au cas où (debug)
-    if (!res.ok) {
-      console.error('HTTP', res.status, txt);
-      alert('Erreur HTTP ' + res.status);
-      return;
-    }
-
-    // Ici, notre controller renvoie du JSON, mais même si ça change, on s’en fout.
-    // On flippe le bouton en se basant sur le hidden "current"
-    const currentInput = form.querySelector('input[name="current"]');
-    const current = Number(currentInput.value || '0');
-    const next = current ? 0 : 1;
-
-    btn.classList.toggle('blue', !!next);
-    btn.classList.toggle('grey', !next);
-    btn.textContent = next ? 'WWW: Oui' : 'WWW: Non';
-    currentInput.value = String(next);
-
-  } catch (err) {
-    console.error(err);
-    alert('Erreur réseau');
-  } finally {
-    btn.classList.remove('loading');
+  if(!res.ok){
+    alert("Erreur API attributes");
+    return;
   }
-});
-</script>
-{% endblock %}
 
+  const data = await res.json();
+  CURRENT_ATTRS = data;
+
+  const div = document.getElementById('attrList');
+  div.innerHTML = '';
+
+  if(!data.length){
+    div.innerHTML = "<div class='ui message'>Aucun attribut</div>";
+    return;
+  }
+
+  data.forEach(a => {
+    const optionsText = (a.options || []).join(', ');
+
+    const el = document.createElement('div');
+    el.className = 'ui segment';
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div>
+          <div><b>${escapeHtml(a.label)}</b></div>
+          <div style="margin-top:4px;color:#666;font-size:12px;">
+            code: <code>${escapeHtml(a.code)}</code>
+            &nbsp;|&nbsp;
+            type: <b>${escapeHtml(a.type)}</b>
+          </div>
+          ${
+            a.type === 'select'
+              ? `<div style="margin-top:6px;font-size:12px;color:#444;">options: ${escapeHtml(optionsText || '—')}</div>`
+              : ''
+          }
+        </div>
+
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="ui tiny button" type="button" onclick="editAttr(${a.id})">Éditer</button>
+          <button class="ui tiny red button" type="button" onclick="deleteAttr(${a.id})">Supprimer</button>
+        </div>
+      </div>
+    `;
+    div.appendChild(el);
+  });
+}
+
+// SAVE = create ou update
+async function saveAttr(){
+  if(!CURRENT_CAT){
+    alert("Choisis une catégorie");
+    return;
+  }
+
+  const label = document.getElementById('label').value.trim();
+  const type = document.getElementById('type').value;
+  const options = document.getElementById('options').value.trim();
+
+  if(!label){
+    alert("Le label est obligatoire");
+    return;
+  }
+
+  let url = '/admin/hiboutik/categories/attributes/create';
+  let payload = {
+    category_id: CURRENT_CAT,
+    label,
+    type,
+    options
+  };
+
+  if(CURRENT_EDIT_ID){
+    url = '/admin/hiboutik/categories/attributes/' + CURRENT_EDIT_ID + '/update';
+    payload = {
+      label,
+      type,
+      options
+    };
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+
+  if(!res.ok){
+    const txt = await res.text();
+    console.error(txt);
+    alert(CURRENT_EDIT_ID ? "Erreur modification" : "Erreur création");
+    return;
+  }
+
+  resetForm(false);
+  loadAttributes();
+}
+
+function editAttr(id){
+  const a = CURRENT_ATTRS.find(x => Number(x.id) === Number(id));
+  if(!a) return;
+
+  CURRENT_EDIT_ID = a.id;
+
+  document.getElementById('label').value = a.label || '';
+  document.getElementById('type').value = a.type || 'text';
+  document.getElementById('options').value = (a.options || []).join(', ');
+  document.getElementById('codePreview').value = a.code || '';
+  document.getElementById('saveBtn').innerText = 'Enregistrer';
+}
+
+async function deleteAttr(id){
+  if(!confirm("Supprimer cet attribut ?")) return;
+
+  const res = await fetch('/admin/hiboutik/categories/attributes/' + id + '/delete', {
+    method: 'POST'
+  });
+
+  if(!res.ok){
+    const txt = await res.text();
+    console.error(txt);
+    alert("Erreur suppression");
+    return;
+  }
+
+  if(CURRENT_EDIT_ID === id){
+    resetForm(false);
+  }
+
+  loadAttributes();
+}
+
+function resetForm(clearCategory = false){
+  CURRENT_EDIT_ID = null;
+  document.getElementById('label').value = '';
+  document.getElementById('type').value = 'text';
+  document.getElementById('options').value = '';
+  document.getElementById('codePreview').value = '';
+  document.getElementById('saveBtn').innerText = 'Créer';
+
+  if(clearCategory){
+    CURRENT_CAT = null;
+  }
+}
+
+function escapeHtml(str){
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+</script>
+
+{% endblock %}

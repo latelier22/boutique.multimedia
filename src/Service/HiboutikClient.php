@@ -4,6 +4,7 @@ namespace App\Service;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Component\HttpFoundation\File\File;
 
 class HiboutikClient
 {
@@ -16,6 +17,7 @@ class HiboutikClient
         private string $hibApiKey,
         private bool $debug = false,
         private ?LoggerInterface $logger = null,
+        private CacheApiClient $cacheApi,
     ) {}
 
     private function baseUrl(string $path): string
@@ -707,6 +709,103 @@ public function setCategoryAttribute(int $categoryId, string $attribute, int|str
     }
 
     /* ===================== IMAGES PRODUITS ===================== */
+public function uploadProductImage(
+    int $productId,
+    string $path,
+    int $imageId = 1,
+    string $originalName = 'image.jpg'
+): array
+{
+    $url = sprintf(
+        'https://%s.hiboutik.com/api/products_images_1000x1000/%d',
+        $this->hibAccount,
+        $productId
+    );
+
+    // 🔥 MIME correct
+    $mime = mime_content_type($path) ?: 'image/jpeg';
+
+    // 🔥 NOM AVEC EXTENSION (CRITIQUE)
+    if (!str_contains($originalName, '.')) {
+        $originalName .= '.jpg';
+    }
+
+    $file = new \CURLFile(
+        $path,
+        $mime,
+        $originalName
+    );
+
+    $ch = curl_init();
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD => $this->hibLogin . ':' . $this->hibApiKey,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'accept: */*'
+        ],
+        CURLOPT_POSTFIELDS => [
+            'image' => $file,
+            'framing_type' => 'default',
+            'image_id' => (string)$imageId,
+        ],
+    ]);
+
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw' => $response,
+        'error' => $error,
+        'filename' => $originalName,
+        'mime' => $mime,
+    ];
+}
+
+
+public function deleteProductImageByName(string $imageName): array
+{
+    $url = sprintf(
+        'https://%s.hiboutik.com/api/products_images/%s',
+        $this->hibAccount,
+        $imageName
+    );
+
+    $ch = curl_init();
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => 'DELETE',
+        CURLOPT_USERPWD => $this->hibLogin . ':' . $this->hibApiKey,
+        CURLOPT_HTTPHEADER => [
+            'accept: */*'
+        ],
+    ]);
+
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw' => $response,
+        'error' => $error,
+    ];
+}
+
+
+
 
     public function uploadProductThumb100(int $productId, string $path, string $framing = 'default', ?string $filename = null): array
     {
@@ -734,32 +833,51 @@ public function setCategoryAttribute(int $categoryId, string $attribute, int|str
         return ['ok' => $code >= 200 && $code < 300, 'status' => $code, 'raw' => $res, 'error' => $err];
     }
 
-    public function uploadProductWeb1000(int $productId, string $path, int $imageId = 1, string $framing = 'default', ?string $filename = null): array
-    {
-        $filename = $filename ?: basename($path);
-        $mime     = function_exists('mime_content_type') ? mime_content_type($path) : 'image/jpeg';
-        $url      = sprintf('https://%s.hiboutik.com/api/products_images_1000x1000/%d', $this->hibAccount, $productId);
+public function uploadProductWeb1000(int $productId, string $path, int $imageId = 1): array
+{
+    $url = sprintf(
+        'https://%s.hiboutik.com/api/products_images_1000x1000/%d',
+        $this->hibAccount,
+        $productId
+    );
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_USERPWD        => $this->hibLogin . ':' . $this->hibApiKey,
-            CURLOPT_POST           => true,
-            CURLOPT_HTTPHEADER     => ['Accept: */*'],
-            CURLOPT_POSTFIELDS     => [
-                'image'        => new \CURLFile($path, $mime, $filename),
-                'framing_type' => $framing,
-                'image_id'     => (string)$imageId,
-            ],
-        ]);
+    $mime = mime_content_type($path) ?: 'image/jpeg';
+    $filename = basename($path);
 
-        $res  = curl_exec($ch);
-        $err  = curl_error($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+    $file = new \CURLFile($path, $mime, $filename);
 
-        return ['ok' => $code >= 200 && $code < 300, 'status' => $code, 'raw' => $res, 'error' => $err];
-    }
+    $ch = curl_init();
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD => $this->hibLogin . ':' . $this->hibApiKey,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'accept: */*'
+        ],
+        CURLOPT_POSTFIELDS => [
+            'image' => $file,
+            'framing_type' => 'default',
+            'image_id' => (string)$imageId,
+        ],
+    ]);
+
+    $response = curl_exec($ch);
+    $error = curl_error($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+    curl_close($ch);
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw' => $response,
+        'error' => $error,
+        'file' => $path,
+        'mime' => $mime,
+    ];
+}
 
     public function listProductImages(int $productId): array
     {
@@ -768,6 +886,8 @@ public function setCategoryAttribute(int $categoryId, string $attribute, int|str
         $status = $r->getStatusCode();
         $raw    = $r->getContent(false);
         $data   = json_decode($raw, true);
+
+        dump("LIST IMAGES RAW:", $raw);
 
         $this->lastDebug = ['method' => 'GET', 'url' => $url, 'status' => $status, 'raw' => $raw];
 
@@ -1152,10 +1272,11 @@ public function listTagsForProduct(int $productId): array
  */
 public function addTagToProduct(int $productId, int $tagId): array
 {
-    // La doc Hiboutik utilise souvent du form/urlencoded. On tente simple.
     return $this->req('POST', 'products_tags/' . $productId, [
-        'json' => ['tag_id' => $tagId],
-        'headers' => ['Accept' => '*/*'],
+        'headers' => ['Content-Type' => 'application/x-www-form-urlencoded'],
+        'body' => [
+            'tag_id' => (string)$tagId
+        ]
     ]);
 }
 
@@ -1169,6 +1290,461 @@ public function deleteTagForProduct(int $productId, int $tagId): array
 }
 
 
+public function setProductWWW(int $productId, int $val): array
+{
+    return $this->putProductAttributeSingle($productId, 'product_display_www', (string)$val);
+}
 
 
+
+public function getOrCreateMonthlyRachatInput(
+    int $stockId,
+    int $supplierId,
+    ?\DateTimeInterface $date = null,
+    string $prefix = 'RACHAT MENSUEL'
+): array {
+    $date = $date ?: new \DateTimeImmutable('today');
+    $label = sprintf('%s-%02d-%04d', $prefix, (int)$date->format('m'), (int)$date->format('Y'));
+
+    $found = $this->findInventoryInputByLabel($label);
+    if ($found && !empty($found['inventory_input_id'])) {
+        return [
+            'ok' => true,
+            'id' => (int)$found['inventory_input_id'],
+            'label' => $label,
+            'created' => false,
+            'row' => $found,
+        ];
+    }
+
+    return $this->createInventoryInput($stockId, $supplierId, $label);
+}
+
+public function createBrand(array $fields): array
+{
+    $res = $this->req('POST', 'brands/', [
+        'json' => $fields,
+    ]);
+
+    if ($this->logger) {
+        $this->logger->info('[HIB CREATE BRAND]', [
+            'fields' => $fields,
+            'result' => $res,
+        ]);
+    }
+
+    return $res;
+}
+
+/**
+ * MAJ champ par champ, comme pour suppliers/categories/products
+ */
+public function updateBrandAttribute(int $brandId, string $attr, string|int $value): array
+{
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['body'] = http_build_query([
+        'brand_id'        => (string)$brandId,
+        'brand_attribute' => $attr,
+        'new_value'       => (string)$value,
+    ]);
+
+    $r      = $this->httpClient->request('PUT', $this->baseUrl('brands/'), $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $this->baseUrl('brands/'),
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+        'sent'   => [
+            'brand_id' => $brandId,
+            'brand_attribute' => $attr,
+            'new_value' => $value,
+        ],
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB UPDATE BRAND ATTRIBUTE]', $this->lastDebug);
+    }
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+}
+
+public function updateBrandAttributes(int $brandId, array $fields): array
+{
+    $results = [];
+    $ok = true;
+    $last = null;
+
+    foreach ($fields as $attr => $value) {
+        $r = $this->updateBrandAttribute($brandId, (string)$attr, is_bool($value) ? ($value ? '1' : '0') : (string)$value);
+        $results[$attr] = $r;
+        $last = $r;
+
+        if (!($r['ok'] ?? false)) {
+            $ok = false;
+            break;
+        }
+    }
+
+    return [
+        'ok' => $ok,
+        'status' => $last['status'] ?? 0,
+        'raw' => $last['raw'] ?? null,
+        'data' => $results,
+    ];
+}
+
+/* ===================== CUSTOMERS ===================== */
+
+public function getCustomers(): array
+{
+    $url    = $this->baseUrl('customers');
+    $r      = $this->httpClient->request('GET', $url, $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+
+    if (is_array($data) && array_is_list($data)) {
+        return $data;
+    }
+
+    if (is_array($data)) {
+        foreach (['customers', 'data', 'items', 'result'] as $k) {
+            if (isset($data[$k]) && is_array($data[$k])) {
+                return $data[$k];
+            }
+        }
+    }
+
+    return [];
+}
+public function getCustomer(int $id): array
+{
+    $url    = $this->baseUrl('customer/' . $id);
+    $r      = $this->httpClient->request('GET', $url, $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+
+    dump($data);
+
+    if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+        return $data[0];
+    }
+
+    return is_array($data) ? $data : [];
+}
+public function updateCustomerAttribute(int $customerId, string $attr, string|int $value): array
+{
+    $url = $this->baseUrl('customer/' . $customerId);
+
+    $opts = $this->auth([
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/json',
+        ],
+        'json' => [
+            'customers_attribute' => (string)$attr,
+            'new_value' => (string)$value,
+        ],
+    ]);
+
+    $r      = $this->httpClient->request('PUT', $url, $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+        'sent'   => [
+            'customers_id' => $customerId,
+            'customers_attribute' => $attr,
+            'new_value' => $value,
+        ],
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB UPDATE CUSTOMER ATTRIBUTE]', $this->lastDebug);
+    }
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+}
+
+public function updateCustomerAttributes(int $customerId, array $fields): array
+{
+    $results = [];
+    $ok = true;
+    $last = null;
+
+    foreach ($fields as $attr => $value) {
+        if ($value === null) continue;
+
+        $r = $this->updateCustomerAttribute(
+            $customerId,
+            (string)$attr,
+            is_bool($value) ? ($value ? '1' : '0') : (string)$value
+        );
+
+        $results[$attr] = $r;
+        $last = $r;
+
+        if (!($r['ok'] ?? false)) {
+            $ok = false;
+            break;
+        }
+    }
+
+    return [
+        'ok'     => $ok,
+        'status' => $last['status'] ?? 0,
+        'raw'    => $last['raw'] ?? null,
+        'data'   => $results,
+    ];
+}
+
+/* ===================== CUSTOMER ADDRESSES ===================== */
+
+public function getCustomerAddress(int $addressId): array
+{
+    $url    = $this->baseUrl('customers_addresses/' . $addressId);
+    $r      = $this->httpClient->request('GET', $url, $this->auth());
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+
+    if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+        return $data[0];
+    }
+
+    return is_array($data) ? $data : [];
+}
+
+public function updateCustomerAddressAttribute(int $addressId, string $attr, string|int $value): array
+{
+    $url = $this->baseUrl('customers_addresses/' . $addressId);
+
+    $opts = $this->auth([
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/x-www-form-urlencoded',
+        ],
+        'body' => http_build_query([
+            'address_attribute' => (string)$attr,
+            'new_value'         => (string)$value,
+        ]),
+    ]);
+
+    $r      = $this->httpClient->request('PUT', $url, $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+        'sent'   => [
+            'address_id' => $addressId,
+            'address_attribute' => $attr,
+            'new_value' => $value,
+        ],
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB UPDATE CUSTOMER ADDRESS ATTRIBUTE]', $this->lastDebug);
+    }
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+}
+
+public function updateCustomerAddressAttributes(int $addressId, array $fields): array
+{
+    $results = [];
+    $ok = true;
+    $last = null;
+
+    foreach ($fields as $attr => $value) {
+        if ($value === null) continue;
+
+        $r = $this->updateCustomerAddressAttribute(
+            $addressId,
+            (string)$attr,
+            is_bool($value) ? ($value ? '1' : '0') : (string)$value
+        );
+
+        $results[$attr] = $r;
+        $last = $r;
+
+        if (!($r['ok'] ?? false)) {
+            $ok = false;
+            break;
+        }
+    }
+
+    return [
+        'ok'     => $ok,
+        'status' => $last['status'] ?? 0,
+        'raw'    => $last['raw'] ?? null,
+        'data'   => $results,
+    ];
+}
+
+
+public function createCustomerAddress(array $fields): array
+{
+    $url = $this->baseUrl('customers_addresses');
+
+    $payload = [
+        'customers_id'    => (int)($fields['customers_id'] ?? 0),
+        'gender'          => (string)($fields['gender'] ?? '0'),
+        'first_name'      => (string)($fields['first_name'] ?? ''),
+        'last_name'       => (string)($fields['last_name'] ?? ''),
+        'email'           => (string)($fields['email'] ?? ''),
+        'phone'           => (string)($fields['phone'] ?? ''),
+        'company'         => (string)($fields['company'] ?? ''),
+        'address'         => (string)($fields['address'] ?? ''),
+        'zip_code'        => (string)($fields['zip_code'] ?? ''),
+        'city'            => (string)($fields['city'] ?? ''),
+        'state'           => (string)($fields['state'] ?? ''),
+        'country'         => (string)($fields['country'] ?? ''),
+        'other'           => (string)($fields['other'] ?? ''),
+        'default'         => (string)($fields['default'] ?? '0'),
+        'tax_number'      => (string)($fields['tax_number'] ?? ''),
+        'company_number'  => (string)($fields['company_number'] ?? ''),
+        'legal_status'    => (string)($fields['legal_status'] ?? ''),
+    ];
+
+    $r = $this->httpClient->request('POST', $url, $this->auth([
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/json',
+        ],
+        'json' => $payload,
+    ]));
+
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'POST',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+        'sent'   => $payload,
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB CREATE CUSTOMER ADDRESS]', $this->lastDebug);
+    }
+
+    return [
+        'ok'     => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+    ];
+}
+
+public function createCustomer(array $fields): array
+{
+    $url = $this->baseUrl('customers');
+
+    $payload = [
+        'customers_first_name'   => (string)($fields['first_name'] ?? ''),
+        'customers_last_name'    => (string)($fields['last_name'] ?? ''),
+        'customers_phone_number' => (string)($fields['phone'] ?? ''),
+        'customers_tax_number'   => (string)($fields['tax_number'] ?? ''),
+        'customers_ref_ext'      => (string)($fields['customers_ref_ext'] ?? ''),
+        'customers_country'      => (string)($fields['country'] ?? ''),
+        'customers_email'        => (string)($fields['email'] ?? ''),
+        'customers_company'      => (string)($fields['company'] ?? ''),
+        'customers_misc'         => (string)($fields['customers_misc'] ?? ''),
+        'customers_birth_date'   => (string)($fields['birth_date'] ?? ''),
+    ];
+
+    $opts = $this->auth();
+    $opts['headers']['Accept'] = '*/*';
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['body'] = http_build_query($payload);
+
+    $r      = $this->httpClient->request('POST', $url, $opts);
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $customerId = (int)($data['customers_id'] ?? 0);
+
+    $this->lastDebug = [
+        'method' => 'POST',
+        'url'    => $url,
+        'status' => $status,
+        'raw'    => $raw,
+        'data'   => $data,
+        'sent'   => $payload,
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB CREATE CUSTOMER]', $this->lastDebug);
+    }
+
+    return [
+        'ok'          => $status >= 200 && $status < 300,
+        'status'      => $status,
+        'raw'         => $raw,
+        'data'        => $data,
+        'customer_id' => $customerId,
+    ];
+}
 }

@@ -2,7 +2,7 @@
 
 namespace App\Command;
 
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

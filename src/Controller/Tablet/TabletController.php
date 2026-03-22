@@ -2,7 +2,7 @@
 
 namespace App\Controller\Tablet;
 
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 use App\Service\HiboutikClient;
 use App\Service\RachatPdfGenerator;
 use Doctrine\ORM\EntityManagerInterface;

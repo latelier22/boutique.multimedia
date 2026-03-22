@@ -1,0 +1,461 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Intervention #{{ intervention.interventionNumber }}{% endblock %}
+
+{% block content %}
+
+    {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+    <div class="ui segment">
+        <h1 class="ui header">Intervention #{{ intervention.interventionNumber }}</h1>
+
+        <form method="post" class="ui form">
+            <div class="three fields">
+                <div class="field">
+                    <label>Numéro d’intervention</label>
+                    <input type="number" name="intervention_number" min="1" value="{{ intervention.interventionNumber }}">
+                </div>
+                <div class="field">
+                    <label>Nom</label>
+                    <input type="text" name="customer_last_name" value="{{ intervention.customerLastName }}">
+                </div>
+                <div class="field">
+                    <label>Prénom</label>
+                    <input type="text" name="customer_first_name" value="{{ intervention.customerFirstName }}">
+                </div>
+            </div>
+
+            <div class="three fields">
+                <div class="field">
+                    <label>Téléphone</label>
+                    <input type="text" name="customer_phone" value="{{ intervention.customerPhone }}">
+                </div>
+                <div class="field">
+                    <label>Appareil</label>
+                    <input type="text" name="device_label" value="{{ intervention.deviceLabel }}">
+                </div>
+                <div class="field">
+                    <label>Statut</label>
+                    <select name="status">
+                        {% for s in ['open', 'waiting', 'done', 'cancelled'] %}
+                            <option value="{{ s }}" {{ intervention.status == s ? 'selected' : '' }}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Travail à faire</label>
+                <textarea name="work_to_do" rows="5">{{ intervention.workToDo }}</textarea>
+            </div>
+
+            <div class="ui buttons">
+                <button class="ui primary button" type="submit">
+                    <i class="save icon"></i>
+                    Enregistrer
+                </button>
+                <div class="or"></div>
+                <a class="ui button" href="{{ path('app_admin_intervention_index') }}">
+                    Retour
+                </a>
+            </div>
+        </form>
+
+        <div class="ui divider"></div>
+
+        <div class="ui right aligned basic segment" style="padding:0;">
+            <form
+                method="post"
+                action="{{ path('app_admin_intervention_delete', {id: intervention.id}) }}"
+                onsubmit="return confirm('Supprimer l’intervention #{{ intervention.interventionNumber }} ?');"
+                style="margin:0;"
+            >
+                <input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ intervention.id) }}">
+                <button class="ui red button" type="submit">
+                    <i class="trash icon"></i>
+                    Supprimer l’intervention
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui header">Client Hiboutik</h3>
+
+        {% if intervention.hiboutikCustomerId %}
+            <div class="ui positive message">
+                <div class="header">Client Hiboutik lié</div>
+                <p>
+                    #{{ intervention.hiboutikCustomerId }}
+                    {% if hibCustomer %}
+                        — {{ hibCustomer.last_name ?? '' }} {{ hibCustomer.first_name ?? '' }}
+                        {% if hibCustomer.phone is defined and hibCustomer.phone %}
+                            — {{ hibCustomer.phone }}
+                        {% endif %}
+                    {% endif %}
+                </p>
+            </div>
+        {% else %}
+            <div class="ui warning message">
+                <div class="header">Aucun client Hiboutik lié</div>
+            </div>
+        {% endif %}
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <form
+                method="post"
+                action="{{ path('app_admin_intervention_link_hiboutik', {id: intervention.id}) }}"
+                class="ui form"
+                style="display:flex;gap:8px;align-items:flex-end;margin:0;"
+            >
+                <div class="field" style="margin:0;">
+                    <label>ID client Hiboutik</label>
+                    <input type="number" name="hiboutik_customer_id" min="1" placeholder="1071">
+                </div>
+                <button class="ui button" type="submit">
+                    <i class="linkify icon"></i>
+                    Lier un client existant
+                </button>
+            </form>
+
+            {% if not intervention.hiboutikCustomerId %}
+                <form method="post" action="{{ path('app_admin_intervention_create_hiboutik', {id: intervention.id}) }}" style="margin:0;">
+                    <button class="ui teal button" type="submit">
+                        <i class="user plus icon"></i>
+                        Créer un client Hiboutik depuis l’intervention
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui header">Saisie tablette</h3>
+
+        <button
+            type="button"
+            class="ui primary button btn-tablet-unlock-push"
+            data-id="{{ intervention.id }}"
+            data-device="TAB1"
+            data-link-template="{{ path('app_admin_intervention_tablet_link', {id: intervention.id}) }}"
+        >
+            <i class="tablet alternate icon"></i>
+            Envoyer sur la tablette
+        </button>
+
+        <div id="tabletUnlockPushMsg" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui header">Données déverrouillage</h3>
+
+        {% if unlockData %}
+            <p><strong>Résumé :</strong> {{ intervention.unlockSummary ?: '—' }}</p>
+            <p><strong>Date :</strong> {{ unlockData.capturedAt ?: '—' }}</p>
+
+            <div style="margin:12px 0;">
+                <button id="holdToRevealBtn" class="ui orange button" type="button">
+                    <i class="eye icon"></i>
+                    Maintenir pour voir
+                </button>
+            </div>
+
+            <div id="unlockHiddenBox">
+                <p>
+                    <strong>Code :</strong>
+                    <span id="maskedPin">
+                        {% if unlockData.pin %}
+                            ••••••
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <span id="realPin" style="display:none;">
+                        {{ unlockData.pin ?: '—' }}
+                    </span>
+                </p>
+
+                <div style="margin:14px 0;">
+                    <strong>Schéma :</strong>
+                    <span id="maskedPatternText" style="display:inline-block;margin-left:8px;">
+                        {% if unlockData.pattern %}
+                            [masqué]
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+
+                    <div id="realPatternBox" style="display:none;margin-top:10px;">
+                        {% if unlockData.pattern %}
+                            <div
+                                id="patternPreview"
+                                data-pattern='{{ unlockData.pattern|json_encode|e('html_attr') }}'
+                                style="width:180px;height:180px;position:relative;border:1px solid #d1d5db;border-radius:14px;background:#f8fafc;margin-top:8px;"
+                            >
+                                <svg
+                                    id="patternSvg"
+                                    width="180"
+                                    height="180"
+                                    viewBox="0 0 180 180"
+                                    style="position:absolute;left:0;top:0;pointer-events:none;"
+                                ></svg>
+                            </div>
+                        {% else %}
+                            <span>—</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <p>
+                    <strong>Remarques :</strong>
+                    <span id="maskedRemarks">
+                        {% if unlockData.remarks %}
+                            [masqué]
+                        {% else %}
+                            —
+                        {% endif %}
+                    </span>
+                    <span id="realRemarks" style="display:none;">
+                        {{ unlockData.remarks ?: '—' }}
+                    </span>
+                </p>
+            </div>
+        {% else %}
+            <div class="ui message">
+                <div class="header">Aucune donnée enregistrée</div>
+                <p>Envoyez la saisie sur la tablette pour capturer le code, le schéma ou les remarques.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+    (function () {
+      const btn = document.querySelector('.btn-tablet-unlock-push');
+      const msg = document.getElementById('tabletUnlockPushMsg');
+      if (!btn) return;
+
+      btn.addEventListener('click', async () => {
+        msg.innerHTML = '';
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+          const device = btn.dataset.device || 'TAB1';
+
+          const res = await fetch(btn.dataset.linkTemplate, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+
+          const j = await res.json();
+
+          if (!j || !j.ok || !j.url) {
+            throw new Error(j?.error || 'Génération du lien tablette impossible');
+          }
+
+          const u = new URL(j.url, window.location.origin);
+
+          const push = await fetch('/ws-tablet-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              device,
+              url: u.pathname + u.search,
+              token: '{{ tablet_socket_token|default('')|e('js') }}'
+            })
+          });
+
+          const pj = await push.json().catch(() => ({}));
+
+          if (!pj.ok) {
+            throw new Error('Push KO: ' + (pj.error || ''));
+          }
+
+          msg.innerHTML = `
+            <div class="ui positive message">
+              <div class="header">Tablette envoyée</div>
+              <p>Intervention #${j.intervention_number} envoyée sur la tablette.</p>
+            </div>
+          `;
+        } catch (e) {
+          console.error(e);
+          msg.innerHTML = `
+            <div class="ui negative message">
+              <div class="header">Erreur tablette</div>
+              <p>${e.message || 'Erreur push tablette'}</p>
+            </div>
+          `;
+        } finally {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
+      });
+    })();
+    </script>
+
+    {% if unlockData %}
+        <script>
+        (function () {
+          const btn = document.getElementById('holdToRevealBtn');
+          if (!btn) return;
+
+          const maskedPin = document.getElementById('maskedPin');
+          const realPin = document.getElementById('realPin');
+
+          const maskedPatternText = document.getElementById('maskedPatternText');
+          const realPatternBox = document.getElementById('realPatternBox');
+
+          const maskedRemarks = document.getElementById('maskedRemarks');
+          const realRemarks = document.getElementById('realRemarks');
+
+          const preview = document.getElementById('patternPreview');
+          const svg = document.getElementById('patternSvg');
+
+          function buildPatternPreview() {
+            if (!preview || !svg) return;
+
+            let pattern = [];
+            try {
+              pattern = JSON.parse(preview.dataset.pattern || '[]');
+            } catch (e) {
+              pattern = [];
+            }
+
+            const positions = {
+              1: { x: 35,  y: 35 },
+              2: { x: 90,  y: 35 },
+              3: { x: 145, y: 35 },
+              4: { x: 35,  y: 90 },
+              5: { x: 90,  y: 90 },
+              6: { x: 145, y: 90 },
+              7: { x: 35,  y: 145 },
+              8: { x: 90,  y: 145 },
+              9: { x: 145, y: 145 }
+            };
+
+            svg.innerHTML = '';
+            preview.querySelectorAll('.pattern-dot').forEach(el => el.remove());
+
+            if (Array.isArray(pattern) && pattern.length > 1) {
+              const points = pattern
+                .map(id => positions[id])
+                .filter(Boolean)
+                .map(p => `${p.x},${p.y}`)
+                .join(' ');
+
+              const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+              polyline.setAttribute('points', points);
+              polyline.setAttribute('fill', 'none');
+              polyline.setAttribute('stroke', '#2563eb');
+              polyline.setAttribute('stroke-width', '8');
+              polyline.setAttribute('stroke-linecap', 'round');
+              polyline.setAttribute('stroke-linejoin', 'round');
+              svg.appendChild(polyline);
+            }
+
+            for (let i = 1; i <= 9; i++) {
+              const pos = positions[i];
+              const active = Array.isArray(pattern) && pattern.includes(i);
+
+              const dot = document.createElement('div');
+              dot.className = 'pattern-dot';
+              dot.style.position = 'absolute';
+              dot.style.left = (pos.x - 16) + 'px';
+              dot.style.top = (pos.y - 16) + 'px';
+              dot.style.width = '32px';
+              dot.style.height = '32px';
+              dot.style.borderRadius = '50%';
+              dot.style.display = 'flex';
+              dot.style.alignItems = 'center';
+              dot.style.justifyContent = 'center';
+              dot.style.fontSize = '12px';
+              dot.style.fontWeight = 'bold';
+              dot.style.border = active ? '4px solid #2563eb' : '3px solid #9ca3af';
+              dot.style.background = active ? '#dbeafe' : '#ffffff';
+              dot.style.color = '#374151';
+              dot.textContent = i;
+
+              preview.appendChild(dot);
+            }
+          }
+
+          function reveal() {
+            if (maskedPin) maskedPin.style.display = 'none';
+            if (realPin) realPin.style.display = '';
+
+            if (maskedPatternText) maskedPatternText.style.display = 'none';
+            if (realPatternBox) realPatternBox.style.display = '';
+
+            if (maskedRemarks) maskedRemarks.style.display = 'none';
+            if (realRemarks) realRemarks.style.display = '';
+
+            buildPatternPreview();
+          }
+
+          function hide() {
+            if (maskedPin) maskedPin.style.display = '';
+            if (realPin) realPin.style.display = 'none';
+
+            if (maskedPatternText) maskedPatternText.style.display = '';
+            if (realPatternBox) realPatternBox.style.display = 'none';
+
+            if (maskedRemarks) maskedRemarks.style.display = '';
+            if (realRemarks) realRemarks.style.display = 'none';
+          }
+
+          btn.addEventListener('mousedown', reveal);
+          btn.addEventListener('mouseup', hide);
+          btn.addEventListener('mouseleave', hide);
+
+          btn.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            reveal();
+          }, { passive: false });
+
+          btn.addEventListener('touchend', function (e) {
+            e.preventDefault();
+            hide();
+          }, { passive: false });
+
+          btn.addEventListener('touchcancel', hide);
+
+          window.addEventListener('mouseup', hide);
+          window.addEventListener('touchend', hide);
+        })();
+        </script>
+    {% endif %}
+
+    <script>
+    (function () {
+      const statusUrl = "{{ path('app_admin_intervention_unlock_status', {id: intervention.id}) }}";
+      let initialUpdatedAt = "{{ intervention.updatedAt|date('c') }}";
+      let reloading = false;
+
+      async function checkUnlockUpdate() {
+        if (reloading) return;
+
+        try {
+          const res = await fetch(statusUrl, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+
+          const j = await res.json();
+          if (!j || !j.ok) return;
+
+          if (j.updatedAt && j.updatedAt !== initialUpdatedAt) {
+            reloading = true;
+            window.location.reload();
+          }
+        } catch (e) {
+          console.error('[unlock-status]', e);
+        }
+      }
+
+      setInterval(checkUnlockUpdate, 2000);
+    })();
+    </script>
+
+{% endblock %}

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity;
+namespace App\Entity\Rachat;
 
 use Doctrine\ORM\Mapping as ORM;
 

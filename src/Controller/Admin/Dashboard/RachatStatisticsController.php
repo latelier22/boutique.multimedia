@@ -2,7 +2,7 @@
 
 namespace App\Controller\Admin\Dashboard;
 
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{Request, Response, JsonResponse, StreamedResponse};

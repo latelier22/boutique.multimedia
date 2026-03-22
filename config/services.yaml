@@ -12,6 +12,8 @@ parameters:
   tablet_pin: '%env(TABLET_PIN)%'
   tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
 
+  app.intervention_start_at: 2001
+
   rachats_columns:
     columns:
       select:   { label: "Sélection", default: true }
@@ -34,15 +36,6 @@ parameters:
       tablet:   [select,id,modele,prix,date,nom,tel,pdf,paiement,revendeur,actions]
       mobile:   [select,id,modele,prix,date,nom,tel,pdf,paiement,actions]
     
-
-  
-
-
-
-
-  
-
-
 services:
    
     # Default configuration for services in *this* file
@@ -161,3 +154,16 @@ services:
             $apiKey: '%hiboutik.key%'
             $widgetSecret: '%hiboutik.widget_secret%'
         tags: ['controller.service_arguments']
+
+    App\Service\CacheApiClient:
+        arguments:
+            $http: '@http_client'
+            $baseUrl: 'https://api.multimedia-services.fr'
+
+    App\Service\SensitiveDataCipher:
+        arguments:
+            $appSecret: '%kernel.secret%'
+
+    App\Service\InterventionNumberGenerator:
+        arguments:
+            $startAt: '%app.intervention_start_at%'

@@ -1,0 +1,162 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Interventions
+{% endblock %}
+
+{% block content %}
+
+	{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+
+	<div class="ui segment">
+		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+			<h1 class="ui header" style="margin:0;">Interventions</h1>
+			<a class="ui primary button" href="{{ path('app_admin_intervention_new') }}">Nouvelle intervention</a>
+		</div>
+
+		<table class="ui celled table">
+			<thead>
+				<tr>
+					<th>N°</th>
+					<th>Client</th>
+					<th>Téléphone</th>
+					<th>Appareil</th>
+					<th>Travail</th>
+					<th>Hiboutik</th>
+					<th>Déverrouillage</th>
+					<th>Statut</th>
+					<th>ACTIONS</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for item in items %}
+					<tr>
+						<td>{{ item.interventionNumber }}</td>
+						<td>{{ item.customerLastName }}
+							{{ item.customerFirstName }}</td>
+						<td>{{ item.customerPhone ?: '—' }}</td>
+						<td>{{ item.deviceLabel ?: '—' }}</td>
+						<td>{{ item.workToDo ?: '—' }}</td>
+						<td>{{ item.hiboutikCustomerId ?: '—' }}</td>
+						<td>{{ item.unlockSummary ?: '—' }}</td>
+						<td>{{ item.status }}</td>
+						<td class="right aligned">
+							<div class="ui tiny buttons">
+								<a class="ui button" href="{{ path('app_admin_intervention_edit', {id: item.id}) }}">
+									<i class="pencil icon"></i>
+									Éditer
+								</a>
+
+								<button type="button" class="ui button blue btn-tablet-unlock-push" data-id="{{ item.id }}" data-device="TAB1" data-link-template="{{ path('app_admin_intervention_tablet_link', {id: item.id}) }}" data-msg-id="tabletMsg{{ item.id }}">
+									<i class="tablet alternate icon"></i>
+									Tablette
+								</button>
+
+								<form method="post" action="{{ path('app_admin_intervention_delete', {id: item.id}) }}" onsubmit="return confirm('Supprimer l’intervention #{{ item.interventionNumber }} ?');" style="display:inline-block;margin:0;">
+									<input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ item.id) }}">
+									<button class="ui button red" type="submit">
+										<i class="trash icon"></i>
+										Supprimer
+									</button>
+								</form>
+							</div>
+
+							<div id="tabletMsg{{ item.id }}" style="margin-top:8px;"></div>
+						</td>
+					</tr>
+				{% else %}
+					<tr>
+						<td colspan="9">Aucune intervention.</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+
+	<script>
+		(function () {
+const buttons = document.querySelectorAll('.btn-tablet-unlock-push');
+if (! buttons.length) 
+return;
+
+
+buttons.forEach(btn => {
+btn.addEventListener('click', async () => {
+const msg = document.getElementById(btn.dataset.msgId);
+if (msg) 
+msg.innerHTML = '';
+
+
+btn.disabled = true;
+btn.classList.add('loading');
+
+try {
+const device = btn.dataset.device || 'TAB1';
+
+// 1) générer l’URL tablette de saisie
+const res = await fetch(btn.dataset.linkTemplate, {
+method: 'POST',
+headers: {
+'X-Requested-With': 'XMLHttpRequest'
+}
+});
+
+const j = await res.json();
+if (! j || ! j.ok || ! j.url) {
+throw new Error(j ?. error || 'Génération du lien tablette impossible');
+}
+
+// 2) pousser l’URL vers la tablette wait
+const u = new URL(j.url, window.location.origin);
+
+const push = await fetch('/ws-tablet-push', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded'
+},
+body: new URLSearchParams(
+{
+device,
+url: u.pathname + u.search,
+token: '{{ tablet_socket_token|default('')|e('js') }}'
+}
+)
+});
+
+const pj = await push.json().catch(() => ({}));
+
+if (! pj.ok) {
+throw new Error('Push KO: ' + (
+pj.error || ''
+));
+}
+
+if (msg) {
+msg.innerHTML = `
+            <div class="alert alert-success py-2 px-3 mb-0">
+              Intervention #${
+j.intervention_number
+} envoyée sur la tablette.
+            </div>
+          `;
+}
+} catch (e) {
+console.error(e);
+if (msg) {
+msg.innerHTML = `
+            <div class="alert alert-danger py-2 px-3 mb-0">
+              ${
+e.message || 'Erreur push tablette'
+}
+            </div>
+          `;
+}
+} finally {
+btn.disabled = false;
+btn.classList.remove('loading');
+}
+});
+});
+})();
+	</script>
+{% endblock %}

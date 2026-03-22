@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Entity;
+namespace App\Entity\Rachat;
 
 use Doctrine\ORM\Mapping as ORM;
-use App\Entity\Revendeur;
+use App\Entity\Rachat\Revendeur;
 
 /**
  * @ORM\Entity()
@@ -149,6 +149,19 @@ public function getHibCategoryId(): ?int { return $this->hibCategoryId; }
 public function setHibCategoryId(?int $id): self { $this->hibCategoryId = $id; return $this; }
 
 
+/** @ORM\Column(name="attributes", type="json", nullable=true) */
+private ?array $attributes = [];
+
+public function getAttributes(): array
+{
+    return $this->attributes ?? [];
+}
+
+public function setAttributes(?array $data): self
+{
+    $this->attributes = $data ?? [];
+    return $this;
+}
 
 
 public function getRevendeur(): ?Revendeur

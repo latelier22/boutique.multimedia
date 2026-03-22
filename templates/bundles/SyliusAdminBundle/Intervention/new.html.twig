@@ -1,0 +1,46 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Nouvelle intervention{% endblock %}
+
+{% block content %}
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+<div class="ui segment">
+    <h1 class="ui header">Nouvelle intervention</h1>
+
+    <form method="post" class="ui form">
+      <div class="three fields">
+    <div class="field">
+        <label>Numéro d’intervention</label>
+        <input type="number" name="intervention_number" min="1" value="{{ intervention.interventionNumber }}">
+    </div>
+    <div class="field">
+        <label>Nom</label>
+        <input type="text" name="customer_last_name" value="{{ intervention.customerLastName }}">
+    </div>
+    <div class="field">
+        <label>Prénom</label>
+        <input type="text" name="customer_first_name" value="{{ intervention.customerFirstName }}">
+    </div>
+</div>
+
+        <div class="two fields">
+            <div class="field">
+                <label>Téléphone</label>
+                <input type="text" name="customer_phone">
+            </div>
+            <div class="field">
+                <label>Appareil</label>
+                <input type="text" name="device_label" placeholder="Ex: iPhone 12 noir 128 Go">
+            </div>
+        </div>
+
+        <div class="field">
+            <label>Travail à faire</label>
+            <textarea name="work_to_do" rows="5" placeholder="Ex: changement écran, batterie, commande accessoire..."></textarea>
+        </div>
+
+        <button class="ui primary button" type="submit">Créer l’intervention</button>
+        <a class="ui button" href="{{ path('app_admin_intervention_index') }}">Retour</a>
+    </form>
+</div>
+{% endblock %}

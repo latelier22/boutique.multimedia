@@ -1,0 +1,202 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block content %}
+
+<h2 class="ui header">
+  Images produit #{{ product.product_id }}
+</h2>
+
+<script>
+const uploadUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
+</script>
+
+<div class="ui grid">
+
+{% for i in 1..4 %}
+
+  {% set current = null %}
+
+  {% for img in images %}
+    {% if 'big_' in img.image_name and '-' ~ i ~ '.' in img.image_name %}
+      {% set current = img %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="four wide column">
+    <div class="ui segment center aligned" data-slot="{{ i }}">
+
+      <!-- IMAGE -->
+      <img id="preview-{{ i }}"
+           src="{{ current ? current.url : '' }}"
+           style="max-width:100%; min-height:150px; background:#f5f5f5; object-fit:contain">
+
+      <div>Image {{ i }}</div>
+
+      <!-- INPUT FILE -->
+      <input type="file"
+             id="input-{{ i }}"
+             style="display:none"
+             onchange="previewImage(event, {{ i }})">
+
+      <!-- BOUTONS -->
+      <button class="ui button"
+              onclick="document.getElementById('input-{{ i }}').click()">
+        {{ current ? 'Modifier' : 'Ajouter' }}
+      </button>
+
+      <button class="ui button"
+              onclick="pasteImage({{ i }})">
+        📋 Paste
+      </button>
+
+      <button class="ui primary button"
+              onclick="uploadImage({{ i }})">
+        Envoyer
+      </button>
+
+      {% if current %}
+        <button class="ui red button"
+                onclick="deleteImage('{{ current.image_name }}')">
+          🗑
+        </button>
+      {% endif %}
+
+    </div>
+  </div>
+
+{% endfor %}
+
+</div>
+
+<script>
+let selectedFiles = {};
+</script>
+
+<!-- ========================= -->
+<!-- PREVIEW FILE INPUT -->
+<!-- ========================= -->
+<script>
+function previewImage(event, id) {
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    selectedFiles[id] = file;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('preview-' + id).src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+
+<!-- ========================= -->
+<!-- UPLOAD -->
+<!-- ========================= -->
+<script>
+function uploadImage(id) {
+
+    if (!selectedFiles[id]) {
+        alert("Choisir une image");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', selectedFiles[id]);
+    formData.append('image_id', id);
+
+    fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.text()) // 🔥 DEBUG SAFE
+    .then(t => {
+        console.log("UPLOAD RESPONSE:", t);
+        alert("OK upload");
+        location.reload();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur réseau upload");
+    });
+}
+</script>
+
+<!-- ========================= -->
+<!-- DELETE -->
+<!-- ========================= -->
+<script>
+function deleteImage(imageName) {
+
+    if (!confirm("Supprimer ?")) return;
+
+    const formData = new FormData();
+    formData.append('delete_image', imageName);
+
+    fetch(uploadUrl, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => r.text())
+    .then(t => {
+        console.log("DELETE RESPONSE:", t);
+        location.reload();
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Erreur suppression");
+    });
+}
+</script>
+
+<!-- ========================= -->
+<!-- PASTE IMAGE -->
+<!-- ========================= -->
+<script>
+async function pasteImage(id) {
+
+    try {
+
+        const items = await navigator.clipboard.read();
+
+        for (const item of items) {
+
+            for (const type of item.types) {
+
+                if (type.startsWith('image/')) {
+
+                    const blob = await item.getType(type);
+                    const file = new File([blob], "paste.png", { type });
+
+                    selectedFiles[id] = file;
+
+                    // preview
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        document.getElementById('preview-' + id).src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+
+                    // upload (léger délai)
+                    setTimeout(() => {
+                        uploadImage(id);
+                    }, 100);
+
+                    return;
+                }
+            }
+        }
+
+        alert("Aucune image copiée");
+
+    } catch (err) {
+
+        console.warn("Clipboard bloqué");
+
+        alert("Clique puis CTRL+V");
+    }
+}
+</script>
+
+{% endblock %}

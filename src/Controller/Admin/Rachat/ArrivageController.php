@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\ORM\EntityManagerInterface;
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 use App\Service\HiboutikClient;
 
 #[Route('/admin/arrivages', name: 'admin_arrivages_')]

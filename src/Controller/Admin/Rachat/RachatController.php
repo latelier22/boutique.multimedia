@@ -2,8 +2,9 @@
 
 namespace App\Controller\Admin\Rachat;
 
-use App\Entity\Rachat;
-use App\Entity\Revendeur;
+use App\Entity\Rachat\Rachat;
+use App\Entity\Rachat\AttributeDefinition;
+use App\Entity\Rachat\Revendeur;
 use App\Form\RachatType;
 use App\Service\HiboutikClient;
 use App\Service\RachatPdfGenerator;
@@ -75,223 +76,286 @@ final class RachatController extends AbstractController
         return $this->json(['ok' => true, 'url' => $url, 'token' => $token]);
     }
 
-    /* ============================================================
-     *  LISTE (INDEX)
-     *  -> Sortie “propre” : clés camelCase uniquement
-     * ============================================================ */
-
-    #[Route('', name: 'index', methods: ['GET', 'POST'])]
-    public function index(Request $request): Response
-    {
-        // Pattern: POST -> redirect GET (conserve params)
-        if ($request->isMethod('POST')) {
-            return $this->redirectToRoute('admin_rachats_index', $request->request->all());
-        }
-
-        // Colonnes renvoyées à Twig (camelCase)
-        $columns = [
-            'id',
-            'enabled',
-            'dateCession',
-            'pdfUrl',
-            'marqueModele',
-            'imei',
-            'prixAchat',
-            'nom',
-            'prenom',
-            'numeroCi',
-            'pieceIdentiteUrl',
-            'telephone',
-            'email',
-            'adresse',
-            'codePostal',
-            'hibSupplierId',
-            'hibProductId',
-            'paidMethod',
-            'paidAt',
-            'photosJson',
-            'createdAt',
-
-            // ajouts
-            'revendeurId',
-            'vendorProcessedAt',
-            'hibInventoryInputId',
-            'hibArrivageAddedAt',
-        ];
-
-        $enabled = $request->query->getInt('enabled', 1);
-        $q = trim((string)$request->query->get('q', ''));
-
-        // ym: '' (mois courant) | 'YYYY-MM' | 'all'
-        $ym = trim((string)$request->query->get('ym', ''));
-        $useMonthFilter = true;
-
-        if ($ym === 'all') {
-            $useMonthFilter = false;
-        } elseif ($ym === '' || !preg_match('/^\d{4}-\d{2}$/', $ym)) {
-            $ym = (new \DateTimeImmutable('now'))->format('Y-m');
-        }
-
-        $from = null;
-        $to = null;
-        if ($useMonthFilter) {
-            [$year, $month] = array_map('intval', explode('-', $ym));
-            $from = new \DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
-            $to = $from->modify('first day of next month');
-        }
-
-        // filtres optionnels
-        $paid = (string)$request->query->get('paid', '');
-        $revendeur = (string)$request->query->get('revendeur', '');
-        $arrivage = (string)$request->query->get('arrivage', '');
-
-        $qb = $this->em->getRepository(Rachat::class)->createQueryBuilder('r')
-            ->leftJoin('r.revendeur', 'rev')
-            ->addSelect('rev')
-            ->andWhere('r.enabled = :e')->setParameter('e', (bool)$enabled)
-            ->orderBy('r.id', 'DESC');
-
-        if ($useMonthFilter) {
-            $qb->andWhere('(r.dateCession >= :from AND r.dateCession < :to)')
-                ->setParameter('from', $from)
-                ->setParameter('to', $to);
-        }
-
-        if ($paid === '1') $qb->andWhere('r.paidAt IS NOT NULL');
-        if ($paid === '0') $qb->andWhere('r.paidAt IS NULL');
-
-        if ($revendeur === '1') $qb->andWhere('r.revendeur IS NOT NULL');
-        if ($revendeur === '0') $qb->andWhere('r.revendeur IS NULL');
-
-        if ($arrivage === '1') $qb->andWhere('r.hibInventoryInputId IS NOT NULL');
-        if ($arrivage === '0') $qb->andWhere('r.hibInventoryInputId IS NULL');
-
-        if ($q !== '') {
-            $qLike = '%' . mb_strtolower($q) . '%';
-
-            $qb->andWhere(
-                $qb->expr()->orX(
-                    'LOWER(r.marqueModele) LIKE :q',
-                    'LOWER(r.imei) LIKE :q',
-                    'LOWER(r.nom) LIKE :q',
-                    'LOWER(r.prenom) LIKE :q',
-                    'LOWER(r.numeroCi) LIKE :q',
-                    'LOWER(r.telephone) LIKE :q',
-                    'LOWER(r.email) LIKE :q',
-                    'LOWER(r.adresse) LIKE :q',
-                    'LOWER(r.codePostal) LIKE :q',
-                    'LOWER(rev.nom) LIKE :q',
-                    'LOWER(rev.prenom) LIKE :q',
-                    'LOWER(rev.email) LIKE :q',
-                    'LOWER(rev.telephone) LIKE :q'
-                )
-            )->setParameter('q', $qLike);
-
-            if (ctype_digit($q)) {
-                $qb->orWhere('r.id = :rid')->setParameter('rid', (int)$q);
-            }
-        }
-
-        $rowsRaw = $qb->getQuery()->getArrayResult();
-
-        $rows = [];
-        foreach ($rowsRaw as $row) {
-            $idInt = (int)($row['id'] ?? 0);
-            if ($idInt <= 0) continue;
-
-            // relation revendeur -> id
-            $revId = 0;
-            if (isset($row['revendeur']) && is_array($row['revendeur'])) {
-                $revId = (int)($row['revendeur']['id'] ?? 0);
-            }
-
-            // normalisation dates + null
-            foreach ($row as $k => $v) {
-                if ($v instanceof \DateTimeInterface) {
-                    $row[$k] = $v->format('d-m-Y');
-                } elseif ($v === null) {
-                    $row[$k] = '';
-                }
-            }
-
-            // champs “UI”
-            $editUrl = $this->generateUrl('admin_rachats_edit', ['id' => $idInt]);
-            $autreUrl = $this->generateUrl('admin_rachats_autre', ['id' => $idInt]);
-
-            $photosFirst = null;
-            $photosCount = 0;
-            if (!empty($row['photosJson'] ?? $row['photos_json'] ?? '')) {
-                $rawPhotos = (string)($row['photosJson'] ?? $row['photos_json']);
-                $arr = json_decode($rawPhotos, true);
-                if (is_array($arr) && $arr) {
-                    $photosCount = count($arr);
-                    $photosFirst = $this->generateUrl('admin_rachats_photo', [
-                        'id' => $idInt,
-                        'file' => basename((string)$arr[0]),
-                    ]);
-                }
-            }
-
-            $revendeurShowUrl = $revId > 0 ? $this->generateUrl('admin_revendeurs_show', ['id' => $revId]) : null;
-            $revendeurEditUrl = $revId > 0 ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId]) : null;
-
-            // reshape final camelCase + contrôlé par $columns
-            $reshaped = [];
-            foreach ($columns as $c) {
-                $reshaped[$c] = (string)($this->getRowValue($row, $c) ?? '');
-            }
-
-            $reshaped['id'] = (string)$idInt;
-            $reshaped['revendeurId'] = (string)$revId;
-
-            $reshaped['editUrl'] = $editUrl;
-            $reshaped['autreUrl'] = $autreUrl;
-            $reshaped['photosFirst'] = $photosFirst ?? '';
-            $reshaped['photosCount'] = (string)$photosCount;
-            $reshaped['revendeurShowUrl'] = $revendeurShowUrl ?? '';
-            $reshaped['revendeurEditUrl'] = $revendeurEditUrl ?? '';
-
-            $rows[] = $reshaped;
-        }
-
-        // URLs mois précédent/suivant
-        $prevYm = null; $nextYm = null; $prevUrl = null; $nextUrl = null;
-
-        if ($useMonthFilter && $from instanceof \DateTimeImmutable) {
-            $prevYm = $from->modify('-1 month')->format('Y-m');
-            $nextYm = $from->modify('+1 month')->format('Y-m');
-
-            $base = $request->query->all();
-            $base['enabled'] = $enabled;
-
-            $prevQ = $base; $prevQ['ym'] = $prevYm;
-            $nextQ = $base; $nextQ['ym'] = $nextYm;
-
-            $prevUrl = $this->generateUrl('admin_rachats_index', $prevQ);
-            $nextUrl = $this->generateUrl('admin_rachats_index', $nextQ);
-        }
-
-        $colsCfg = $this->getParameter('rachats_columns');
-
-        return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
-            'colsCfg' => $colsCfg,
-            'columns' => $columns,
-            'rows' => $rows,
-            'enabled' => $enabled,
-            'filters' => [
-                'q' => $q,
-                'ym' => $useMonthFilter ? $ym : 'all',
-                'paid' => $paid,
-                'revendeur' => $revendeur,
-                'arrivage' => $arrivage,
-            ],
-            'prevYm' => $prevYm,
-            'nextYm' => $nextYm,
-            'prevUrl' => $prevUrl,
-            'nextUrl' => $nextUrl,
-            'monthLabel' => ($useMonthFilter && $from) ? $from->format('m/Y') : 'Tous',
-        ]);
+  #[Route('', name: 'index', methods: ['GET', 'POST'])]
+public function index(Request $request): Response
+{
+    if ($request->isMethod('POST')) {
+        return $this->redirectToRoute('admin_rachats_index', $request->request->all());
     }
+
+    // Colonnes "simples" seulement
+    $columns = [
+        'id',
+        'enabled',
+        'dateCession',
+        'pdfUrl',
+        'marqueModele',
+        'imei',
+        'prixAchat',
+        'nom',
+        'prenom',
+        'numeroCi',
+        // 'pieceIdentiteUrl', // <-- IMPORTANT : retiré d'ici
+        'telephone',
+        'email',
+        'adresse',
+        'codePostal',
+        'hibSupplierId',
+        'hibProductId',
+        'paidMethod',
+        'paidAt',
+        'photosJson',
+        'createdAt',
+
+        'revendeurId',
+        'vendorProcessedAt',
+        'hibInventoryInputId',
+        'hibArrivageAddedAt',
+    ];
+
+    $enabled = $request->query->getInt('enabled', 1);
+    $q = trim((string)$request->query->get('q', ''));
+
+    $ym = trim((string)$request->query->get('ym', ''));
+    $useMonthFilter = true;
+
+    if ($ym === 'all') {
+        $useMonthFilter = false;
+    } elseif ($ym === '' || !preg_match('/^\d{4}-\d{2}$/', $ym)) {
+        $ym = (new \DateTimeImmutable('now'))->format('Y-m');
+    }
+
+    $from = null;
+    $to = null;
+    if ($useMonthFilter) {
+        [$year, $month] = array_map('intval', explode('-', $ym));
+        $from = new \DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
+        $to = $from->modify('first day of next month');
+    }
+
+    $paid = (string)$request->query->get('paid', '');
+    $revendeur = (string)$request->query->get('revendeur', '');
+    $arrivage = (string)$request->query->get('arrivage', '');
+
+    $qb = $this->em->getRepository(Rachat::class)->createQueryBuilder('r')
+        ->leftJoin('r.revendeur', 'rev')
+        ->addSelect('rev')
+        ->andWhere('r.enabled = :e')
+        ->setParameter('e', (bool)$enabled)
+        ->orderBy('r.id', 'DESC');
+
+    if ($useMonthFilter) {
+        $qb->andWhere('(r.dateCession >= :from AND r.dateCession < :to)')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to);
+    }
+
+    if ($paid === '1') {
+        $qb->andWhere('r.paidAt IS NOT NULL');
+    } elseif ($paid === '0') {
+        $qb->andWhere('r.paidAt IS NULL');
+    }
+
+    if ($revendeur === '1') {
+        $qb->andWhere('r.revendeur IS NOT NULL');
+    } elseif ($revendeur === '0') {
+        $qb->andWhere('r.revendeur IS NULL');
+    }
+
+    if ($arrivage === '1') {
+        $qb->andWhere('r.hibInventoryInputId IS NOT NULL');
+    } elseif ($arrivage === '0') {
+        $qb->andWhere('r.hibInventoryInputId IS NULL');
+    }
+
+    if ($q !== '') {
+        $qLike = '%' . mb_strtolower($q) . '%';
+
+        $orX = $qb->expr()->orX(
+            'LOWER(r.marqueModele) LIKE :q',
+            'LOWER(r.imei) LIKE :q',
+            'LOWER(r.nom) LIKE :q',
+            'LOWER(r.prenom) LIKE :q',
+            'LOWER(r.numeroCi) LIKE :q',
+            'LOWER(r.telephone) LIKE :q',
+            'LOWER(r.email) LIKE :q',
+            'LOWER(r.adresse) LIKE :q',
+            'LOWER(r.codePostal) LIKE :q',
+            'LOWER(rev.nom) LIKE :q',
+            'LOWER(rev.prenom) LIKE :q',
+            'LOWER(rev.email) LIKE :q',
+            'LOWER(rev.telephone) LIKE :q'
+        );
+
+        if (ctype_digit($q)) {
+            $orX->add('r.id = :rid');
+            $qb->setParameter('rid', (int)$q);
+        }
+
+        $qb->andWhere($orX)->setParameter('q', $qLike);
+    }
+
+    $rowsRaw = $qb->getQuery()->getArrayResult();
+
+    $rows = [];
+    foreach ($rowsRaw as $row) {
+        $idInt = (int)($row['id'] ?? 0);
+        if ($idInt <= 0) {
+            continue;
+        }
+
+        $revId = 0;
+        if (isset($row['revendeur']) && is_array($row['revendeur'])) {
+            $revId = (int)($row['revendeur']['id'] ?? 0);
+        }
+
+        foreach ($row as $k => $v) {
+            if ($v instanceof \DateTimeInterface) {
+                $row[$k] = $v->format('d-m-Y');
+            } elseif ($v === null) {
+                $row[$k] = '';
+            }
+        }
+
+        $editUrl = $this->generateUrl('admin_rachats_edit', ['id' => $idInt]);
+        $autreUrl = $this->generateUrl('admin_rachats_autre', ['id' => $idInt]);
+
+        $photosFirst = '';
+        $photosCount = 0;
+        if (!empty($row['photosJson'] ?? $row['photos_json'] ?? '')) {
+            $rawPhotos = (string)($row['photosJson'] ?? $row['photos_json']);
+            $arr = json_decode($rawPhotos, true);
+            if (is_array($arr) && $arr) {
+                $photosCount = count($arr);
+                $photosFirst = $this->generateUrl('admin_rachats_photo', [
+                    'id' => $idInt,
+                    'file' => basename((string)$arr[0]),
+                ]);
+            }
+        }
+
+        $revendeurShowUrl = $revId > 0
+            ? $this->generateUrl('admin_revendeurs_show', ['id' => $revId])
+            : '';
+
+        $revendeurEditUrl = $revId > 0
+            ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId])
+            : '';
+
+      // ===== Pièce d'identité : normalisation propre =====
+$ciRecto = '';
+$ciVerso = '';
+
+$rawCi = $row['pieceIdentiteUrl'] ?? $row['piece_identite_url'] ?? null;
+
+if (is_string($rawCi) && $rawCi !== '') {
+    $decoded = json_decode($rawCi, true);
+
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        // cas {"recto":"...","verso":"..."}
+        if (!empty($decoded['recto']) && is_string($decoded['recto'])) {
+            $ciRecto = $decoded['recto'];
+        }
+        if (!empty($decoded['verso']) && is_string($decoded['verso'])) {
+            $ciVerso = $decoded['verso'];
+        }
+
+        // cas ["/url/recto", "/url/verso"]
+        if ($ciRecto === '' && !empty($decoded[0]) && is_string($decoded[0])) {
+            $ciRecto = $decoded[0];
+        }
+        if ($ciVerso === '' && !empty($decoded[1]) && is_string($decoded[1])) {
+            $ciVerso = $decoded[1];
+        }
+    } else {
+        // cas URL simple
+        $ciRecto = $rawCi;
+    }
+} elseif (is_array($rawCi)) {
+    if (!empty($rawCi['recto']) && is_string($rawCi['recto'])) {
+        $ciRecto = $rawCi['recto'];
+    }
+    if (!empty($rawCi['verso']) && is_string($rawCi['verso'])) {
+        $ciVerso = $rawCi['verso'];
+    }
+
+    if ($ciRecto === '' && !empty($rawCi[0]) && is_string($rawCi[0])) {
+        $ciRecto = $rawCi[0];
+    }
+    if ($ciVerso === '' && !empty($rawCi[1]) && is_string($rawCi[1])) {
+        $ciVerso = $rawCi[1];
+    }
+}
+
+        $reshaped = [];
+        foreach ($columns as $c) {
+            $value = $this->getRowValue($row, $c);
+
+            if (is_scalar($value) || $value === null) {
+                $reshaped[$c] = (string)($value ?? '');
+            } else {
+                $reshaped[$c] = '';
+            }
+        }
+
+        $reshaped['id'] = (string)$idInt;
+        $reshaped['revendeurId'] = (string)$revId;
+        $reshaped['ciRecto'] = $ciRecto;
+$reshaped['ciVerso'] = $ciVerso;
+
+        $reshaped['editUrl'] = $editUrl;
+        $reshaped['autreUrl'] = $autreUrl;
+        $reshaped['photosFirst'] = $photosFirst;
+        $reshaped['photosCount'] = (string)$photosCount;
+        $reshaped['revendeurShowUrl'] = $revendeurShowUrl;
+        $reshaped['revendeurEditUrl'] = $revendeurEditUrl;
+
+        $rows[] = $reshaped;
+    }
+
+    $prevYm = null;
+    $nextYm = null;
+    $prevUrl = null;
+    $nextUrl = null;
+
+    if ($useMonthFilter && $from instanceof \DateTimeImmutable) {
+        $prevYm = $from->modify('-1 month')->format('Y-m');
+        $nextYm = $from->modify('+1 month')->format('Y-m');
+
+        $base = $request->query->all();
+        $base['enabled'] = $enabled;
+
+        $prevQ = $base;
+        $prevQ['ym'] = $prevYm;
+
+        $nextQ = $base;
+        $nextQ['ym'] = $nextYm;
+
+        $prevUrl = $this->generateUrl('admin_rachats_index', $prevQ);
+        $nextUrl = $this->generateUrl('admin_rachats_index', $nextQ);
+    }
+
+    $colsCfg = $this->getParameter('rachats_columns');
+
+    return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
+        'colsCfg' => $colsCfg,
+        'columns' => $columns,
+        'rows' => $rows,
+        'enabled' => $enabled,
+        'filters' => [
+            'q' => $q,
+            'ym' => $useMonthFilter ? $ym : 'all',
+            'paid' => $paid,
+            'revendeur' => $revendeur,
+            'arrivage' => $arrivage,
+        ],
+        'prevYm' => $prevYm,
+        'nextYm' => $nextYm,
+        'prevUrl' => $prevUrl,
+        'nextUrl' => $nextUrl,
+        'monthLabel' => ($useMonthFilter && $from) ? $from->format('m/Y') : 'Tous',
+    ]);
+}
 
     private function getRowValue(array $row, string $key): mixed
     {
@@ -1594,127 +1658,103 @@ final class RachatController extends AbstractController
      *  -> fix: returnUrl défini AVANT usage
      * ============================================================ */
 
-    #[Route('/{id}/hib-product-arrivage', name: 'create_hib_product_arrivage', methods: ['POST'])]
-    public function createHibProductAndAddToArrivage(int $id): Response
-    {
-        $rachat = $this->em->getRepository(Rachat::class)->find($id);
+  #[Route('/{id}/hib-product-arrivage', name: 'create_hib_product_arrivage', methods: ['POST'])]
+public function createHibProductAndAddToArrivage(int $id): Response
+{
+    $rachat = $this->em->getRepository(Rachat::class)->find($id);
 
-        // ✅ URL retour (hash sur ligne)
-        $returnUrl = $this->generateUrl('admin_rachats_index', ['enabled' => 1]) . '#rachat-' . $id;
+    $returnUrl = $this->generateUrl('admin_rachats_index', ['enabled' => 1]) . '#rachat-' . $id;
 
-        if (!$rachat) {
-            $this->addFlash('error', 'Rachat introuvable.');
-            return $this->redirect($returnUrl);
-        }
+    if (!$rachat) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirect($returnUrl);
+    }
 
-        if ((int)$rachat->getHibSupplierId() <= 0 && !$rachat->getRevendeur()) {
-            $this->addFlash('error', 'Impossible : aucun supplier Hiboutik lié à ce rachat (revendeur requis).');
-            return $this->redirect($returnUrl);
-        }
+    $supplierId = 3;
+    $rachat->setHibSupplierId($supplierId);
 
-        if ($rachat->getHibInventoryInputId() > 0) {
-            $this->addFlash('info', sprintf('Déjà ajouté à un arrivage Hiboutik (#%d).', $rachat->getHibInventoryInputId()));
-            return $this->redirect($returnUrl);
-        }
+    try {
+        $hibProductId = $this->ensureHiboutikProductForRachat($rachat, $supplierId);
+    } catch (\Throwable $e) {
+        $this->addFlash('error', 'Erreur création produit Hiboutik : ' . $e->getMessage());
+        return $this->redirect($returnUrl);
+    }
 
-        try {
-            $hibProductId = $this->ensureHiboutikProductForRachat($rachat, 3);
-        } catch (\Throwable $e) {
-            $this->addFlash('error', 'Erreur création produit Hiboutik : ' . $e->getMessage());
-            return $this->redirect($returnUrl);
-        }
+    $meta = $this->hib->getDefaultStoreMeta();
+    $stockId = (int)($meta['stock_id'] ?? $meta['store_id'] ?? 1);
 
-        $stockId = 1;
-
-        $supplierId = (int)($rachat->getHibSupplierId() ?: 0);
-        if ($supplierId <= 0) {
-            if ($rachat->getRevendeur()) {
-                $supplierId = (int)$this->sync->ensureSupplier($rachat->getRevendeur());
-            } else {
-                $supplierId = 3;
-            }
-            $rachat->setHibSupplierId($supplierId);
-            $this->em->flush();
-        }
-
-        $nom = (string)($rachat->getRevendeur()?->getNom() ?? $rachat->getNom() ?? '');
-        $prenom = (string)($rachat->getRevendeur()?->getPrenom() ?? $rachat->getPrenom() ?? '');
-
-        $date = new \DateTimeImmutable('today');
-
-        try {
-            $input = $this->hib->getOrCreateDailyRachatInput(
-                $stockId,
-                $supplierId,
-                $nom,
-                $prenom,
-                false,
-                $date
-            );
-
-            if (!($input['ok'] ?? false) || empty($input['id'])) {
-                $this->logger?->error('Hiboutik daily input FAIL', [
-                    'stockId' => $stockId,
-                    'supplierId' => $supplierId,
-                    'input' => $input,
-                    'hib_last' => $this->hib->getLastDebug(),
-                ]);
-
-                $this->addFlash('error', 'Impossible de créer ou récupérer l’arrivage Hiboutik.');
-                return $this->redirect($returnUrl);
-            }
-        } catch (\Throwable $e) {
-            $this->logger?->critical('Hiboutik daily input EXCEPTION', [
-                'msg' => $e->getMessage(),
-                'hib_last' => $this->hib->getLastDebug(),
-            ]);
-
-            $this->addFlash('error', 'Exception Hiboutik : ' . $e->getMessage());
-            return $this->redirect($returnUrl);
-        }
-
-        $hibInputId = (int)$input['id'];
-
-        $unitPrice = (float)str_replace(',', '.', (string)$rachat->getPrixAchat());
-
-        $resLine = $this->hib->addProductToInventoryInput(
-            $hibInputId,
-            $hibProductId,
-            1,
-            $unitPrice
+    try {
+        $input = $this->hib->getOrCreateMonthlyRachatInput(
+            $stockId,
+            $supplierId,
+            new \DateTimeImmutable('today')
         );
 
-        if (!($resLine['ok'] ?? false)) {
-            $this->logger?->error('Hiboutik addProductToInventoryInput FAIL', [
-                'hibInputId' => $hibInputId,
-                'hibProductId' => $hibProductId,
-                'resLine' => $resLine,
+        if (!($input['ok'] ?? false) || empty($input['id'])) {
+            $this->logger?->error('Hiboutik monthly input FAIL', [
+                'stockId' => $stockId,
+                'supplierId' => $supplierId,
+                'input' => $input,
                 'hib_last' => $this->hib->getLastDebug(),
             ]);
 
-            $this->addFlash('error', sprintf(
-                'Produit Hiboutik %d créé mais erreur ajout à l’arrivage #%d.',
-                $hibProductId,
-                $hibInputId
-            ));
-
+            $this->addFlash('error', 'Impossible de créer ou récupérer l’arrivage mensuel Hiboutik.');
             return $this->redirect($returnUrl);
         }
+    } catch (\Throwable $e) {
+        $this->logger?->critical('Hiboutik monthly input EXCEPTION', [
+            'msg' => $e->getMessage(),
+            'hib_last' => $this->hib->getLastDebug(),
+        ]);
 
-        $rachat->setHibInventoryInputId($hibInputId);
-        $this->em->flush();
+        $this->addFlash('error', 'Exception Hiboutik : ' . $e->getMessage());
+        return $this->redirect($returnUrl);
+    }
 
-        $this->addFlash('success', sprintf(
-            'Rachat #%d ➜ produit Hiboutik %d ajouté à l’arrivage du jour #%d (%s).',
-            $rachat->getId(),
+    $hibInputId = (int)$input['id'];
+    $unitPrice = (float)str_replace(',', '.', (string)$rachat->getPrixAchat());
+
+    $resLine = $this->hib->addProductToInventoryInput(
+        $hibInputId,
+        $hibProductId,
+        1,
+        $unitPrice
+    );
+
+    if (!($resLine['ok'] ?? false)) {
+        $this->logger?->error('Hiboutik addProductToInventoryInput FAIL', [
+            'hibInputId' => $hibInputId,
+            'hibProductId' => $hibProductId,
+            'resLine' => $resLine,
+            'hib_last' => $this->hib->getLastDebug(),
+        ]);
+
+        $this->addFlash('error', sprintf(
+            'Produit Hiboutik %d créé mais erreur ajout à l’arrivage mensuel #%d.',
             $hibProductId,
-            $hibInputId,
-            ($input['created'] ?? false) ? 'créé' : 'existant'
+            $hibInputId
         ));
 
         return $this->redirect($returnUrl);
     }
 
+    $rachat->setHibSupplierId($supplierId);
+    $rachat->setHibInventoryInputId($hibInputId);
+    if (method_exists($rachat, 'setHibArrivageAddedAt')) {
+        $rachat->setHibArrivageAddedAt(new \DateTimeImmutable());
+    }
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Rachat #%d ➜ produit Hiboutik %d ajouté à l’arrivage mensuel #%d (%s).',
+        $rachat->getId(),
+        $hibProductId,
+        $hibInputId,
+        ($input['created'] ?? false) ? 'créé' : 'existant'
+    ));
+
+    return $this->redirect($returnUrl);
+}
     /* ============================================================
      *  REVENDEUR: process / apply + copy CI
      * ============================================================ */
@@ -2012,65 +2052,81 @@ final class RachatController extends AbstractController
      *  HIBOUTIK helper: create product (safe IMEI -> barcode)
      * ============================================================ */
 
-    private function ensureHiboutikProductForRachat(Rachat $r, int $defaultSupplierId = 3): int
-    {
-        if ($r->getHibProductId()) {
-            $hibProductId = (int)$r->getHibProductId();
+  private function ensureHiboutikProductForRachat(Rachat $r, int $defaultSupplierId = 3): int
+{
+    $supplierId = 3;
+    $miscText = $this->buildRachatAttributesMiscText($r);
 
-            $imei = trim((string)$r->getImei());
-            if ($imei !== '') {
-                $p = $this->hib->getProduct($hibProductId);
-                $currentBarcode = trim((string)($p['product_barcode'] ?? ''));
-                if ($currentBarcode === '') {
-                    $resBarcode = $this->hib->trySetBarcodeSmart($hibProductId, $imei);
-                    if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
-                        $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
-                    }
+    if ($r->getHibProductId()) {
+        $hibProductId = (int)$r->getHibProductId();
+
+        $this->hib->updateProductAttributes($hibProductId, [
+            'misc_text' => $miscText,
+        ]);
+
+        $imei = trim((string)$r->getImei());
+        if ($imei !== '') {
+            $p = $this->hib->getProduct($hibProductId);
+            $currentBarcode = trim((string)($p['product_barcode'] ?? ''));
+            if ($currentBarcode === '') {
+                $resBarcode = $this->hib->trySetBarcodeSmart($hibProductId, $imei);
+                if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
+                    $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
                 }
             }
-
-            return $hibProductId;
         }
 
-        $supplierId = $r->getHibSupplierId() ?: $defaultSupplierId;
-        $supplyPrice = (float)str_replace(',', '.', (string)$r->getPrixAchat());
-
-        $payload = [
-            'product_model' => $r->getMarqueModele() ?: sprintf('Rachat #%d', $r->getId()),
-            'product_supplier' => $supplierId,
-            'product_supply_price' => $supplyPrice,
-            'product_price' => $supplyPrice,
-            'product_stock_management' => 1,
-            'product_display_www' => 0,
-            'product_arch' => 0,
-            'products_ref_ext' => 'RACHAT-' . $r->getId(),
-        ];
-
-        $res = $this->hib->createProduct($payload);
-
-        $data = is_array($res) ? ($res['data'] ?? $res) : null;
-
-        $hibProductId = 0;
-        if (is_array($data)) {
-            if (isset($data['product_id'])) $hibProductId = (int)$data['product_id'];
-            elseif (isset($data[0]['product_id'])) $hibProductId = (int)$data[0]['product_id'];
-        }
-
-        if ($hibProductId <= 0) {
-            throw new \RuntimeException('Impossible de récupérer le product_id Hiboutik après création du produit.');
-        }
-
-        $r->setHibProductId($hibProductId);
-        if (!$r->getHibSupplierId()) $r->setHibSupplierId($supplierId);
+        $r->setHibSupplierId($supplierId);
         $this->em->flush();
-
-        $resBarcode = $this->hib->trySetBarcodeSmart($hibProductId, $r->getImei());
-        if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
-            $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
-        }
 
         return $hibProductId;
     }
+
+    $supplyPrice = (float)str_replace(',', '.', (string)$r->getPrixAchat());
+
+    $payload = [
+        'product_model' => $r->getMarqueModele() ?: sprintf('Rachat #%d', $r->getId()),
+        'product_supplier' => $supplierId,
+        'product_supply_price' => $supplyPrice,
+        'product_price' => $supplyPrice,
+        'product_stock_management' => 1,
+        'product_display_www' => 0,
+        'product_arch' => 0,
+        'products_ref_ext' => 'RACHAT-' . $r->getId(),
+    ];
+
+    $res = $this->hib->createProduct($payload);
+
+    $data = is_array($res) ? ($res['data'] ?? $res) : null;
+
+    $hibProductId = 0;
+    if (is_array($data)) {
+        if (isset($data['product_id'])) {
+            $hibProductId = (int)$data['product_id'];
+        } elseif (isset($data[0]['product_id'])) {
+            $hibProductId = (int)$data[0]['product_id'];
+        }
+    }
+
+    if ($hibProductId <= 0) {
+        throw new \RuntimeException('Impossible de récupérer le product_id Hiboutik après création du produit.');
+    }
+
+    $this->hib->updateProductAttributes($hibProductId, [
+        'misc_text' => $miscText,
+    ]);
+
+    $r->setHibProductId($hibProductId);
+    $r->setHibSupplierId($supplierId);
+    $this->em->flush();
+
+    $resBarcode = $this->hib->trySetBarcodeSmart($hibProductId, $r->getImei());
+    if (!($resBarcode['ok'] ?? true) && ($resBarcode['reason'] ?? '') === 'invalid_imei') {
+        $this->addFlash('warning', 'IMEI non envoyé à Hiboutik (invalide) : ' . ($resBarcode['error'] ?? ''));
+    }
+
+    return $hibProductId;
+}
 
     /* ============================================================
      *  HELPERS (files/images)
@@ -2169,4 +2225,138 @@ final class RachatController extends AbstractController
         $bin = @file_get_contents($path);
         return $bin ? 'data:' . $mime . ';base64,' . base64_encode($bin) : null;
     }
+// ================= ATTRIBUTES JSON =================
+
+#[Route('/{id}/attributes', name: 'attributes', methods: ['GET','POST'])]
+public function attributes(int $id, Request $req): JsonResponse
+{
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) return $this->json(['error'=>'not found'],404);
+
+    $data = $r->getAttributes() ?? [];
+
+    if ($req->isMethod('GET')) {
+        return $this->json(['data'=>$data]);
+    }
+
+    $body = json_decode($req->getContent(), true);
+
+    if (!empty($body['fields'])) {
+        foreach($body['fields'] as $k=>$v){
+            $data[$k] = $v;
+        }
+    }
+
+    if (!empty($body['delete'])) {
+        unset($data[$body['delete']]);
+    }
+
+    $r->setAttributes($data);
+    $this->em->flush();
+
+    return $this->json(['data'=>$data]);
+}
+
+
+// ================= DEFINITIONS =================
+
+#[Route('/attributes-definitions/{category}', name: 'attributes_definitions', methods: ['GET'])]
+public function defs(string $category): JsonResponse
+{
+    $defs = $this->em->getRepository(\App\Entity\Rachat\AttributeDefinition::class)
+        ->findBy(['category' => $category], ['id' => 'ASC']);
+
+    $rows = array_map(static function(\App\Entity\Rachat\AttributeDefinition $def) {
+        return [
+            'id' => $def->getId(),
+            'code' => $def->getCode(),
+            'label' => $def->getLabel(),
+            'type' => $def->getType(),
+            'category' => $def->getCategory(),
+            'options' => $def->getOptions() ?? [],
+        ];
+    }, $defs);
+
+    return $this->json($rows);
+}
+
+#[Route('/attributes-definitions', name: 'create_attribute_definition', methods: ['POST'])]
+public function createDef(Request $req): JsonResponse
+{
+    $data = json_decode($req->getContent(), true);
+
+    $attr = new AttributeDefinition();
+    $attr->setCode($data['code']);
+    $attr->setLabel($data['label']);
+    $attr->setType($data['type']);
+    $attr->setCategory($data['category']);
+    $attr->setOptions($data['options'] ?? []);
+
+    $this->em->persist($attr);
+    $this->em->flush();
+
+    return $this->json(['ok'=>true]);
+}
+
+private function buildRachatAttributesMiscText(Rachat $r): string
+{
+    $values = $r->getAttributes() ?? [];
+    $category = (string)($r->getHibCategoryId() ?? '');
+
+    if ($category === '') {
+        return '[]';
+    }
+
+    $defs = $this->em->getRepository(\App\Entity\Rachat\AttributeDefinition::class)
+        ->findBy(['category' => $category], ['id' => 'ASC']);
+
+    $out = [];
+
+    foreach ($defs as $def) {
+        $code = (string)$def->getCode();
+
+        $out[] = [
+            'code'  => $code,
+            'label' => (string)$def->getLabel(),
+            'value' => $values[$code] ?? '',
+        ];
+    }
+
+    $json = json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+
+    return $json !== false ? $json : '[]';
+}
+
+#[Route('/{id}/hib-product-update', name: 'hib_product_update', methods: ['POST'])]
+public function hibProductUpdate(int $id, Request $request): Response
+{
+    $rachat = $this->em->getRepository(Rachat::class)->find($id);
+
+    $returnUrl = $this->generateUrl('admin_rachats_edit', ['id' => $id]);
+
+    if (!$rachat) {
+        $this->addFlash('error', 'Rachat introuvable.');
+        return $this->redirect($returnUrl);
+    }
+
+    if (!$rachat->getHibProductId()) {
+        $this->addFlash('error', 'Aucun produit Hiboutik lié à ce rachat.');
+        return $this->redirect($returnUrl);
+    }
+
+    try {
+        $supplierId = 3;
+        $hibProductId = $this->ensureHiboutikProductForRachat($rachat, $supplierId);
+
+        $this->addFlash('success', sprintf(
+            'Produit Hiboutik #%d mis à jour.',
+            $hibProductId
+        ));
+    } catch (\Throwable $e) {
+        $this->addFlash('error', 'Erreur MAJ produit Hiboutik : ' . $e->getMessage());
+    }
+
+    return $this->redirect($returnUrl);
+}
+
 }

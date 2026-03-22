@@ -1,0 +1,250 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Clients Hiboutik{% endblock %}
+
+{% block content %}
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+<div class="ui segment">
+    <div class="ui clearing basic segment" style="padding:0 0 1rem 0;">
+        <h1 class="ui left floated header">
+            <i class="users icon"></i>
+            <div class="content">
+                Clients Hiboutik
+                <div class="sub header">Recherche et édition des clients</div>
+            </div>
+        </h1>
+    </div>
+
+    <div class="ui segment">
+  <h3 class="ui header">
+    <i class="user plus icon"></i>
+    <div class="content">
+      Création rapide client
+      <div class="sub header">Créer un client Hiboutik et l’envoyer sur la tablette</div>
+    </div>
+  </h3>
+
+  <form id="quickCreateCustomerForm" class="ui form">
+    <div class="fields">
+      <div class="six wide field">
+        <label>Prénom</label>
+        <input type="text" name="first_name" id="quick_first_name" placeholder="Prénom">
+      </div>
+
+      <div class="six wide field">
+        <label>Nom</label>
+        <input type="text" name="last_name" id="quick_last_name" placeholder="Nom">
+      </div>
+
+      <div class="four wide field" style="display:flex;align-items:flex-end;">
+        <button type="submit" class="ui primary button" id="btnQuickCreateCustomer">
+          <i class="tablet alternate icon"></i>
+          Créer + envoyer tablette
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div id="quickCreateCustomerMsg" style="margin-top:10px;"></div>
+</div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="ui {{ type == 'error' ? 'negative' : 'positive' }} message">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <form method="get" class="ui form" style="margin-bottom:1rem;">
+        <div class="fields">
+            <div class="twelve wide field">
+                <label>Recherche</label>
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q }}"
+                    placeholder="Nom, prénom, société, email, téléphone, référence externe..."
+                >
+            </div>
+            <div class="four wide field" style="display:flex;align-items:flex-end;">
+                <button class="ui primary button" type="submit">
+                    <i class="search icon"></i>
+                    Rechercher
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <table class="ui celled striped sortable table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Société</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Pays</th>
+                <th>Réf. ext.</th>
+                <th>Mise à jour</th>
+                <th class="center aligned">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in customers %}
+            <tr>
+                <td>{{ c.customers_id ?? '' }}</td>
+                <td>{{ c.last_name ?: '—' }}</td>
+                <td>{{ c.first_name ?: '—' }}</td>
+                <td>{{ c.company ?: '—' }}</td>
+                <td>{{ c.email ?: '—' }}</td>
+                <td>{{ c.phone ?: '—' }}</td>
+                <td>{{ c.country ?: '—' }}</td>
+                <td>{{ c.customers_ref_ext ?: '—' }}</td>
+                <td>{{ c.updated_at ?: '—' }}</td>
+                <td class="center aligned">
+                    <a class="ui tiny primary button"
+                       href="{{ path('admin_hiboutik_customer_edit', {id: c.customers_id}) }}">
+                        <i class="edit icon"></i>
+                        Éditer
+                    </a>
+                    <button class="ui primary button btn-tablet-edit"
+        data-id="{{ c.customers_id }}"
+        data-device="TAB1">
+  📱 Tablette
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="10" class="center aligned">Aucun client trouvé.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+(function () {
+
+  console.log('TOKEN TWIG =', '{{ tablet_socket_token|default('VIDE')|e('js') }}');
+
+  const form = document.getElementById('quickCreateCustomerForm');
+  const btn = document.getElementById('btnQuickCreateCustomer');
+  const msg = document.getElementById('quickCreateCustomerMsg');
+  if (!form || !btn) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    msg.innerHTML = '';
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const fd = new FormData(form);
+
+      // 1) créer le client côté Symfony
+      const res = await fetch(`{{ path('admin_hiboutik_customer_create_tablet') }}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: fd
+      });
+
+      const j = await res.json();
+      if (!j || !j.ok || !j.url) {
+        throw new Error(j?.error || 'Création client impossible');
+      }
+
+      // 2) push vers tablette
+      const u = new URL(j.url, window.location.origin);
+
+      const push = await fetch(`/ws-tablet-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          device: 'TAB1',
+          url: u.pathname + u.search,
+          token: '{{ tablet_socket_token|e("js") }}'
+        })
+      });
+
+      const pj = await push.json().catch(() => ({}));
+
+      if (!pj.ok) {
+        throw new Error('Push KO: ' + (pj.error || ''));
+      }
+
+      msg.innerHTML = `
+        <div class="ui positive message">
+          Client créé (#${j.customer_id}) et envoyé sur la tablette.
+          <div style="margin-top:8px;">
+            <a class="ui tiny button" href="${j.edit_admin_url}">Ouvrir la fiche admin</a>
+          </div>
+        </div>
+      `;
+
+      form.reset();
+    } catch (e) {
+      console.error(e);
+      msg.innerHTML = `
+        <div class="ui negative message">
+          ${e.message || 'Erreur création + push tablette'}
+        </div>
+      `;
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+<script>
+(function () {
+  const buttons = document.querySelectorAll('.btn-tablet-edit');
+
+  if (!buttons.length) return;
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try {
+        const id = btn.dataset.id;
+        const device = btn.dataset.device || 'TAB1';
+
+        btn.classList.add('loading');
+
+        // 1) construire URL tablette
+        const url = `/tablet/customers/${id}/edit?device=${device}`;
+
+        // 2) push tablette
+        const push = await fetch(`/ws-tablet-push`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: new URLSearchParams({
+            device,
+            url,
+            token: '{{ tablet_socket_token|e("js") }}'
+          })
+        });
+
+        const pj = await push.json().catch(() => ({}));
+
+        console.log('[TABLET EDIT CUSTOMER]', pj);
+
+        if (!pj.ok) {
+          throw new Error(pj.error || 'push KO');
+        }
+
+      } catch (e) {
+        console.error(e);
+        alert('Erreur push tablette');
+      } finally {
+        btn.classList.remove('loading');
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

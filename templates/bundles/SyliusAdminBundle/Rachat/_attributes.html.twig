@@ -1,0 +1,156 @@
+<div class="ui segment">
+  <div class="two fields">
+  <h3 class="ui header">
+    <i class="tags icon"></i>
+    Attributs produit
+  </h3>
+  <a  class="ui basic button" href="{{ path('admin_hiboutik_categories_index') }}" target="_blank" style="height:2.5em;align-self:flex-end;">
+      <i class="external icon"></i> Catégories Hiboutik
+    </a>
+  </div>
+
+  <div id="attributesList">
+    <div class="ui message">Choisissez une catégorie pour afficher les attributs</div>
+  </div>
+</div>
+<script>
+(function(){
+
+  const ID = {{ rachat.id }};
+  let DEFINITIONS = [];
+
+  const elList = document.getElementById('attributesList');
+  const catSelect = document.querySelector('[name="rachat[hibCategoryId]"]');
+
+  if(!catSelect){
+    console.error("❌ Select catégorie introuvable");
+    return;
+  }
+
+  // ============================
+  async function load(cat){
+
+    if(!cat){
+      elList.innerHTML = `<div class="ui message">Aucune catégorie</div>`;
+      return;
+    }
+
+    console.log("🔥 LOAD CAT =", cat);
+
+    elList.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
+
+    try {
+
+      // 🔥 FIX STRING
+      const category = String(cat);
+
+      // 1. DEFINITIONS
+      const defsRes = await fetch(`/admin/rachats/attributes-definitions/${category}`);
+
+      if(!defsRes.ok){
+        const txt = await defsRes.text();
+        console.error("❌ API defs erreur:", txt);
+        elList.innerHTML = `<div class="ui negative message">Erreur API definitions</div>`;
+        return;
+      }
+
+      DEFINITIONS = await defsRes.json();
+
+      // 2. ATTRIBUTES EXISTANTS
+      const attrRes = await fetch(`/admin/rachats/${ID}/attributes`);
+      let attrJson = await attrRes.json();
+      let data = attrJson.data || {};
+
+      // 3. AUTO CREATE
+      if(Object.keys(data).length === 0 && DEFINITIONS.length > 0){
+        const fields = {};
+        DEFINITIONS.forEach(d => fields[d.code] = "");
+
+        await fetch(`/admin/rachats/${ID}/attributes`,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({fields})
+        });
+
+        const r2 = await fetch(`/admin/rachats/${ID}/attributes`);
+        data = (await r2.json()).data || {};
+      }
+
+      render(data);
+
+    } catch(e){
+      console.error("💥 JS ERROR", e);
+      elList.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
+    }
+  }
+
+  // ============================
+  function render(data){
+
+    if(DEFINITIONS.length === 0){
+      elList.innerHTML = `<div class="ui warning message">Aucun attribut</div>`;
+      return;
+    }
+
+    elList.innerHTML = '';
+
+    DEFINITIONS.forEach(def => {
+
+      const value = data[def.code] || '';
+
+      let input = `
+        <input value="${value}" 
+          onchange="updateAttr('${def.code}', this.value)"
+          style="width:100%;padding:8px">
+      `;
+
+      if(def.type === 'select'){
+        input = `
+          <select onchange="updateAttr('${def.code}', this.value)" style="width:100%;padding:8px">
+            <option value="">-- choisir --</option>
+            ${(def.options||[]).map(o=>`
+              <option value="${o}" ${o===value?'selected':''}>${o}</option>
+            `).join('')}
+          </select>
+        `;
+      }
+
+      elList.innerHTML += `
+        <div class="ui segment">
+          <b>${def.label}</b>
+          ${input}
+        </div>
+      `;
+    });
+  }
+
+  // ============================
+  window.updateAttr = async function(code, value){
+    await fetch(`/admin/rachats/${ID}/attributes`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        fields: { [code]: value }
+      })
+    });
+  }
+
+  // ============================
+  function init(){
+    const cat = catSelect.value;
+
+    console.log("INIT CAT =", cat);
+
+    if(cat){
+      load(cat);
+    }
+  }
+
+  catSelect.addEventListener('change', () => {
+    load(catSelect.value);
+  });
+
+  init();
+
+})();
+</script>

@@ -383,15 +383,7 @@
     vertical-align:middle;
   }
 
-  table#rachatsTable thead th{
-    position:sticky;
-    top:calc(var(--sylius-topbar-h) + var(--rachats-bar-h));
-    background:#f8fbff;
-    color:#334155;
-    z-index:999;
-    font-weight:800;
-    border-bottom:1px solid #dbe5ef;
-  }
+ 
 
   th.select-col, td.select-col{
     width:44px;
@@ -584,6 +576,34 @@
       justify-content:start;
       grid-template-columns:repeat(4, 42px);
     }
+
+    .tableWrap{
+  overflow:auto;
+  background:#fff;
+  border:1px solid var(--r-line);
+  border-radius:18px;
+  box-shadow:var(--r-shadow);
+  position:relative;
+}
+
+table#rachatsTable thead th{
+  position: sticky;
+  top: calc(var(--sylius-topbar-h) + var(--rachats-bar-h) + 8px);
+  background: #f8fbff;
+  color: #334155;
+  z-index: 20;
+  font-weight: 800;
+  border-bottom: 1px solid #dbe5ef;
+  box-shadow: 0 2px 0 #dbe5ef;
+}
+
+@media (max-width: 1100px){
+  table#rachatsTable thead th{
+    position: static;
+    top: auto;
+    box-shadow: none;
+  }
+}
   }
 </style>
 
@@ -926,15 +946,25 @@
                 {% else %}—{% endif %}
               </td>
             {% endif %}
-            {% if 'ci' in activeCols %}
-              <td class="nowrap">
-                {% if row.pieceIdentiteUrl %}
-                  <a class="iconbtn iconbtn-violet" href="{{ row.pieceIdentiteUrl }}" target="_blank" title="Pièce d'identité">
-                    <i class="id card outline icon"></i>
-                  </a>
-                {% else %}—{% endif %}
-              </td>
-            {% endif %}
+        {% if 'ci' in activeCols %}
+  <td class="nowrap">
+    {% if row.ciRecto %}
+      <a class="iconbtn iconbtn-violet" href="{{ row.ciRecto }}" target="_blank" title="Recto">
+        <i class="id card outline icon"></i>
+      </a>
+    {% endif %}
+
+    {% if row.ciVerso %}
+      <a class="iconbtn iconbtn-violet" href="{{ row.ciVerso }}" target="_blank" title="Verso">
+        <i class="clone outline icon"></i>
+      </a>
+    {% endif %}
+
+    {% if not row.ciRecto and not row.ciVerso %}
+      —
+    {% endif %}
+  </td>
+{% endif %}
             {% if 'paiement' in activeCols %}
               <td>
                 {% if paid %}

@@ -1,0 +1,217 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Client Hiboutik #{{ customer.customers_id }}{% endblock %}
+
+{% block content %}
+{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+<div class="ui segment">
+    <div class="ui clearing basic segment" style="padding:0 0 1rem 0;">
+        <h1 class="ui left floated header">
+            <i class="user edit icon"></i>
+            <div class="content">
+                Client Hiboutik #{{ customer.customers_id }}
+                <div class="sub header">
+                    {{ customer.first_name ?? '' }} {{ customer.last_name ?? '' }}
+                </div>
+            </div>
+        </h1>
+
+        <div class="ui right floated buttons">
+            <a class="ui button" href="{{ path('admin_hiboutik_customer_index') }}">
+                <i class="arrow left icon"></i>
+                Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="ui {{ type == 'error' ? 'negative' : 'positive' }} message">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    <form method="post" class="ui form">
+        <div class="ui top attached tabular menu">
+            <a class="active item">Client</a>
+            <a class="item">Adresse</a>
+        </div>
+
+        <div class="ui bottom attached segment">
+            <h3 class="ui dividing header">Informations client</h3>
+
+            <div class="three fields">
+                <div class="field">
+                    <label>ID client Hiboutik</label>
+                    <input type="text" value="{{ customer.customers_id ?? '' }}" readonly>
+                </div>
+                <div class="field">
+                    <label>Code client</label>
+                    <input type="text" name="customers_code" value="{{ customer.customers_code ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Référence externe</label>
+                    <input type="text" name="customers_ref_ext" value="{{ customer.customers_ref_ext ?? '' }}">
+                </div>
+            </div>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Nom</label>
+                    <input type="text" name="last_name" value="{{ customer.last_name ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Prénom</label>
+                    <input type="text" name="first_name" value="{{ customer.first_name ?? '' }}">
+                </div>
+            </div>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Société</label>
+                    <input type="text" name="company" value="{{ customer.company ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>TVA</label>
+                    <input type="text" name="vat" value="{{ customer.vat ?? '' }}">
+                </div>
+            </div>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" name="email" value="{{ customer.email ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Téléphone</label>
+                    <input type="text" name="phone" value="{{ customer.phone ?? '' }}">
+                </div>
+            </div>
+
+            <div class="three fields">
+                <div class="field">
+                    <label>Pays (ISO 3)</label>
+                    <input type="text" name="country" value="{{ customer.country ?? 'FRA' }}">
+                </div>
+                <div class="field">
+                    <label>Date de naissance</label>
+                    <input type="text" name="date_of_birth" value="{{ customer.date_of_birth ?? '' }}" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="field">
+                    <label>Genre</label>
+                    <input type="text" value="{{ customer.gender ?? '' }}" readonly>
+                </div>
+            </div>
+
+            <div class="four fields">
+                <div class="field">
+                    <label>Points fidélité</label>
+                    <input type="text" value="{{ customer.loyalty_points ?? '' }}" readonly>
+                </div>
+                <div class="field">
+                    <label>Crédit magasin</label>
+                    <input type="text" value="{{ customer.store_credit ?? '' }}" readonly>
+                </div>
+                <div class="field">
+                    <label>Achats prépayés</label>
+                    <input type="text" value="{{ customer.prepaid_purchases ?? '' }}" readonly>
+                </div>
+                <div class="field">
+                    <label>Dernière commande</label>
+                    <input type="text" value="{{ customer.last_order_date ?? '' }}" readonly>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Commentaires</label>
+                <textarea name="comments" rows="3">{{ customer.comments ?? '' }}</textarea>
+            </div>
+
+            <div class="field">
+                <label>Informations diverses</label>
+                <textarea name="customers_misc" rows="2">{{ customer.customers_misc ?? '' }}</textarea>
+            </div>
+
+            <h3 class="ui dividing header">
+                Adresse
+                {% if not address %}
+                    <div class="sub header">
+                        Aucune adresse trouvée. En remplissant ce bloc, une nouvelle adresse sera créée.
+                    </div>
+                {% endif %}
+            </h3>
+
+            <div class="field">
+                <label>Adresse complète</label>
+                <textarea name="address_address" rows="3">{{ address.address ?? '' }}</textarea>
+            </div>
+
+            <div class="four fields">
+                <div class="field">
+                    <label>Code postal</label>
+                    <input type="text" name="address_zip_code" value="{{ address.zip_code ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Ville</label>
+                    <input type="text" name="address_city" value="{{ address.city ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Département / État</label>
+                    <input type="text" name="address_state" value="{{ address.state ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Pays (ISO 3)</label>
+                    <input type="text" name="address_country" value="{{ address.country ?? customer.country ?? 'FRA' }}">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Autre / consignes</label>
+                <input type="text" name="address_other" value="{{ address.other ?? '' }}">
+            </div>
+
+            <div class="three fields">
+                <div class="field">
+                    <label>N° TVA</label>
+                    <input type="text" name="address_tax_number" value="{{ address.tax_number ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>N° société</label>
+                    <input type="text" name="address_company_number" value="{{ address.company_number ?? '' }}">
+                </div>
+                <div class="field">
+                    <label>Statut légal</label>
+                    <input type="text" name="address_legal_status" value="{{ address.legal_status ?? '' }}">
+                </div>
+            </div>
+
+            <div class="inline field">
+                <div class="ui checkbox">
+                    <input type="checkbox"
+                           name="address_default"
+                           value="1"
+                           {% if (address.default ?? 0) == 1 %}checked{% endif %}>
+                    <label>Adresse par défaut</label>
+                </div>
+            </div>
+
+            <div class="ui divider"></div>
+
+            <div class="ui right aligned basic segment" style="padding:0;">
+                <button class="ui primary button" type="submit">
+                    <i class="save icon"></i>
+                    Enregistrer
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if debug is defined and debug %}
+        <div class="ui segment" style="margin-top:1rem;">
+            <h4 class="ui header">Debug Hiboutik</h4>
+            <pre style="white-space:pre-wrap;">{{ debug|json_encode(constant('JSON_PRETTY_PRINT'))|e }}</pre>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

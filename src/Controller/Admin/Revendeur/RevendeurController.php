@@ -2,8 +2,8 @@
 
 namespace App\Controller\Admin\Revendeur;
 
-use App\Entity\Rachat;
-use App\Entity\Revendeur;
+use App\Entity\Rachat\Rachat;
+use App\Entity\Rachat\Revendeur;
 use App\Service\RevendeurHiboutikSync;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

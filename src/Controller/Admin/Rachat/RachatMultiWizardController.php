@@ -2,7 +2,7 @@
 
 namespace App\Controller\Admin\Rachat;
 
-use App\Entity\Rachat;
+use App\Entity\Rachat\Rachat;
 use App\Service\HiboutikClient;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
