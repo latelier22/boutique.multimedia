@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Étiquettes A5 x4</title>
+    <style>
+        @page {
+            size: 148mm 210mm;
+            margin: 0;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 148mm;
+            height: 210mm;
+            background: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page {
+            position: relative;
+            width: 148mm;
+            height: 210mm;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+
+        /*
+         * A5 = 148 x 210 mm
+         * 2 colonnes de 60 mm => 120 mm
+         * reste 28 mm => 14 mm à gauche et 14 mm à droite
+         * 2 lignes de 105 mm => 210 mm exact
+         */
+        .slot {
+            position: absolute;
+            width: 60mm;
+            height: 105mm;
+            overflow: hidden;
+        }
+
+        .slot-1 { left: 14mm; top: 0mm; }
+        .slot-2 { left: 74mm; top: 0mm; }
+        .slot-3 { left: 14mm; top: 105mm; }
+        .slot-4 { left: 74mm; top: 105mm; }
+
+        /* === Styles du partial === */
+
+        .label {
+            width: 60mm;
+            height: 105mm;
+            border: 0.3mm solid #222;
+            box-sizing: border-box;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+            padding: 3mm;
+        }
+
+        .ref {
+            position: absolute;
+            top: 1.5mm;
+            right: 1.5mm;
+            font-size: 1.8mm;
+            color: #777;
+        }
+
+        .top-row {
+            display: table;
+            width: 100%;
+            margin-top: 4mm;
+            margin-bottom: 2mm;
+        }
+
+        .top-left,
+        .top-right {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .top-left {
+            width: 58%;
+        }
+
+        .top-right {
+            width: 42%;
+            text-align: right;
+        }
+
+        .brand {
+            font-size: 5mm;
+            font-weight: 900;
+            line-height: 1;
+            text-transform: uppercase;
+            margin-bottom: 0.8mm;
+        }
+
+        .model {
+            font-size: 3.7mm;
+            font-weight: 900;
+            line-height: 1.02;
+            text-transform: uppercase;
+            margin-bottom: 0.8mm;
+        }
+
+        .storage {
+            font-size: 4mm;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 0.5mm;
+        }
+
+        .state {
+            display: inline-block;
+            font-size: 3mm;
+            font-weight: 900;
+            padding: 1mm 1.8mm;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        .state-blue {
+            background: #1e88e5;
+            color: #fff;
+        }
+
+        .state-green {
+            background: #2e7d32;
+            color: #fff;
+        }
+
+        .state-yellow {
+            background: #f1c40f;
+            color: #111;
+        }
+
+        .state-red {
+            background: #c62828;
+            color: #fff;
+        }
+
+        .qr-code img {
+            width: 20mm;
+            height: 20mm;
+            object-fit: contain;
+            display: inline-block;
+        }
+
+        .price-line {
+            line-height: 1;
+            margin-bottom: 2.5mm;
+        }
+
+        .price-main {
+            font-size: 15mm;
+            font-weight: 900;
+            letter-spacing: -0.5mm;
+        }
+
+        .euro {
+            font-size: 8mm;
+            font-weight: 900;
+        }
+
+        .specs {
+            font-size: 2.8mm;
+            line-height: 1.18;
+            color: #222;
+            margin-bottom: 0;
+        }
+
+        .specs div {
+            margin-bottom: 0.35mm;
+        }
+
+        .bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #e37820;
+            color: #fff;
+            text-align: center;
+            font-size: 3.5mm;
+            font-weight: 900;
+            padding: 2mm 1mm;
+            text-transform: uppercase;
+            box-sizing: border-box;
+        }
+
+        /* === Traits de coupe SANS dépassement hors page === */
+
+        .crop {
+            position: absolute;
+            background: #000;
+            z-index: 20;
+        }
+
+        /* repères horizontaux : dans les marges latérales */
+        .crop-h-left-1,
+        .crop-h-left-2,
+        .crop-h-right-1,
+        .crop-h-right-2,
+        .crop-h-mid-left,
+        .crop-h-mid-right {
+            width: 4mm;
+            height: 0.25mm;
+        }
+
+        .crop-h-left-1  { left: 9mm;  top: 0mm; }
+        .crop-h-left-2  { left: 9mm;  top: 105mm; }
+
+        .crop-h-right-1 { left: 135mm; top: 0mm; }
+        .crop-h-right-2 { left: 135mm; top: 105mm; }
+
+        .crop-h-mid-left  { left: 10mm; top: 105mm; }
+        .crop-h-mid-right { left: 134mm; top: 105mm; }
+
+        /* repères verticaux : sur la séparation centrale et bords des étiquettes */
+        .crop-v-top-l,
+        .crop-v-top-c,
+        .crop-v-top-r,
+        .crop-v-mid-l,
+        .crop-v-mid-c,
+        .crop-v-mid-r,
+        .crop-v-bot-l,
+        .crop-v-bot-c,
+        .crop-v-bot-r {
+            width: 0.25mm;
+            height: 4mm;
+        }
+
+        .crop-v-top-l { left: 14mm; top: 0mm; }
+        .crop-v-top-c { left: 74mm; top: 0mm; }
+        .crop-v-top-r { left: 134mm; top: 0mm; }
+
+        .crop-v-mid-l { left: 14mm; top: 103mm; }
+        .crop-v-mid-c { left: 74mm; top: 103mm; }
+        .crop-v-mid-r { left: 134mm; top: 103mm; }
+
+        .crop-v-bot-l { left: 14mm; top: 206mm; }
+        .crop-v-bot-c { left: 74mm; top: 206mm; }
+        .crop-v-bot-r { left: 134mm; top: 206mm; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    {# traits de coupe internes à la page #}
+    <span class="crop crop-h-left-1"></span>
+    <span class="crop crop-h-left-2"></span>
+    <span class="crop crop-h-right-1"></span>
+    <span class="crop crop-h-right-2"></span>
+    <span class="crop crop-h-mid-left"></span>
+    <span class="crop crop-h-mid-right"></span>
+
+    <span class="crop crop-v-top-l"></span>
+    <span class="crop crop-v-top-c"></span>
+    <span class="crop crop-v-top-r"></span>
+
+    <span class="crop crop-v-mid-l"></span>
+    <span class="crop crop-v-mid-c"></span>
+    <span class="crop crop-v-mid-r"></span>
+
+    <span class="crop crop-v-bot-l"></span>
+    <span class="crop crop-v-bot-c"></span>
+    <span class="crop crop-v-bot-r"></span>
+
+    <div class="slot slot-1">
+        {% include '@SyliusAdmin/Hiboutik/Products/_label_a5_item.html.twig' with {
+            product: product,
+            qr_code_data_uri: qr_code_data_uri
+        } %}
+    </div>
+
+    <div class="slot slot-2">
+        {% include '@SyliusAdmin/Hiboutik/Products/_label_a5_item.html.twig' with {
+            product: product,
+            qr_code_data_uri: qr_code_data_uri
+        } %}
+    </div>
+
+    <div class="slot slot-3">
+        {% include '@SyliusAdmin/Hiboutik/Products/_label_a5_item.html.twig' with {
+            product: product,
+            qr_code_data_uri: qr_code_data_uri
+        } %}
+    </div>
+
+    <div class="slot slot-4">
+        {% include '@SyliusAdmin/Hiboutik/Products/_label_a5_item.html.twig' with {
+            product: product,
+            qr_code_data_uri: qr_code_data_uri
+        } %}
+    </div>
+
+</div>
+</body>
+</html>

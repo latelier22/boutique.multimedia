@@ -16,6 +16,11 @@ use App\Entity\Rachat\AttributeDefinition;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
+use App\Service\ProductLabelPdfGenerator;
+use App\Service\ProductLabelTcpdfGenerator;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Picqer\Barcode\BarcodeGeneratorPNG;
+
 #[Route('/admin/hiboutik/product', name: 'admin_hiboutik_product_')]
 final class HiboutikProductController extends AbstractController
 {
@@ -24,6 +29,9 @@ final class HiboutikProductController extends AbstractController
         private CacheApiClient $cacheApi,
         private EntityManagerInterface $em,
         private HttpClientInterface $httpClient,
+        private ProductLabelPdfGenerator $labelPdfGenerator,
+        private ProductLabelTcpdfGenerator $labelTcpdfGenerator,
+        private RequestStack $requestStack, // pour le flash
     ) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -101,7 +109,7 @@ final class HiboutikProductController extends AbstractController
     // -------------------------
     $params = [
         'from' => 0,
-        'to' => 200,
+        'to' => 2000,
     ];
 
     if ($q !== '') $params['q'] = $q;
@@ -222,6 +230,67 @@ final class HiboutikProductController extends AbstractController
     }
 
 
+#[Route('/new', name: 'new', methods: ['POST'])]
+public function new(Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('hiboutik_product_new', (string)$request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $catsRes = $this->hib->listCategories();
+    $categories = is_array($catsRes['data'] ?? null) ? $catsRes['data'] : [];
+
+    $defaultCategoryId = $this->findDefaultPhoneOccasionCategoryId($categories);
+
+    $productModel = trim((string)$request->request->get('product_model', 'Nouveau produit'));
+    $productPrice = str_replace(',', '.', trim((string)$request->request->get('product_price', '0.00')));
+    if ($productPrice === '' || !is_numeric($productPrice)) {
+        $productPrice = '0.00';
+    } else {
+        $productPrice = number_format((float)$productPrice, 2, '.', '');
+    }
+
+    $payload = [
+        'product_model'            => $productModel,
+        'product_price'            => $productPrice,
+        'product_supply_price'     => $productPrice,
+        'product_stock_management' => 1,
+        'product_display_www'      => 0,
+        'product_arch'             => 0,
+    ];
+
+    if ($defaultCategoryId) {
+        $payload['product_category'] = (string)$defaultCategoryId;
+    }
+
+    $created = $this->hib->createProduct($payload);
+
+    $productId = 0;
+
+    if (is_array($created)) {
+        if (isset($created['product_id'])) {
+            $productId = (int)$created['product_id'];
+        } elseif (isset($created[0]['product_id'])) {
+            $productId = (int)$created[0]['product_id'];
+        }
+    }
+
+    if ($productId <= 0) {
+        $this->addFlash('error', 'Impossible de créer le produit Hiboutik.');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
+    }
+
+    $this->refreshProduct($productId);
+
+    $this->addFlash('success', sprintf('Produit Hiboutik #%d créé.', $productId));
+
+    return $this->redirectToRoute('admin_hiboutik_product_edit', [
+        'id' => $productId,
+    ]);
+}
+
+
+
 #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
 public function edit(int $id, Request $request): Response
 {
@@ -241,6 +310,47 @@ public function edit(int $id, Request $request): Response
     $categories = is_array($catsRes['data'] ?? null) ? $catsRes['data'] : [];
     $brands     = is_array($brandsRes['data'] ?? null) ? $brandsRes['data'] : [];
 
+    $tagCatalog = $this->hib->buildGroupedProductTagCatalog();
+    $tagGroups = $tagCatalog['groups'] ?? [];
+
+    $currentTagIds = [];
+    foreach (($product['tags'] ?? []) as $tag) {
+        $tid = (int)($tag['tag_id'] ?? 0);
+        if ($tid > 0) {
+            $currentTagIds[] = $tid;
+        }
+    }
+    $currentTagIds = array_values(array_unique($currentTagIds));
+
+    usort($brands, function ($a, $b) {
+        return strcmp(
+            mb_strtolower((string)($a['brand_name'] ?? ''), 'UTF-8'),
+            mb_strtolower((string)($b['brand_name'] ?? ''), 'UTF-8')
+        );
+    });
+
+    // arbre catégories pour le select
+    $categoryOptions = $this->buildCategorySelectOptions($categories);
+
+    // ids de catégories sélectionnables = feuilles uniquement
+    $leafCategoryIds = [];
+    foreach ($categoryOptions as $opt) {
+        if (!empty($opt['selectable'])) {
+            $leafCategoryIds[(int)$opt['id']] = true;
+        }
+    }
+
+    // catégorie par défaut = "Occasion / reconditionné" enfant de "Téléphones"
+    $defaultCategoryId = $this->findDefaultPhoneOccasionCategoryId($categories);
+
+    $currentCategoryId = (int)($product['product_category'] ?? 0);
+    $selectedCategoryId = (
+        $currentCategoryId > 0
+        && isset($leafCategoryIds[$currentCategoryId])
+    )
+        ? $currentCategoryId
+        : ((int)$defaultCategoryId ?: 0);
+
     $error = null;
 
     // -------------------------
@@ -248,7 +358,6 @@ public function edit(int $id, Request $request): Response
     // -------------------------
     if ($request->isMethod('POST')) {
 
-        // 🔒 CSRF
         if (!$this->isCsrfTokenValid(
             'hiboutik_edit_' . $id,
             (string)$request->request->get('_csrf_token')
@@ -256,26 +365,127 @@ public function edit(int $id, Request $request): Response
             throw $this->createAccessDeniedException('CSRF invalid');
         }
 
-        // -------------------------
-        // DATA
-        // -------------------------
         $www = $request->request->has('product_display_www') ? '1' : '0';
+
+        // catégorie
+        $categoryRaw = trim((string)$request->request->get('product_category', '0'));
+        $categoryId = ctype_digit($categoryRaw) ? (int)$categoryRaw : 0;
+
+        if ($categoryId <= 0 && $defaultCategoryId) {
+            $categoryId = (int)$defaultCategoryId;
+        }
+
+        if ($categoryId <= 0) {
+            $this->addFlash('error', 'La catégorie est obligatoire.');
+            return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+        }
+
+        if (!isset($leafCategoryIds[$categoryId])) {
+            $this->addFlash('error', 'Vous devez choisir une sous-catégorie, pas une catégorie parente.');
+            return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+        }
+
+        // marque
+        $brandRaw = trim((string)$request->request->get('product_brand', '0'));
+$brandId = 0;
+
+if ($brandRaw === '__new__') {
+    $newBrandName = trim((string)$request->request->get('new_brand_name', ''));
+
+    if ($newBrandName === '') {
+        $this->addFlash('error', 'Le nom de la nouvelle marque est obligatoire.');
+        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+    }
+
+    // position max + 1
+    $maxPosition = 0;
+    foreach ($brands as $b) {
+        $pos = (int)($b['brand_position'] ?? 0);
+        if ($pos > $maxPosition) {
+            $maxPosition = $pos;
+        }
+    }
+
+    $createRes = $this->hib->createBrand([
+        'brand_name' => $newBrandName,
+        'brand_enabled' => 1,
+        'brand_enabled_www' => 0,
+        'brand_position' => $maxPosition + 1,
+    ]);
+
+    if (!($createRes['ok'] ?? false)) {
+        $this->addFlash('error', 'Impossible de créer la nouvelle marque Hiboutik.');
+        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+    }
+
+    // on essaie de récupérer l'id directement
+    $brandId = (int)($createRes['data']['brand_id'] ?? $createRes['brand_id'] ?? 0);
+
+    // fallback : on relit les marques et on retrouve par nom
+    if ($brandId <= 0) {
+        $brandsReload = $this->hib->listBrands();
+        $brandsReloadData = is_array($brandsReload['data'] ?? null) ? $brandsReload['data'] : [];
+
+        $targetNorm = $this->normalizeBrandName($newBrandName);
+
+        foreach ($brandsReloadData as $b) {
+            $bid = (int)($b['brand_id'] ?? 0);
+            $bname = trim((string)($b['brand_name'] ?? ''));
+
+            if ($bid > 0 && $this->normalizeBrandName($bname) === $targetNorm) {
+                $brandId = $bid;
+                break;
+            }
+        }
+    }
+
+    if ($brandId <= 0) {
+        $this->addFlash('error', 'La marque a peut-être été créée, mais son identifiant est introuvable.');
+        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+    }
+} else {
+    $brandId = ctype_digit($brandRaw) ? (int)$brandRaw : 0;
+}
+
+        // tags cochés
+        $selectedTagIds = array_values(array_unique(array_filter(
+            array_map('intval', (array)$request->request->all('product_tags')),
+            fn ($x) => $x > 0
+        )));
+
+        // attributs postés
+        $postedMiscValues = json_decode((string)$request->request->get('misc_values_json', '{}'), true);
+        if (!is_array($postedMiscValues)) {
+            $postedMiscValues = [];
+        }
+
+        // IMPORTANT : on repart de l'existant pour ne RIEN perdre
+        $existingMiscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
+        if (!is_array($existingMiscValues)) {
+            $existingMiscValues = [];
+        }
+
+        // les valeurs postées écrasent les anciennes, mais si une clé n'est pas repostée on la garde
+        $effectiveMiscValues = array_replace($existingMiscValues, $postedMiscValues);
+
+        $defs = $this->em->getRepository(AttributeDefinition::class)
+            ->findBy(['category' => (string)$categoryId], ['id' => 'ASC']);
+
+        $miscText = $this->buildProductMiscText($defs, $effectiveMiscValues);
 
         $fields = [
             'product_model'          => trim((string)$request->request->get('product_model', '')),
-            'product_barcode'       => trim((string)$request->request->get('product_barcode', '')),
+            'product_barcode'        => trim((string)$request->request->get('product_barcode', '')),
             'product_price'          => (string)$request->request->get('product_price', ''),
             'product_discount_price' => (string)$request->request->get('product_discount_price', ''),
-            'product_category'       => (string)$request->request->get('product_category', '0'),
-            'product_brand'          => (string)$request->request->get('product_brand', '0'),
+            'product_category'       => (string)$categoryId,
+            'product_brand'          => (string)$brandId,
             'product_display_www'    => $www,
+            'misc_text'              => $miscText,
         ];
 
-        // -------------------------
-        // FORMAT PRIX
-        // -------------------------
-        foreach (['product_price','product_discount_price'] as $k) {
-
+        // format prix
+        foreach (['product_price', 'product_discount_price'] as $k) {
             $v = str_replace(',', '.', trim((string)$fields[$k]));
 
             if ($v === '') {
@@ -289,9 +499,7 @@ public function edit(int $id, Request $request): Response
             $fields[$k] = $v;
         }
 
-        // -------------------------
-        // UPDATE HIBOUTIK
-        // -------------------------
+        // update Hiboutik
         $res = $this->hib->updateProductAttributes($id, $fields);
 
         if (!($res['ok'] ?? false)) {
@@ -303,35 +511,78 @@ public function edit(int $id, Request $request): Response
             ]);
         }
 
-        // -------------------------
-        // REFRESH CACHE (optionnel mais conseillé)
-        // -------------------------
+        // sync tags
+        $tagErrors = [];
+
+        $toAdd = array_diff($selectedTagIds, $currentTagIds);
+        $toRemove = array_diff($currentTagIds, $selectedTagIds);
+
+        foreach ($toAdd as $tagId) {
+            $r = $this->hib->addTagToProduct($id, (int)$tagId);
+            if (!($r['ok'] ?? false)) {
+                $tagErrors[] = 'Ajout tag #' . $tagId;
+            }
+        }
+
+        foreach ($toRemove as $tagId) {
+            $r = $this->hib->deleteTagForProduct($id, (int)$tagId);
+            if (!($r['ok'] ?? false)) {
+                $tagErrors[] = 'Suppression tag #' . $tagId;
+            }
+        }
+
         $this->refreshProduct($id);
 
-        // -------------------------
-        // SUCCESS
-        // -------------------------
         $this->addFlash('success', "Produit #$id mis à jour.");
+
+        if ($tagErrors) {
+            $this->addFlash('warning', 'Produit enregistré, mais certains tags n’ont pas pu être mis à jour : ' . implode(' | ', $tagErrors));
+        }
 
         return $this->redirectToRoute('admin_hiboutik_product_edit', [
             'id' => $id
         ]);
     }
 
-
-    $miscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
     // -------------------------
     // GET
     // -------------------------
-    return $this->render('@SyliusAdmin/Hiboutik/Products/edit.html.twig', [
-        'id'         => $id,
-        'product'    => $product,
-        'product_barcode' => $product['product_barcode'] ?? '',
-        'categories' => $categories,
-        'brands'     => $brands,
-        'error'      => $error,
-        'miscValues' => $miscValues,
+    $miscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
 
+    // attributs préchargés pour éviter le fetch lent au premier affichage
+    $initialAttributeDefs = [];
+
+    if ($selectedCategoryId > 0) {
+        $initialAttributeDefs = $this->em->getConnection()->fetchAllAssociative(
+            'SELECT id, code, label, type, category, options
+             FROM attributes_definitions
+             WHERE category = :cat
+             ORDER BY id ASC',
+            ['cat' => (string)$selectedCategoryId]
+        );
+
+        foreach ($initialAttributeDefs as &$row) {
+            $row['options'] = !empty($row['options'])
+                ? (json_decode($row['options'], true) ?: [])
+                : [];
+        }
+        unset($row);
+    }
+
+    return $this->render('@SyliusAdmin/Hiboutik/Products/edit.html.twig', [
+        'id'                   => $id,
+        'product'              => $product,
+        'product_barcode'      => $product['product_barcode'] ?? '',
+        'categories'           => $categories,
+        'categoryOptions'      => $categoryOptions,
+        'selectedCategoryId'   => $selectedCategoryId,
+        'defaultCategoryId'    => $defaultCategoryId,
+        'brands'               => $brands,
+        'error'                => $error,
+        'miscValues'           => $miscValues,
+        'initialAttributeDefs' => $initialAttributeDefs,
+        'tagGroups'            => $tagGroups,
+        'currentTagIds'        => $currentTagIds,
     ]);
 }
 
@@ -830,6 +1081,8 @@ public function importExternalBrands(Request $request): RedirectResponse
 
     return $this->redirectToRoute('admin_hiboutik_product_index');
 }
+
+
 private function normalizeBrandName(string $name): string
 {
     $name = mb_strtolower(trim($name), 'UTF-8');
@@ -840,141 +1093,1025 @@ private function normalizeBrandName(string $name): string
     return (string)$name;
 }
 
+#[Route('/{id}/label-test', name: 'label_test', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function labelTest(int $id): Response
+{
+    $product = $this->hib->getProduct($id);
+
+    if (!$product) {
+        throw $this->createNotFoundException("Produit introuvable");
+    }
+
+    $miscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
+
+    $brandName = trim((string)($product['brand_name'] ?? ''));
+    if ($brandName === '' && !empty($product['product_brand'])) {
+        $brandsRes = $this->hib->listBrands();
+        foreach (($brandsRes['data'] ?? []) as $b) {
+            if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+                $brandName = (string)($b['brand_name'] ?? '');
+                break;
+            }
+        }
+    }
+
+    $price = (float)($product['product_discount_price'] ?? 0);
+    if ($price <= 0) {
+        $price = (float)($product['product_price'] ?? 0);
+    }
+
+    $priceLabel = number_format($price, 2, ',', ' ');
+
+    $productView = [
+        'product_id'      => $product['product_id'] ?? null,
+        'product_model'   => $product['product_model'] ?? '',
+        'product_barcode' => $product['product_barcode'] ?? '',
+        'brand_name'      => $brandName ?: 'XIAOMI',
+        'storage'         => $miscValues['stockage'] ?? $miscValues['capacity'] ?? '',
+        'state_label'     => $miscValues['etat'] ?? 'BON ÉTAT',
+        'price_label'     => $priceLabel,
+        'spec_1'          => !empty($miscValues['photo']) ? 'Appareil photo princ. : ' . $miscValues['photo'] : null,
+        'spec_2'          => !empty($miscValues['os']) ? 'Syst. exploit. : ' . $miscValues['os'] : null,
+        'spec_3'          => !empty($miscValues['ecran']) ? 'Taille d\'écran : ' . $miscValues['ecran'] : null,
+        'spec_4'          => !empty($miscValues['das']) ? 'DAS tête : ' . $miscValues['das'] : null,
+        'spec_5'          => !empty($miscValues['batterie']) ? 'Batterie : ' . $miscValues['batterie'] : null,
+    ];
+
+    $productUrl = 'https://votre-site.fr/produit/' . ($product['product_id'] ?? $id);
+
+    $qrCodeDataUri = null; // à brancher ensuite
+
+    $file = $this->labelPdfGenerator->generateCenteredA4([
+        'product' => $productView,
+        'qr_code_data_uri' => $qrCodeDataUri,
+    ], 'label-product-' . $id . '.pdf');
+
+    return $this->redirect($file['url']);
+}
+
+#[Route('/{id}/labels-a5-x3', name: 'labels_a5_x3', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function labelsA5x3(int $id): Response
+{
+    $product = $this->hib->getProduct($id);
 
 
-//     #[Route('/create', name: 'create', methods: ['POST'])]
-//     public function create(): Response
-//     {
-//         $label = 'RACHAT MENSUEL-' . (new \DateTime())->format('m-Y');
+    
+    if (!$product) {
+        throw $this->createNotFoundException("Produit introuvable");
+    }
 
-//         // Vérifie si déjà existant
-//         $existants = $this->hib->listMonthlyRachatInputs();
-//         foreach ($existants as $a) {
-//     if (($a['inventory_input_label'] ?? '') === $label) {
-//         $this->addFlash('info', "L’arrivage $label existe déjà.");
-//         return $this->redirectToRoute('admin_arrivages_index');
-//     }
-// }
+    $miscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
+
+    $brandName = trim((string)($product['brand_name'] ?? ''));
+    if ($brandName === '' && !empty($product['product_brand'])) {
+        $brandsRes = $this->hib->listBrands();
+        foreach (($brandsRes['data'] ?? []) as $b) {
+            if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+                $brandName = (string)($b['brand_name'] ?? '');
+                break;
+            }
+        }
+    }
+
+    $price = (float)($product['product_discount_price'] ?? 0);
+    if ($price <= 0) {
+        $price = (float)($product['product_price'] ?? 0);
+    }
+
+    $priceLabel = number_format($price, 2, ',', ' ');
+
+    $productView = [
+        'product_id'      => $product['product_id'] ?? null,
+        'product_model'   => (string)($product['product_model'] ?? ''),
+        'product_barcode' => (string)($product['product_barcode'] ?? ''),
+        'brand_name'      => $brandName,
+        'storage'         => (string)($miscValues['stockage'] ?? $miscValues['capacity'] ?? ''),
+        'state_label'     => (string)($miscValues['etat'] ?? 'BON ÉTAT'),
+        'price_label'     => $priceLabel,
+
+        'spec_1' => !empty($miscValues['photo']) ? 'Appareil photo princ. : ' . $miscValues['photo'] : null,
+        'spec_2' => !empty($miscValues['os']) ? 'Syst. exploit. : ' . $miscValues['os'] : null,
+        'spec_3' => !empty($miscValues['ecran']) ? 'Taille d’écran : ' . $miscValues['ecran'] : null,
+        'spec_4' => !empty($miscValues['das']) ? 'DAS tête : ' . $miscValues['das'] : null,
+        'spec_5' => !empty($miscValues['batterie']) ? 'Batterie : ' . $miscValues['batterie'] : null,
+
+        'footer_label' => 'GARANTIE 2 ANS',
+        'spec_footer'  => null,
+    ];
+
+    $productUrl = 'https://votre-site.fr/produit/' . ($product['product_id'] ?? $id);
+
+    $qrCodeDataUri = null;
+    // plus tard : $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
+
+    $file = $this->labelPdfGenerator->generateA5ThreeSameLabels([
+        'product' => $productView,
+        'qr_code_data_uri' => $qrCodeDataUri,
+    ], 'labels-a5-x3-product-' . $id . '.pdf');
+
+    return $this->redirect($file['url']);
+}
+
+#[Route('/{id}/labels-a5-x4', name: 'labels_a5_x4', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function labelsA5x4(int $id): Response
+{
+    $product = $this->hib->getProduct($id);
+
+    if (!$product) {
+        throw $this->createNotFoundException("Produit introuvable");
+    }
+
+    $miscRows = $this->parseMiscTextRows((string)($product['misc_text'] ?? ''));
+
+    $brandName = trim((string)($product['product_brand_name'] ?? ''));
+    if ($brandName === '' && !empty($product['product_brand'])) {
+        $brandsRes = $this->hib->listBrands();
+        foreach (($brandsRes['data'] ?? []) as $b) {
+            if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+                $brandName = (string)($b['brand_name'] ?? '');
+                break;
+            }
+        }
+    }
+
+    $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
+
+    $price = (float)($product['product_discount_price'] ?? 0);
+    if ($price <= 0) {
+        $price = (float)($product['product_price'] ?? 0);
+    }
+
+    $priceLabel = number_format($price, 2, ',', '');
+
+    $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $id);
+    $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
+
+    $storage = '';
+    foreach ($miscRows as $row) {
+        if (mb_strtolower(trim((string)$row['label'])) === 'stockage') {
+            $storage = trim((string)$row['value']);
+            break;
+        }
+    }
+
+    $footerLabel = '';
+foreach ($miscRows as $row) {
+    if (mb_strtolower(trim((string) ($row['label'] ?? ''))) === 'garantie') {
+        $footerLabel = "Garantie " . trim((string) ($row['value'] ?? ''));
+        break;
+    }
+}
+
+    $productView = [
+        'product_id'      => $product['product_id'] ?? null,
+        'product_model'   => (string)($product['product_model'] ?? ''),
+        'product_barcode' => (string)($product['product_barcode'] ?? ''),
+        'brand_name'      => $brandName,
+        'storage'         => $storage,
+        'state_label'     => $stateMeta['label'],
+        'state_class'     => $stateMeta['class'],
+        'price_label'     => $priceLabel,
+        'misc_rows'       => $miscRows,
+        'footer_label'    => $footerLabel
+    ];
+
+    $filename = sprintf('labels-a5-x4-product-%d-%s.pdf', $id, date('Ymd-His'));
+
+    $file = $this->labelTcpdfGenerator->generateA5FourLabels60x105([
+        'product' => $productView,
+        'qr_code_data_uri' => $qrCodeDataUri,
+    ], $filename);
+
+    return $this->redirect($file['url']);
+}
 
 
-//         // Création
-//         $res = $this->hib->createInventoryInput(1, 3, $label);
+private function getLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack): array
+{
+    $session = $requestStack->getSession();
+    $slots = $session->get('hib_label_builder_slots', [null, null, null, null]);
 
-//         if (!($res['ok'] ?? false)) {
-//             $this->addFlash('error', 'Erreur Hiboutik (' . ($res['status'] ?? '??') . ')');
-//         } else {
-//             $this->addFlash('success', "Nouvel arrivage créé : $label");
-//         }
+    if (!is_array($slots) || count($slots) !== 4) {
+        $slots = [null, null, null, null];
+    }
 
-//         return $this->redirectToRoute('admin_arrivages_index');
-//     }
+    return array_values($slots);
+}
 
-    // #[Route('/validate/{id}', name: 'validate', methods: ['POST'])]
-    // public function validate(int $id): Response
-    // {
-    //     $res = $this->hib->validateInventoryInput($id);
+private function saveLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack, array $slots): void
+{
+    $slots = array_values(array_pad(array_slice($slots, 0, 4), 4, null));
+    $requestStack->getSession()->set('hib_label_builder_slots', $slots);
+}
 
-    //     if (!($res['ok'] ?? false)) {
-    //         $this->addFlash('error', 'Erreur Hiboutik (' . ($res['status'] ?? '??') . ')');
-    //     } else {
-    //         $this->addFlash('success', "Arrivage #$id validé !");
-    //     }
+private function addProductToLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack, int $productId): bool
+{
+    $slots = $this->getLabelBuilderSlots($requestStack);
 
-    //     return $this->redirectToRoute('admin_arrivages_index');
-    // }
+    foreach ($slots as $i => $slot) {
+        if ($slot === null) {
+            $slots[$i] = $productId;
+            $this->saveLabelBuilderSlots($requestStack, $slots);
+            return true;
+        }
+    }
 
-    // #[Route('/details/{id}', name: 'details', methods: ['GET'])]
-    // public function details(int $id): Response
-    // {
-    //     $res = $this->hib->listInventoryInputDetails($id);
-        
-    //     $data = $res['data'] ?? [];
+    return false;
+}
 
-    //     return $this->render('@SyliusAdmin/Arrivages/details.html.twig', [
-    //         'id' => $id,
-    //         'details' => $data,
-    //     ]);
-    // }
+private function removeSlotFromLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack, int $slotIndex): void
+{
+    $slots = $this->getLabelBuilderSlots($requestStack);
 
-//   #[Route('/create-from-rachats', name: 'create_from_rachats', methods: ['POST'])]
-// public function createFromRachats(Request $req): Response
+    if (isset($slots[$slotIndex])) {
+        $slots[$slotIndex] = null;
+    }
+
+    $this->saveLabelBuilderSlots($requestStack, $slots);
+}
+
+private function clearLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack): void
+{
+    $this->saveLabelBuilderSlots($requestStack, [null, null, null, null]);
+}
+
+#[Route('/labels-builder/add/{id}', name: 'labels_builder_add', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function addToLabelsBuilder(int $id): Response
+{
+    $product = $this->hib->getProduct($id);
+    if (!$product) {
+        throw $this->createNotFoundException('Produit introuvable');
+    }
+
+    $ok = $this->addProductToLabelBuilder($this->requestStack, $id);
+
+    if ($ok) {
+        $this->addFlash('success', 'Produit ajouté à la planche étiquettes.');
+    } else {
+        $this->addFlash('error', 'La planche contient déjà 4 produits.');
+    }
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
+
+#[Route('/labels-builder/fill-from-index', name: 'labels_builder_fill_from_index', methods: ['POST'])]
+public function fillLabelsBuilderFromIndex(Request $request): Response
+{
+    $ids = $request->request->all('ids');
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun produit sélectionné.');
+        return $this->redirectToRoute('admin_hiboutik_products_index');
+    }
+
+    if (count($ids) > 4) {
+        $this->addFlash('error', 'Vous ne pouvez sélectionner que 4 produits maximum.');
+        return $this->redirectToRoute('admin_hiboutik_products_index');
+    }
+
+    $slots = [null, null, null, null];
+    foreach ($ids as $i => $id) {
+        $slots[$i] = $id;
+    }
+
+    $this->saveLabelBuilderSlots($this->requestStack, $slots);
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
+
+#[Route('/labels-builder/add-batch', name: 'labels_builder_add_batch', methods: ['POST'])]
+public function addBatchToLabelsBuilder(Request $request): Response
+{
+    $ids = $request->request->all('ids');
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun produit sélectionné.');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
+    }
+
+    $slots = $this->getLabelBuilderSlots($this->requestStack);
+
+    foreach ($ids as $id) {
+        foreach ($slots as $i => $slot) {
+            if ($slot === null) {
+                $slots[$i] = $id;
+                continue 2;
+            }
+        }
+
+        $this->addFlash('error', 'La planche est pleine (4 slots max).');
+        $this->saveLabelBuilderSlots($this->requestStack, $slots);
+
+        return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+    }
+
+    $this->saveLabelBuilderSlots($this->requestStack, $slots);
+    $this->addFlash('success', 'Produit(s) ajouté(s) à la planche.');
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
+#[Route('/labels-builder', name: 'labels_builder', methods: ['GET'])]
+public function labelsBuilder(Request $request): Response
+{
+    $slots = $this->getLabelBuilderSlots($this->requestStack);
+
+    $slotViews = [];
+
+    foreach ($slots as $i => $productId) {
+        if ($productId === null) {
+            $slotViews[] = [
+                'slot' => $i,
+                'product' => null,
+            ];
+            continue;
+        }
+
+        $product = $this->hib->getProduct((int) $productId);
+
+        if (!$product) {
+            $slotViews[] = [
+                'slot' => $i,
+                'product' => null,
+            ];
+            continue;
+        }
+
+        $miscRows = $this->parseMiscTextRows((string) ($product['misc_text'] ?? ''));
+
+        $brandName = trim((string) ($product['product_brand_name'] ?? ''));
+        if ($brandName === '' && !empty($product['product_brand'])) {
+            $brandsRes = $this->hib->listBrands();
+            foreach (($brandsRes['data'] ?? []) as $b) {
+                if ((int) ($b['brand_id'] ?? 0) === (int) $product['product_brand']) {
+                    $brandName = (string) ($b['brand_name'] ?? '');
+                    break;
+                }
+            }
+        }
+
+        $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
+
+        $price = (float) ($product['product_discount_price'] ?? 0);
+        if ($price <= 0) {
+            $price = (float) ($product['product_price'] ?? 0);
+        }
+
+        $priceLabel = number_format($price, 2, ',', '');
+
+        $storage = '';
+        foreach ($miscRows as $row) {
+            if (mb_strtolower(trim((string) $row['label'])) === 'stockage') {
+                $storage = trim((string) $row['value']);
+                break;
+            }
+        }
+
+        $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $productId);
+$qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
+
+$barcode = (string)($product['product_barcode'] ?? '');
+$barcodePngDataUri = $this->barcodePngDataUri($barcode);
+
+$footerLabel = '';
+foreach ($miscRows as $row) {
+    if (mb_strtolower(trim((string)($row['label'] ?? ''))) === 'garantie') {
+        $footerLabel = "GARANTIE " . trim((string)($row['value'] ?? ''));
+        break;
+    }
+}
+
+        $slotViews[] = [
+    'slot' => $i,
+    'product' => [
+        'product_id'            => $product['product_id'] ?? null,
+        'product_model'         => (string)($product['product_model'] ?? ''),
+        'product_barcode'       => (string)($product['product_barcode'] ?? ''),
+        'brand_name'            => $brandName,
+        'storage'               => $storage,
+        'state_label'           => $stateMeta['label'],
+        'state_class'           => $stateMeta['class'],
+        'price_label'           => $priceLabel,
+        'misc_rows'             => $miscRows,
+        'footer_label'          => $footerLabel,
+        'qr_code_data_uri'      => $qrCodeDataUri,
+        'barcode_png_data_uri'  => $barcodePngDataUri,
+    ],
+];
+    }
+
+    $q = trim((string) $request->query->get('q', ''));
+    $results = [];
+
+    if ($q !== '') {
+        $all = $this->hib->getProductsAll();
+
+        foreach ($all as $p) {
+            $pid = (int) ($p['product_id'] ?? 0);
+            $model = (string) ($p['product_model'] ?? '');
+            $barcode = (string) ($p['product_barcode'] ?? '');
+            $brand = (string) ($p['product_brand_name'] ?? '');
+
+            $haystack = mb_strtolower(trim($pid . ' ' . $model . ' ' . $barcode . ' ' . $brand));
+            $needle = mb_strtolower($q);
+
+            if (!str_contains($haystack, $needle)) {
+                continue;
+            }
+
+            $results[] = [
+                'product_id'         => $pid,
+                'product_model'      => $model,
+                'product_barcode'    => $barcode,
+                'product_price'      => $p['product_price'] ?? '',
+                'product_brand_name' => $brand,
+            ];
+
+            if (count($results) >= 20) {
+                break;
+            }
+        }
+    }
+
+    if ($request->query->get('ajax') === '1') {
+        return $this->render('@SyliusAdmin/Hiboutik/Products/_labels_builder_results.html.twig', [
+            'q' => $q,
+            'results' => $results,
+        ]);
+    }
+
+    return $this->render('@SyliusAdmin/Hiboutik/Products/labels_builder.html.twig', [
+        'slots'   => $slotViews,
+        'q'       => $q,
+        'results' => $results,
+    ]);
+}
+
+#[Route('/labels-builder/remove/{slot}', name: 'labels_builder_remove', requirements: ['slot' => '\d+'], methods: ['POST'])]
+public function removeFromLabelsBuilder(int $slot): Response
+{
+    if ($slot < 0 || $slot > 3) {
+        throw $this->createNotFoundException('Slot invalide');
+    }
+
+    $this->removeSlotFromLabelBuilder($this->requestStack, $slot);
+    $this->addFlash('success', 'Slot vidé.');
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
+#[Route('/labels-builder/clear', name: 'labels_builder_clear', methods: ['POST'])]
+public function clearLabelsBuilder(): Response
+{
+    $this->clearLabelBuilder($this->requestStack);
+    $this->addFlash('success', 'Planche vidée.');
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
+
+
+#[Route('/labels-builder/pdf', name: 'labels_builder_pdf', methods: ['POST'])]
+public function labelsBuilderPdf(): Response
+{
+    $slots = $this->getLabelBuilderSlots($this->requestStack);
+
+    $pdfSlots = [];
+
+    foreach ($slots as $productId) {
+        if ($productId === null) {
+            $pdfSlots[] = null;
+            continue;
+        }
+
+        $product = $this->hib->getProduct((int) $productId);
+
+        if (!$product) {
+            $pdfSlots[] = null;
+            continue;
+        }
+
+        $miscRows = $this->parseMiscTextRows((string)($product['misc_text'] ?? ''));
+
+        $brandName = trim((string)($product['product_brand_name'] ?? ''));
+        if ($brandName === '' && !empty($product['product_brand'])) {
+            $brandsRes = $this->hib->listBrands();
+            foreach (($brandsRes['data'] ?? []) as $b) {
+                if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+                    $brandName = (string)($b['brand_name'] ?? '');
+                    break;
+                }
+            }
+        }
+
+        $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
+
+        $price = (float)($product['product_discount_price'] ?? 0);
+        if ($price <= 0) {
+            $price = (float)($product['product_price'] ?? 0);
+        }
+
+        $priceLabel = number_format($price, 2, ',', '');
+
+        $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $productId);
+        $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
+
+        $storage = '';
+        foreach ($miscRows as $row) {
+            if (mb_strtolower(trim((string)$row['label'])) === 'stockage') {
+                $storage = trim((string)$row['value']);
+                break;
+            }
+        }
+
+        $footerLabel = '';
+foreach ($miscRows as $row) {
+    if (mb_strtolower(trim((string)($row['label'] ?? ''))) === 'garantie') {
+        $footerLabel = "GARANTIE " . trim((string)($row['value'] ?? ''));
+
+        break;
+    }
+}
+
+        $pdfSlots[] = [
+            'product' => [
+                'product_id'      => $product['product_id'] ?? null,
+                'product_model'   => (string)($product['product_model'] ?? ''),
+                'product_barcode' => (string)($product['product_barcode'] ?? ''),
+                'brand_name'      => $brandName,
+                'storage'         => $storage,
+                'state_label'     => $stateMeta['label'],
+                'state_class'     => $stateMeta['class'],
+                'price_label'     => $priceLabel,
+                'misc_rows'       => $miscRows,
+                'footer_label'    => $footerLabel
+            ],
+            'qr_code_data_uri' => $qrCodeDataUri,
+        ];
+    }
+
+    if (count(array_filter($pdfSlots)) === 0) {
+        $this->addFlash('error', 'La planche est vide.');
+        return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+    }
+
+    $filename = sprintf('labels-a5-builder-%s.pdf', date('Ymd-His'));
+
+    $file = $this->labelTcpdfGenerator->generateA5Slots60x105($pdfSlots, $filename);
+
+    return $this->redirect($file['url']);
+}
+
+// #[Route('/{id}/labels-a5-x4', name: 'labels_a5_x4', requirements: ['id' => '\d+'], methods: ['GET'])]
+// public function labelsA5x4(int $id): Response
 // {
-//     $ids = $req->request->all('ids');
-//     if (!$ids) {
-//         $this->addFlash('error', 'Sélection requise.');
-//         return $this->redirectToRoute('admin_rachats_index');
+//     $product = $this->hib->getProduct($id);
+
+//     if (!$product) {
+//         throw $this->createNotFoundException("Produit introuvable");
 //     }
 
-//     $repo = $this->em->getRepository(Rachat::class);
-//     $rachats = [];
-//     foreach ($ids as $id) {
-//         $r = $repo->find((int)$id);
-//         if ($r) $rachats[] = $r;
-//     }
-//     if (!$rachats) {
-//         $this->addFlash('error', 'Rachats introuvables.');
-//         return $this->redirectToRoute('admin_rachats_index');
-//     }
+//     $miscRows = $this->parseMiscTextRows((string)($product['misc_text'] ?? ''));
 
-//     // ✅ revendeur/supplier unique
-//     $first = $rachats[0];
-//     $supplierId = (int)$first->getHibSupplierId();
-//     $nom = (string)$first->getNom();
-//     $prenom = (string)$first->getPrenom();
-
-//     foreach ($rachats as $r) {
-//         if ((int)$r->getHibSupplierId() !== $supplierId) {
-//             $this->addFlash('error', 'Sélection invalide : plusieurs revendeurs (suppliers) différents.');
-//             return $this->redirectToRoute('admin_rachats_index');
+//     $brandName = trim((string)($product['product_brand_name'] ?? ''));
+//     if ($brandName === '' && !empty($product['product_brand'])) {
+//         $brandsRes = $this->hib->listBrands();
+//         foreach (($brandsRes['data'] ?? []) as $b) {
+//             if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+//                 $brandName = (string)($b['brand_name'] ?? '');
+//                 break;
+//             }
 //         }
 //     }
 
-//     // ✅ 1 arrivage/jour/supplier
-//     $isMulti = count($rachats) > 1;
-//     $inv = $this->hib->ensureDailyRachatInput(1, $supplierId, $nom, $prenom, $isMulti);
+//     $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
 
-//     if (!($inv['ok'] ?? false)) {
-//         $this->addFlash('error', 'Erreur création/récup arrivage.');
-//         return $this->redirectToRoute('admin_rachats_index');
+//     $price = (float)($product['product_discount_price'] ?? 0);
+//     if ($price <= 0) {
+//         $price = (float)($product['product_price'] ?? 0);
 //     }
 
-//     $inventoryInputId = (int)($inv['data']['inventory_input_id'] ?? $inv['data']['id'] ?? $inv['id'] ?? 0);
-//     if ($inventoryInputId <= 0) {
-//         $this->addFlash('error', 'Impossible de récupérer l’ID de l’arrivage Hiboutik.');
-//         return $this->redirectToRoute('admin_rachats_index');
-//     }
+//     $priceLabel = number_format($price, 2, ',', '');
 
-//     // ✅ éviter doublons dans l’arrivage
-//     $details = $this->hib->listInventoryInputDetails($inventoryInputId);
-//     $already = [];
-//     foreach (($details['data'] ?? []) as $d) {
-//         $pid = (int)($d['product_id'] ?? 0);
-//         if ($pid) $already[$pid] = true;
-//     }
+//     $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $id);
+//     $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
 
-//     $added = 0;
-//     foreach ($rachats as $r) {
-//         $hibProductId = (int)$r->getHibProductId();
-//         if ($hibProductId <= 0) continue; // ou: appeler ton ensureHiboutikProductForRachat ici
-
-//         if (isset($already[$hibProductId])) continue;
-
-//         $res = $this->hib->addProductToInventoryInput($inventoryInputId, $hibProductId, 1);
-//         if (($res['ok'] ?? false)) {
-//             $added++;
-//             $already[$hibProductId] = true;
+//     // on peut essayer de repérer le stockage pour le haut de l'étiquette
+//     $storage = '';
+//     foreach ($miscRows as $row) {
+//         if (mb_strtolower($row['label']) === 'stockage') {
+//             $storage = $row['value'];
+//             break;
 //         }
 //     }
 
-//     $this->addFlash('success', sprintf(
-//         '%s : arrivage #%d (%s) — %d produit(s) ajouté(s).',
-//         ($inv['created'] ?? false) ? 'Créé' : 'Réutilisé',
-//         $inventoryInputId,
-//         $inv['label'] ?? '',
-//         $added
-//     ));
+//     $productView = [
+//         'product_id'      => $product['product_id'] ?? null,
+//         'product_model'   => (string)($product['product_model'] ?? ''),
+//         'product_barcode' => (string)($product['product_barcode'] ?? ''),
+//         'brand_name'      => $brandName,
+//         'storage'         => $storage,
 
-//     return $this->redirectToRoute('admin_arrivages_index');
+//         'state_label'     => $stateMeta['label'],
+//         'state_class'     => $stateMeta['class'],
+
+//         'price_label'     => $priceLabel,
+
+//         // TOUTES les lignes lues depuis misc_text
+//         'misc_rows'       => $miscRows,
+
+//         'footer_label'    => 'GARANTIE 2 ANS',
+//     ];
+
+//     $filename = sprintf(
+//     'labels-a5-x4-product-%d-%s.pdf',
+//     $id,
+//     date('Ymd-His')
+// );
+
+// $file = $this->labelPdfGenerator->generateA5FourSameLabels([
+//     'product' => $productView,
+//     'qr_code_data_uri' => $qrCodeDataUri,
+// ], $filename);
+
+// return $this->redirect($file['url']);
 // }
+
+
+private function parseMiscTextRows(string $miscText): array
+{
+    $miscText = trim($miscText);
+    if ($miscText === '') {
+        return [];
+    }
+
+    $decoded = json_decode($miscText, true);
+    if (!is_array($decoded)) {
+        return [];
+    }
+
+    $rows = [];
+
+    // format moderne : tableau d'objets
+    if (isset($decoded[0]) && is_array($decoded[0])) {
+        foreach ($decoded as $row) {
+            $label = trim((string)($row['label'] ?? ''));
+            $value = trim((string)($row['value'] ?? ''));
+
+            if ($label === '' || $value === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'code'  => trim((string)($row['code'] ?? '')),
+                'label' => $label,
+                'value' => $value,
+            ];
+        }
+
+        return $rows;
+    }
+
+    // ancien format objet
+    foreach ($decoded as $code => $value) {
+        $v = is_scalar($value) ? trim((string)$value) : '';
+        if ($v === '') {
+            continue;
+        }
+
+        $rows[] = [
+            'code'  => (string)$code,
+            'label' => (string)$code,
+            'value' => $v,
+        ];
+    }
+
+    return $rows;
+}
+private function resolveStateMetaFromTags(array $tags): array
+{
+    $label = '';
+
+    foreach ($tags as $tag) {
+        if (!is_array($tag)) {
+            continue;
+        }
+
+        if ((int)($tag['tag_cat'] ?? 0) === 19) {
+            $label = trim((string)($tag['tag_label'] ?? ''));
+            break;
+        }
+    }
+
+    if ($label === '') {
+        return [
+            'label' => 'BON ÉTAT',
+            'class' => 'state-yellow',
+        ];
+    }
+
+    $norm = mb_strtolower($label);
+
+    if (str_contains($norm, 'neuf')) {
+        return ['label' => 'NEUF', 'class' => 'state-blue'];
+    }
+
+    if (str_contains($norm, 'très bon état') || str_contains($norm, 'tres bon etat') || str_contains($norm, 'reconditionné') || str_contains($norm, 'reconditionne')) {
+        return ['label' => 'TRÈS BON ÉTAT', 'class' => 'state-green'];
+    }
+
+    if (str_contains($norm, 'bon état') || str_contains($norm, 'bon etat')) {
+        return ['label' => 'BON ÉTAT', 'class' => 'state-yellow'];
+    }
+
+    if (str_contains($norm, 'correct') || str_contains($norm, 'défaut') || str_contains($norm, 'defaut')) {
+        return ['label' => 'ÉTAT CORRECT', 'class' => 'state-red'];
+    }
+
+    return [
+        'label' => strtoupper($label),
+        'class' => 'state-yellow',
+    ];
+}
+private function firstNonEmptySpec(string $prefix, array $values, array $keys): ?string
+{
+    foreach ($keys as $key) {
+        $v = trim((string)($values[$key] ?? ''));
+        if ($v !== '') {
+            return $prefix . $v;
+        }
+    }
+
+    return null;
+}
+
+private function barcodePngDataUri(string $barcode): ?string
+{
+    $barcode = preg_replace('/\s+/', '', $barcode);
+    $barcode = trim((string) $barcode);
+
+    if ($barcode === '') {
+        return null;
+    }
+
+    try {
+        $generator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+
+        $png = $generator->getBarcode(
+            $barcode,
+            $generator::TYPE_CODE_128,
+            1,
+            50
+        );
+
+        return 'data:image/png;base64,' . base64_encode($png);
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
+private function qrCodeToDataUri(string $text): ?string
+{
+    $url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($text);
+
+    try {
+        $png = @file_get_contents($url);
+        if ($png === false) {
+            return null;
+        }
+
+        return 'data:image/png;base64,' . base64_encode($png);
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+
+
+#[Route('/{id}/label-business-card', name: 'label_business_card', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function labelBusinessCard(int $id): Response
+{
+    $product = $this->hib->getProduct($id);
+
+    if (!$product) {
+        throw $this->createNotFoundException("Produit introuvable");
+    }
+
+    $miscRows = $this->parseMiscTextRows((string)($product['misc_text'] ?? ''));
+
+    $brandName = trim((string)($product['product_brand_name'] ?? ''));
+    if ($brandName === '' && !empty($product['product_brand'])) {
+        $brandsRes = $this->hib->listBrands();
+        foreach (($brandsRes['data'] ?? []) as $b) {
+            if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
+                $brandName = (string)($b['brand_name'] ?? '');
+                break;
+            }
+        }
+    }
+
+    $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
+
+    $price = (float)($product['product_discount_price'] ?? 0);
+    if ($price <= 0) {
+        $price = (float)($product['product_price'] ?? 0);
+    }
+
+    $priceLabel = number_format($price, 2, ',', '');
+
+    $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $id);
+    $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
+
+    $storage = '';
+    foreach ($miscRows as $row) {
+        if (mb_strtolower(trim((string)$row['label'])) === 'stockage') {
+            $storage = trim((string)$row['value']);
+            break;
+        }
+    }
+
+    $productView = [
+        'product_id'      => $product['product_id'] ?? null,
+        'product_model'   => (string)($product['product_model'] ?? ''),
+        'product_barcode' => (string)($product['product_barcode'] ?? ''),
+        'brand_name'      => $brandName,
+        'storage'         => $storage,
+        'state_label'     => $stateMeta['label'],
+        'state_class'     => $stateMeta['class'],
+        'price_label'     => $priceLabel,
+        'misc_rows'       => $miscRows,
+        'footer_label'    => 'GARANTIE 2 ANS',
+    ];
+
+    $file = $this->labelPdfGenerator->generateBusinessCardLabel([
+        'product' => $productView,
+        'qr_code_data_uri' => $qrCodeDataUri,
+    ], 'label-business-card-' . $id . '.pdf');
+
+    return $this->redirect($file['url']);
+}
+
+private function flattenTagChoices(array $choices, ?string $group = null): array
+{
+    $out = [];
+
+    foreach ($choices as $label => $value) {
+        if (is_array($value)) {
+            $out = array_merge($out, $this->flattenTagChoices($value, (string)$label));
+            continue;
+        }
+
+        $id = (int)$value;
+        if ($id <= 0) {
+            continue;
+        }
+
+        $out[] = [
+            'id' => $id,
+            'label' => (string)$label,
+            'group' => $group,
+        ];
+    }
+
+    return $out;
+}
+
+
+
+
+
+private function normalizeCategoryLabel(string $label): string
+{
+    $label = mb_strtolower(trim($label), 'UTF-8');
+    $label = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $label);
+    $label = preg_replace('/[^a-z0-9]+/', ' ', (string)$label);
+    $label = trim((string)$label);
+
+    return $label;
+}
+
+private function buildCategorySelectOptions(array $categories): array
+{
+    $byId = [];
+    $childrenByParent = [];
+
+    foreach ($categories as $c) {
+        $id = (int)($c['category_id'] ?? 0);
+        if ($id > 0) {
+            $byId[$id] = $c;
+        }
+    }
+
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        $childrenByParent[$pid] ??= [];
+        $childrenByParent[$pid][] = $c;
+    }
+
+    foreach ($childrenByParent as &$kids) {
+        usort($kids, function ($a, $b) {
+            $pa = (int)($a['category_position'] ?? 0);
+            $pb = (int)($b['category_position'] ?? 0);
+
+            if ($pa !== $pb) {
+                return $pa <=> $pb;
+            }
+
+            return strcmp(
+                (string)($a['category_name'] ?? ''),
+                (string)($b['category_name'] ?? '')
+            );
+        });
+    }
+    unset($kids);
+
+    $roots = [];
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        if ($pid === 0 || !isset($byId[$pid])) {
+            $roots[] = $c;
+        }
+    }
+
+    $options = [];
+
+    $walk = function (array $nodes, array $parents = []) use (&$walk, &$options, $childrenByParent) {
+        foreach ($nodes as $c) {
+            $id = (int)($c['category_id'] ?? 0);
+            $name = trim((string)($c['category_name'] ?? ''));
+            if ($id <= 0 || $name === '') {
+                continue;
+            }
+
+            $children = $childrenByParent[$id] ?? [];
+            $hasChildren = count($children) > 0;
+
+            $pathParts = array_merge($parents, [$name]);
+            $fullLabel = implode(' › ', $pathParts);
+
+            $options[] = [
+                'id' => $id,
+                'label' => $fullLabel,
+                'selectable' => !$hasChildren,
+                'is_parent' => $hasChildren,
+                'level' => count($parents),
+            ];
+
+            if ($hasChildren) {
+                $walk($children, $pathParts);
+            }
+        }
+    };
+
+    $walk($roots, []);
+
+    return $options;
+}
+
+private function findDefaultPhoneOccasionCategoryId(array $categories): ?int
+{
+    $byId = [];
+    $childrenByParent = [];
+
+    foreach ($categories as $c) {
+        $id = (int)($c['category_id'] ?? 0);
+        if ($id > 0) {
+            $byId[$id] = $c;
+        }
+    }
+
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        $childrenByParent[$pid] ??= [];
+        $childrenByParent[$pid][] = $c;
+    }
+
+    $targetParentNorm = $this->normalizeCategoryLabel('Téléphones');
+    $targetChildNorm  = $this->normalizeCategoryLabel('Occasion / reconditionné');
+
+    foreach ($categories as $c) {
+        $parentId = (int)($c['category_id'] ?? 0);
+        $parentName = $this->normalizeCategoryLabel((string)($c['category_name'] ?? ''));
+
+        if ($parentName !== $targetParentNorm) {
+            continue;
+        }
+
+        foreach ($childrenByParent[$parentId] ?? [] as $child) {
+            $childId = (int)($child['category_id'] ?? 0);
+            $childName = $this->normalizeCategoryLabel((string)($child['category_name'] ?? ''));
+
+            if ($childId > 0 && $childName === $targetChildNorm) {
+                return $childId;
+            }
+        }
+    }
+
+    return null;
+}
+
 
 }

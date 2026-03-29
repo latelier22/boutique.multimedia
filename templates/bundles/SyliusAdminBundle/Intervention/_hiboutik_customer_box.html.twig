@@ -1,0 +1,83 @@
+<div class="ui segment" id="hibCustomerBox">
+    <h4 class="ui dividing header">
+        <i class="user icon"></i>
+        <div class="content">Client Hiboutik</div>
+    </h4>
+
+    {% if intervention.hiboutikCustomerId %}
+        <div class="ui relaxed list">
+            <div class="item">
+                <i class="hashtag icon"></i>
+                <div class="content">
+                    <div class="header">ID client</div>
+                    <div class="description">#{{ intervention.hiboutikCustomerId }}</div>
+                </div>
+            </div>
+
+            <div class="item">
+                <i class="id badge icon"></i>
+                <div class="content">
+                    <div class="header">Nom</div>
+                    <div class="description">
+                        {{ hibCustomer.last_name ?? '—' }} {{ hibCustomer.first_name ?? '' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="item">
+                <i class="phone icon"></i>
+                <div class="content">
+                    <div class="header">Téléphone</div>
+                    <div class="description">{{ hibCustomer.phone ?? '—' }}</div>
+                </div>
+            </div>
+
+            {% if hibCustomer.email is defined and hibCustomer.email %}
+                <div class="item">
+                    <i class="mail icon"></i>
+                    <div class="content">
+                        <div class="header">Email</div>
+                        <div class="description">{{ hibCustomer.email }}</div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if hibCustomer.company is defined and hibCustomer.company %}
+                <div class="item">
+                    <i class="building icon"></i>
+                    <div class="content">
+                        <div class="header">Société</div>
+                        <div class="description">{{ hibCustomer.company }}</div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="ui small buttons" style="margin-top:12px;">
+            <a
+                href="{{ path('admin_hiboutik_customer_edit', {id: intervention.hiboutikCustomerId}) }}"
+                class="ui button"
+            >
+                <i class="edit icon"></i>
+                Éditer client
+            </a>
+
+            <button
+                type="button"
+                class="ui button btn-tablet-edit-customer"
+                data-id="{{ intervention.hiboutikCustomerId }}"
+                data-device="TAB1"
+            >
+                <i class="tablet alternate icon"></i>
+                Éditer sur tablette
+            </button>
+        </div>
+
+        <div id="tabletCustomerMsg" style="margin-top:10px;"></div>
+    {% else %}
+        <div class="ui warning message">
+            <div class="header">Aucun client Hiboutik lié</div>
+            <p>Le ticket doit utiliser un client Hiboutik. Il faut lier ou créer ce client.</p>
+        </div>
+    {% endif %}
+</div>

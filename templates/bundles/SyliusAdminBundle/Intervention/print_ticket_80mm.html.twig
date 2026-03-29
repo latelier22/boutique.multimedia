@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Intervention {{ ticket.number }}</title>
+    <style>
+        @page { size: 80mm auto; margin: 0; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 80mm;
+            background: #fff;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.25;
+        }
+        body { padding: 4mm 3mm; box-sizing: border-box; }
+        .center { text-align: center; }
+        .sep { border-top: 1px dashed #000; margin: 2.5mm 0; }
+        .title { text-align:center; font-size:15px; font-weight:800; text-transform:uppercase; margin:2mm 0; }
+        .ref { text-align:center; font-size:16px; font-weight:800; margin:2mm 0; }
+        .block-title { font-size:12px; font-weight:800; text-transform:uppercase; margin-bottom:1mm; }
+        .row { margin-bottom: 1mm; word-break: break-word; }
+        .label { font-weight: 700; }
+        .amount-box { border: 1px solid #000; padding: 2mm; text-align: center; margin-top: 2mm; }
+        .amount { font-size: 18px; font-weight: 800; }
+        .signature-box { border: 1px solid #000; height: 18mm; margin-top: 2mm; }
+    </style>
+</head>
+<body>
+   <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    <div>
+        <div style="font-size:15px;font-weight:800;">MULTIMÉDIA SERVICES</div>
+        <div>BON D'INTERVENTION</div>
+    </div>
+    <div style="text-align:right;border:1px solid #000;padding:2mm 3mm;font-size:11px;font-weight:700;">
+        Boîte : {{ ticket.boxCode ?: '___' }}
+    </div>
+</div>
+
+    <div class="sep"></div>
+
+    <div class="ref">N° {{ ticket.number }}</div>
+    <div class="row"><span class="label">Date :</span> {{ ticket.date ? ticket.date|date('d/m/Y H:i') : '' }}</div>
+    {% if ticket.status %}
+        <div class="row"><span class="label">Statut :</span> {{ ticket.status }}</div>
+    {% endif %}
+
+    <div class="sep"></div>
+
+    <div class="block-title">Client</div>
+    <div class="row">{{ (ticket.lastName ~ ' ' ~ ticket.firstName)|trim ?: '—' }}</div>
+    {% if ticket.company %}
+        <div class="row">{{ ticket.company }}</div>
+    {% endif %}
+    {% if ticket.phone %}
+        <div class="row"><span class="label">Tél :</span> {{ ticket.phone }}</div>
+    {% endif %}
+    {% if ticket.email %}
+        <div class="row"><span class="label">Email :</span> {{ ticket.email }}</div>
+    {% endif %}
+
+    <div class="sep"></div>
+
+    <div class="block-title">Appareil</div>
+    <div class="row">{{ ticket.deviceLabel ?: '—' }}</div>
+
+    <div class="sep"></div>
+
+    <div class="block-title">Travail à faire</div>
+    <div class="row">{{ ticket.workToDo ?: '—' }}</div>
+
+    <div class="sep"></div>
+
+    <div class="block-title">Paiement</div>
+    {% if ticket.amountTotal %}
+        <div class="row"><span class="label">Montant total :</span> {{ ticket.amountTotal }} €</div>
+    {% endif %}
+    <div class="row"><span class="label">Acompte :</span> {{ ticket.amountPaid ?: '0,00' }} €</div>
+    {% if ticket.paymentMode %}
+        <div class="row"><span class="label">Mode :</span> {{ ticket.paymentMode }}</div>
+    {% endif %}
+
+    <div class="amount-box">
+        <div>Acompte versé</div>
+        <div class="amount">{{ ticket.amountPaid ?: '0,00' }} €</div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="block-title">Signature client</div>
+    <div class="signature-box"></div>
+
+    <div class="sep"></div>
+
+    <div class="center" style="font-size:9px;">
+        Merci de conserver ce ticket.<br>
+        Aucun appareil ne sera restitué sans justificatif.
+    </div>
+</body>
+
+</html>
+

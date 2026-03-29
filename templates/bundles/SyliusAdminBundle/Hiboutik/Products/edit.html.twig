@@ -4,17 +4,36 @@
 
 {% block content %}
 
-<div class="ui breadcrumb">
-  
-  
-<h1 class="ui header">
-  <i class="edit icon"></i>
-  Éditer produit Hiboutik #{{ product.product_id ?? id }}
-</h1>
-<a class="section" href="https://shop.multimedia-services.fr/produits/{{ product.product_id ?? id }}">Voir {{ product.product_model ?? '' }} en ligne</a>
-  <i class="right angle icon divider"></i>
-  </div>
+{# Top menu dans le pre_content du Layout Admin #}
 
+<div class="ui breadcrumb">
+  <h1 class="ui header">
+    <i class="edit icon"></i>
+    Éditer produit Hiboutik #{{ product.product_id ?? id }}
+  </h1>
+
+  <a class="section" href="https://shop.multimedia-services.fr/produits/{{ product.product_id ?? id }}" target="_blank">
+    Voir {{ product.product_model ?? '' }} en ligne
+  </a>
+
+  <a class="ui button primary" href="{{ path('admin_hiboutik_product_labels_a5_x4', {id: product.product_id ?? id}) }}" target="_blank">
+    <i class="tags icon"></i> Étiquettes A5 x4
+  </a>
+
+  <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_add', {id: product.product_id ?? id}) }}" style="display:inline-block;">
+    <button class="ui button" type="submit">
+      <i class="plus icon"></i>
+      Ajouter à la planche
+    </button>
+  </form>
+
+  <a class="ui button" href="{{ path('admin_hiboutik_product_labels_builder') }}">
+    <i class="eye icon"></i>
+    Voir la planche
+  </a>
+
+  <i class="right angle icon divider"></i>
+</div>
 
 {% if error %}
   <div class="ui negative message">
@@ -23,149 +42,273 @@
   </div>
 {% endif %}
 
-<!-- ========================= -->
-<!-- 🔥 FORM PRODUIT COMPLET -->
-<!-- ========================= -->
-
-<form class="ui form" method="post">
+<form class="ui form" method="post" id="hibProductEditForm">
   <input type="hidden" name="_csrf_token" value="{{ csrf_token('hiboutik_edit_' ~ (product.product_id ?? id)) }}"/>
+  <input type="hidden" name="misc_values_json" id="miscValuesJson" value="{}" />
 
-  <div class="two fields">
-    <div class="field">
-      <label>Référence (product_id)</label>
-      <input name="product_id" value="{{ product.product_id ?? '' }}" disabled />
-    </div>
-    <div class="field">
-      <label>Nom (product_model)</label>
-      <input name="product_model" value="{{ product.product_model ?? '' }}" />
-    </div>
-    <div class="field">
-      <label>Code barre (product_barcode)</label>
-      <input name="product_barcode" value="{{ product.product_barcode ?? '' }}" />
-    </div>
-  </div>
+  <div class="ui stackable grid">
+    {# ===================== COLONNE GAUCHE ===================== #}
+    <div class="eight wide column">
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="box icon"></i>
+          Fiche produit
+        </h3>
 
-  <div class="two fields">
-    <div class="field">
-      <label>Prix</label>
-      <input name="product_price" value="{{ product.product_price ?? '' }}" />
-    </div>
+        <div class="three fields">
+          <div class="field">
+            <label>Référence (product_id)</label>
+            <input name="product_id" value="{{ product.product_id ?? '' }}" disabled />
+          </div>
 
-    <div class="field">
-      <label>Prix promo</label>
-      <input name="product_discount_price" value="{{ product.product_discount_price ?? '' }}" />
-    </div>
-  </div>
+          <div class="field">
+            <label>Nom (product_model)</label>
+            <input name="product_model" value="{{ product.product_model ?? '' }}" />
+          </div>
 
-  <div class="two fields">
-    <div class="field">
-      <label>Catégorie</label>
-      <select name="product_category" class="ui dropdown">
-        <option value="0">—</option>
-        {% for c in categories %}
-          <option value="{{ c.category_id }}"
-            {% if (product.product_category ?? 0) == c.category_id %}selected{% endif %}>
-            {{ c.category_name ?: ('CAT #' ~ c.category_id) }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+          <div class="field">
+            <label>Code barre / IMEI</label>
+            <input name="product_barcode" value="{{ product.product_barcode ?? '' }}" />
+          </div>
+        </div>
 
-    <div class="field">
-      <label>Marque</label>
-      <select name="product_brand" class="ui dropdown">
-        <option value="0">—</option>
-        {% for b in brands %}
-          <option value="{{ b.brand_id }}"
-            {% if (product.product_brand ?? 0) == b.brand_id %}selected{% endif %}>
-            {{ b.brand_name ?: ('BRAND #' ~ b.brand_id) }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
+        <div class="two fields">
+          <div class="field">
+            <label>Prix</label>
+            <input name="product_price" value="{{ product.product_price ?? '' }}" />
+          </div>
 
-  <div class="field">
-    <div class="ui toggle checkbox">
-      <input type="checkbox" name="product_display_www" value="1"
-        {% if product.product_display_www %}checked{% endif %}>
-      <label>En ligne (WWW)</label>
-    </div>
-  </div>
+          <div class="field">
+            <label>Prix promo</label>
+            <input name="product_discount_price" value="{{ product.product_discount_price ?? '' }}" />
+          </div>
+        </div>
 
+        <div class="field">
+          <label>Catégorie</label>
+          <select name="product_category" class="ui fluid search selection dropdown hib-search-dropdown" required>
+            <option value="">Choisir une sous-catégorie</option>
 
-<div class="two fields">
-    <button class="ui primary button" type="submit"><i class="save icon"></i> Enregistrer</button>
-    <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}">Retour liste</a>
-  </div>
+            {% for c in categoryOptions %}
+              <option
+                value="{{ c.id }}"
+                {% if not c.selectable %}disabled{% endif %}
+                {% if selectedCategoryId == c.id %}selected{% endif %}
+              >
+                {% if c.is_parent %}
+                  [Parent] {{ c.label }}
+                {% else %}
+                  {{ c.label }}
+                {% endif %}
+              </option>
+            {% endfor %}
+          </select>
 
+          <div style="margin-top:6px;font-size:12px;color:#666;">
+            Les parents sont affichés pour le contexte, mais seuls les enfants peuvent être choisis.
+          </div>
+        </div>
 
-</form>
+        <div class="field">
+  <label>Marque</label>
+  <select name="product_brand" id="product_brand_select" class="ui fluid search selection dropdown hib-search-dropdown">
+    <option value="0">Choisir une marque</option>
+    <option value="__new__">+ Nouvelle marque...</option>
 
-<div class="ui segment">
-  
-  <div class="two fields">
+    {% for b in brands %}
+      <option value="{{ b.brand_id }}"
+        {% if (product.product_brand ?? 0) == b.brand_id %}selected{% endif %}>
+        {{ b.brand_name ?: ('BRAND #' ~ b.brand_id) }}
+      </option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="field" id="new-brand-field" style="display:none;">
+  <label>Nouvelle marque</label>
+  <input type="text" name="new_brand_name" id="new_brand_name" placeholder="Ex : Xiaomi">
+</div>
+
+        <div class="field">
+          <div class="ui toggle checkbox">
+            <input type="checkbox" name="product_display_www" value="1"
+              {% if product.product_display_www %}checked{% endif %}>
+            <label>En ligne (WWW)</label>
+          </div>
+        </div>
+      </div>
+
+      {# ===== TAGS ===== #}
+     <div class="ui segment">
   <h3 class="ui header">
     <i class="tags icon"></i>
-    Attributs produit
+    Gestion des tags
   </h3>
-  <a  class="ui basic button" href="{{ path('admin_hiboutik_categories_index') }}" target="_blank" style="height:2.5em;align-self:flex-end;">
-      <i class="external icon"></i> Catégories Hiboutik
-    </a>
+
+  <div class="ui info message">
+    Coche les tags à appliquer, puis clique sur <strong>Enregistrer</strong>.
   </div>
 
-  <div id="hib-attributes-list">
-    <div class="ui active inline loader"></div> Chargement...
-  </div>
+  {% if tagGroups is empty %}
+    <div class="ui message">Aucun tag disponible.</div>
+  {% else %}
+    <div style="overflow:auto;">
+      {% for group in tagGroups %}
+        <div class="ui segment" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:16px; margin-bottom:8px;">
+            {{ group.name ?: 'Sans catégorie' }}
+          </div>
 
-  <div style="margin-top:12px;">
-    <button type="button" class="ui primary button" id="btnSaveMiscProduct">
-      <i class="save icon"></i>
-      Enregistrer les attributs
-    </button>
-    <span id="miscSaveState" style="margin-left:8px;"></span>
-  </div>
+          {% if group.desc %}
+            <div style="color:#666; font-size:12px; margin-bottom:10px;">
+              {{ group.desc }}
+            </div>
+          {% endif %}
 
-  <div class="ui divider"></div>
-
-  <details>
-    <summary style="cursor:pointer;font-weight:700;">Afficher misc_text brut</summary>
-    <pre id="miscRawBox" style="white-space:pre-wrap;border:1px dashed #ddd;padding:10px;border-radius:8px;background:#fff;margin-top:10px;">{{ product.misc_text ?? '' }}</pre>
-  </details>
+          {% if group.tags is empty %}
+            <div class="ui tiny message">Aucun tag dans cette catégorie.</div>
+          {% else %}
+            <div class="ui stackable two column grid">
+              {% for tag in group.tags %}
+                <div class="column">
+                  <div class="field" style="margin-bottom:8px;">
+                    <div class="ui checkbox">
+                      <input
+                        type="checkbox"
+                        name="product_tags[]"
+                        value="{{ tag.id }}"
+                        {% if tag.id in currentTagIds %}checked{% endif %}
+                      >
+                      <label>
+                        <strong>{{ tag.label }}</strong>
+                        {% if tag.desc %}
+                          <br>
+                          <span style="color:#666; font-size:12px;">{{ tag.desc }}</span>
+                        {% endif %}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 </div>
+    </div>
+
+    {# ===================== COLONNE DROITE ===================== #}
+    <div class="eight wide column">
+
+      
+
+      {# ===== ATTRIBUTS ===== #}
+      <div class="ui segment">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3 class="ui header" style="margin:0;">
+            <i class="list icon"></i>
+            Attributs produit
+          </h3>
+
+          <a class="ui basic button" href="{{ path('admin_hiboutik_categories_index') }}" target="_blank">
+            <i class="external icon"></i> Catégories / attributs
+          </a>
+        </div>
+
+        <div class="ui info message" style="margin-top:12px;">
+          Les attributs seront enregistrés avec le bouton <strong>Enregistrer</strong> du produit.
+        </div>
+
+        <div id="hib-attributes-list">
+          <div class="ui active inline loader"></div> Chargement...
+        </div>
+
+        <div class="ui divider"></div>
+
+        <h4 class="ui header">
+          <i class="plus circle icon"></i>
+          Ajouter rapidement un attribut à la catégorie choisie
+        </h4>
+
+        <div class="ui form">
+          <div class="three fields">
+            <div class="field">
+              <label>Label</label>
+              <input type="text" id="quickAttrLabel" placeholder="Ex : Batterie">
+            </div>
+
+            <div class="field">
+              <label>Type</label>
+              <select id="quickAttrType" class="ui dropdown">
+                <option value="text">Texte</option>
+                <option value="select">Liste</option>
+              </select>
+            </div>
+
+            <div class="field" id="quickAttrOptionsField" style="display:none;">
+              <label>Options</label>
+              <input type="text" id="quickAttrOptions" placeholder="Ex : 64Go,128Go,256Go">
+            </div>
+          </div>
+
+          <button type="button" class="ui button" id="btnQuickCreateAttr">
+            <i class="plus icon"></i>
+            Ajouter à cette catégorie
+          </button>
+
+          <span id="quickAttrState" style="margin-left:8px;"></span>
+        </div>
+
+        <div class="ui divider"></div>
+
+        <details>
+          <summary style="cursor:pointer;font-weight:700;">Afficher misc_text brut</summary>
+          <pre id="miscRawBox" style="white-space:pre-wrap;border:1px dashed #ddd;padding:10px;border-radius:8px;background:#fff;margin-top:10px;">{{ product.misc_text ?? '' }}</pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <div class="ui segment">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="ui primary button" type="submit">
+        <i class="save icon"></i>
+        Enregistrer
+      </button>
+
+      <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}">
+        Retour liste
+      </a>
+    </div>
+  </div>
+</form>
 
 <div class="ui divider"></div>
 
-<!-- ========================= -->
-<!-- 🔥 IMAGES -->
-<!-- ========================= -->
+{# ===================== IMAGES EN DESSOUS ===================== #}
+<div class="ui segment">
+  <h3 class="ui header">Images produit</h3>
 
-<h3 class="ui header">Images produit</h3>
+  <script>
+  const imagesUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
+  </script>
 
-<script>
-const imagesUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
-</script>
-
-<div id="images-container">
-  <div class="ui active loader"></div>
+  <div id="images-container">
+    <div class="ui active loader"></div>
+  </div>
 </div>
-
-<!-- ========================= -->
-<!-- 🔥 LOAD IMAGES -->
-<!-- ========================= -->
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
     fetch(imagesUrl)
         .then(r => r.text())
         .then(html => {
-
             const temp = document.createElement('div');
             temp.innerHTML = html;
 
             const grid = temp.querySelector('.ui.grid');
-
             const container = document.getElementById('images-container');
             container.innerHTML = '';
 
@@ -176,23 +319,16 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             initImages();
-
         })
         .catch(err => {
             console.error(err);
             document.getElementById('images-container').innerHTML = "Erreur chargement";
         });
-
 });
 </script>
 
-<!-- ========================= -->
-<!-- 🔥 JS IMAGES -->
-<!-- ========================= -->
-
 <script>
 function initImages() {
-
     window.selectedFiles = {};
 
     window.previewImage = function(e, id) {
@@ -203,13 +339,13 @@ function initImages() {
 
         const reader = new FileReader();
         reader.onload = ev => {
-            document.getElementById('preview-' + id).src = ev.target.result;
+            const img = document.getElementById('preview-' + id);
+            if (img) img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
     };
 
     window.uploadImage = function(id) {
-
         if (!selectedFiles[id]) {
             alert("Choisir image");
             return;
@@ -235,7 +371,6 @@ function initImages() {
     };
 
     window.deleteImage = function(name) {
-
         if (!confirm("Supprimer ?")) return;
 
         const fd = new FormData();
@@ -249,15 +384,12 @@ function initImages() {
     };
 
     window.pasteImage = async function(id) {
-
         try {
             const items = await navigator.clipboard.read();
 
             for (const item of items) {
                 for (const type of item.types) {
-
                     if (type.startsWith('image/')) {
-
                         const blob = await item.getType(type);
                         const file = new File([blob], "paste.png", { type });
 
@@ -265,7 +397,8 @@ function initImages() {
 
                         const reader = new FileReader();
                         reader.onload = e => {
-                            document.getElementById('preview-' + id).src = e.target.result;
+                            const img = document.getElementById('preview-' + id);
+                            if (img) img.src = e.target.result;
                         };
                         reader.readAsDataURL(file);
 
@@ -276,7 +409,6 @@ function initImages() {
             }
 
             alert("Aucune image");
-
         } catch {
             alert("Clipboard bloqué");
         }
@@ -285,146 +417,44 @@ function initImages() {
 </script>
 
 <script>
-if (window.$ && $.fn.dropdown) $('.ui.dropdown').dropdown();
-if (window.$ && $.fn.checkbox) $('.ui.checkbox').checkbox();
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.$ && $.fn.dropdown) {
+        $('#quickAttrType').dropdown();
+        $('.ui.dropdown').not('.hib-search-dropdown').not('#quickAttrType').dropdown();
+    }
+
+    if (window.$ && $.fn.checkbox) {
+        $('.ui.checkbox').checkbox();
+    }
+});
 </script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    const PRODUCT_ID = {{ (product.product_id ?? id)|json_encode|raw }};
-    const MISC_SAVE_URL = {{ path('admin_hiboutik_product_misc_save', {id: product.product_id ?? id})|json_encode|raw }};
-    const MISC_CSRF = {{ csrf_token('hiboutik_misc_' ~ (product.product_id ?? id))|json_encode|raw }};
     const INITIAL_MISC_VALUES = {{ miscValues|default({})|json_encode|raw }};
+    const INITIAL_CATEGORY_ID = {{ selectedCategoryId|default(0)|json_encode|raw }};
+    const INITIAL_ATTR_DEFS = {{ initialAttributeDefs|default([])|json_encode|raw }};
 
     const catSelect = document.querySelector('select[name="product_category"]');
     const listEl = document.getElementById('hib-attributes-list');
     const rawBox = document.getElementById('miscRawBox');
-    const saveBtn = document.getElementById('btnSaveMiscProduct');
-    const saveState = document.getElementById('miscSaveState');
+    const miscValuesJsonInput = document.getElementById('miscValuesJson');
+
+    const QUICK_ATTR_URL = '/admin/hiboutik/categories/attributes/create';
+
+    const quickAttrLabel = document.getElementById('quickAttrLabel');
+    const quickAttrType = document.getElementById('quickAttrType');
+    const quickAttrOptions = document.getElementById('quickAttrOptions');
+    const quickAttrOptionsField = document.getElementById('quickAttrOptionsField');
+    const quickAttrBtn = document.getElementById('btnQuickCreateAttr');
+    const quickAttrState = document.getElementById('quickAttrState');
 
     let defs = [];
     let values = JSON.parse(JSON.stringify(INITIAL_MISC_VALUES || {}));
+    const preloadedDefsByCategory = {};
 
-    async function loadDefs() {
-        const catId = String(catSelect?.value || '0');
-
-        if (!catId || catId === '0') {
-            listEl.innerHTML = `<div class="ui message">Choisis une catégorie pour afficher les attributs.</div>`;
-            return;
-        }
-
-        listEl.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
-
-        try {
-            const res = await fetch('/admin/hiboutik/categories/attributes/' + encodeURIComponent(catId));
-            if (!res.ok) {
-                listEl.innerHTML = `<div class="ui negative message">Erreur chargement attributs</div>`;
-                return;
-            }
-
-            defs = await res.json();
-            renderDefs();
-        } catch (e) {
-            console.error(e);
-            listEl.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
-        }
-    }
-
-    function renderDefs() {
-        if (!defs.length) {
-            listEl.innerHTML = `<div class="ui message">Aucun attribut défini pour cette catégorie.</div>`;
-            return;
-        }
-
-        listEl.innerHTML = '';
-
-        defs.forEach(def => {
-            const currentValue = values[def.code] || '';
-            const wrapper = document.createElement('div');
-            wrapper.className = 'ui segment';
-
-            let inputHtml = `
-                <input
-                    type="text"
-                    value="${escapeHtmlAttr(currentValue)}"
-                    data-code="${escapeHtmlAttr(def.code)}"
-                    class="hib-misc-input"
-                    style="width:100%;padding:8px;"
-                >
-            `;
-
-            if (def.type === 'select') {
-                const opts = Array.isArray(def.options) ? def.options : [];
-                inputHtml = `
-                    <select data-code="${escapeHtmlAttr(def.code)}" class="hib-misc-input" style="width:100%;padding:8px;">
-                        <option value="">-- choisir --</option>
-                        ${opts.map(o => `
-                            <option value="${escapeHtmlAttr(o)}" ${String(o) === String(currentValue) ? 'selected' : ''}>
-                                ${escapeHtml(o)}
-                            </option>
-                        `).join('')}
-                    </select>
-                `;
-            }
-
-            wrapper.innerHTML = `
-                <div style="font-weight:700;margin-bottom:6px;">${escapeHtml(def.label || def.code)}</div>
-                <div style="font-size:12px;color:#666;margin-bottom:8px;">
-                    code: <code>${escapeHtml(def.code)}</code>
-                </div>
-                ${inputHtml}
-            `;
-
-            listEl.appendChild(wrapper);
-        });
-
-        bindInputs();
-    }
-
-    function bindInputs() {
-        document.querySelectorAll('.hib-misc-input').forEach(el => {
-            el.addEventListener('change', () => {
-                const code = el.getAttribute('data-code');
-                values[code] = el.value;
-            });
-
-            el.addEventListener('input', () => {
-                const code = el.getAttribute('data-code');
-                values[code] = el.value;
-            });
-        });
-    }
-
-    async function saveMisc() {
-        const catId = String(catSelect?.value || '0');
-
-        saveState.textContent = 'Enregistrement...';
-
-        const fd = new FormData();
-        fd.append('_csrf_token', MISC_CSRF);
-        fd.append('category_id', catId);
-        fd.append('values_json', JSON.stringify(values));
-
-        try {
-            const res = await fetch(MISC_SAVE_URL, {
-                method: 'POST',
-                body: fd
-            });
-
-            const json = await res.json();
-
-            if (!res.ok || !json.ok) {
-                console.error(json);
-                saveState.textContent = 'Erreur';
-                return;
-            }
-
-            rawBox.textContent = json.misc_text || '';
-            saveState.textContent = 'Enregistré';
-        } catch (e) {
-            console.error(e);
-            saveState.textContent = 'Erreur JS';
-        }
+    if (String(INITIAL_CATEGORY_ID || '0') !== '0') {
+        preloadedDefsByCategory[String(INITIAL_CATEGORY_ID)] = Array.isArray(INITIAL_ATTR_DEFS) ? INITIAL_ATTR_DEFS : [];
     }
 
     function escapeHtml(str) {
@@ -440,17 +470,248 @@ document.addEventListener("DOMContentLoaded", () => {
         return escapeHtml(str);
     }
 
+    function buildMiscPreviewRows() {
+        if (!Array.isArray(defs) || defs.length === 0) {
+            return values || {};
+        }
+
+        return defs.map(def => ({
+            code: String(def.code || ''),
+            label: String(def.label || def.code || ''),
+            value: String(values?.[def.code] ?? '')
+        }));
+    }
+
+    function syncMiscHiddenInput() {
+        if (miscValuesJsonInput) {
+            miscValuesJsonInput.value = JSON.stringify(values || {});
+        }
+
+        if (rawBox) {
+            rawBox.textContent = JSON.stringify(buildMiscPreviewRows(), null, 2);
+        }
+    }
+
+    function refreshQuickAttrVisibility() {
+        if (!quickAttrType || !quickAttrOptionsField) return;
+        quickAttrOptionsField.style.display = quickAttrType.value === 'select' ? '' : 'none';
+    }
+
+    function normalizeValuesForCurrentDefs() {
+        const allowedCodes = new Set((defs || []).map(d => String(d.code || '')));
+        const nextValues = {};
+
+        for (const code of Object.keys(values || {})) {
+            if (allowedCodes.has(code)) {
+                nextValues[code] = values[code];
+            }
+        }
+
+        values = nextValues;
+    }
+
+function renderDefs() {
+    if (!defs.length) {
+        listEl.innerHTML = `<div class="ui message">Aucun attribut défini pour cette catégorie.</div>`;
+        syncMiscHiddenInput();
+        return;
+    }
+
+    listEl.innerHTML = '';
+
+    defs.forEach(def => {
+        const currentValue = String(values?.[def.code] ?? '');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'ui segment';
+
+        let inputHtml = '';
+
+        if (def.type === 'select') {
+            const opts = Array.isArray(def.options) ? def.options : [];
+
+            inputHtml = `
+                <select
+                    data-code="${escapeHtmlAttr(def.code)}"
+                    class="hib-misc-input"
+                    style="width:100%;padding:8px;"
+                >
+                    <option value="">-- choisir --</option>
+                    ${opts.map(o => `
+                        <option value="${escapeHtmlAttr(o)}" ${String(o) === currentValue ? 'selected' : ''}>
+                            ${escapeHtml(o)}
+                        </option>
+                    `).join('')}
+                </select>
+            `;
+        } else {
+            inputHtml = `
+                <input
+                    type="text"
+                    value="${escapeHtmlAttr(currentValue)}"
+                    data-code="${escapeHtmlAttr(def.code)}"
+                    class="hib-misc-input"
+                    style="width:100%;padding:8px;"
+                >
+            `;
+        }
+
+        wrapper.innerHTML = `
+            <div style="font-weight:700;margin-bottom:6px;">${escapeHtml(def.label || def.code)}</div>
+            <div style="font-size:12px;color:#666;margin-bottom:8px;">
+                code: <code>${escapeHtml(def.code)}</code>
+            </div>
+            ${inputHtml}
+        `;
+
+        listEl.appendChild(wrapper);
+    });
+
+    bindInputs();
+    syncMiscHiddenInput();
+}
+    function bindInputs() {
+    listEl.querySelectorAll('.hib-misc-input').forEach(el => {
+        const update = () => {
+            const code = el.getAttribute('data-code');
+            values[code] = el.value;
+            syncMiscHiddenInput();
+        };
+
+        el.addEventListener('change', update);
+        el.addEventListener('input', update);
+    });
+
+    syncMiscHiddenInput();
+}
+
+    async function loadDefs() {
+        const catId = String(catSelect?.value || '0');
+
+        if (!catId || catId === '0') {
+            listEl.innerHTML = `<div class="ui message">Choisis une catégorie pour afficher les attributs.</div>`;
+            defs = [];
+            values = {};
+            syncMiscHiddenInput();
+            return;
+        }
+
+        if (preloadedDefsByCategory[catId]) {
+            defs = preloadedDefsByCategory[catId];
+            normalizeValuesForCurrentDefs();
+            renderDefs();
+            return;
+        }
+
+        listEl.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
+
+        try {
+            const res = await fetch('/admin/hiboutik/categories/attributes/' + encodeURIComponent(catId));
+            if (!res.ok) {
+                listEl.innerHTML = `<div class="ui negative message">Erreur chargement attributs</div>`;
+                return;
+            }
+
+            defs = await res.json();
+            preloadedDefsByCategory[catId] = defs;
+            normalizeValuesForCurrentDefs();
+            renderDefs();
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
+        }
+    }
+
+    async function createQuickAttribute() {
+        const catId = String(catSelect?.value || '0');
+        const label = String(quickAttrLabel?.value || '').trim();
+        const type = String(quickAttrType?.value || 'text');
+        const options = String(quickAttrOptions?.value || '').trim();
+
+        if (!catId || catId === '0') {
+            quickAttrState.textContent = 'Choisis d’abord une catégorie';
+            return;
+        }
+
+        if (!label) {
+            quickAttrState.textContent = 'Label obligatoire';
+            return;
+        }
+
+        quickAttrState.textContent = 'Création...';
+
+        try {
+            const res = await fetch(QUICK_ATTR_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    category_id: catId,
+                    label: label,
+                    type: type,
+                    options: options
+                })
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || !json.ok) {
+                console.error(json);
+                quickAttrState.textContent = 'Erreur';
+                return;
+            }
+
+            quickAttrLabel.value = '';
+            quickAttrType.value = 'text';
+            quickAttrOptions.value = '';
+            refreshQuickAttrVisibility();
+
+            delete preloadedDefsByCategory[catId];
+            quickAttrState.textContent = 'Attribut créé';
+            await loadDefs();
+        } catch (e) {
+            console.error(e);
+            quickAttrState.textContent = 'Erreur JS';
+        }
+    }
+
     if (catSelect) {
         catSelect.addEventListener('change', loadDefs);
     }
 
-    if (saveBtn) {
-        saveBtn.addEventListener('click', saveMisc);
+    if (quickAttrType) {
+        quickAttrType.addEventListener('change', refreshQuickAttrVisibility);
+        refreshQuickAttrVisibility();
     }
 
+    if (quickAttrBtn) {
+        quickAttrBtn.addEventListener('click', createQuickAttribute);
+    }
+
+    syncMiscHiddenInput();
     loadDefs();
 });
 </script>
+<script>
+// Gère l'affichage du champ "Nouvelle marque" dans le formulaire d'édition produit
+document.addEventListener("DOMContentLoaded", () => {
+    const brandSelect = document.getElementById('product_brand_select');
+    const newBrandField = document.getElementById('new-brand-field');
+    const newBrandInput = document.getElementById('new_brand_name');
 
+    function toggleNewBrandField() {
+        if (!brandSelect || !newBrandField) return;
 
+        const isNew = brandSelect.value === '__new__';
+        newBrandField.style.display = isNew ? '' : 'none';
+
+        if (!isNew && newBrandInput) {
+            newBrandInput.value = '';
+        }
+    }
+
+    if (brandSelect) {
+        brandSelect.addEventListener('change', toggleNewBrandField);
+        toggleNewBrandField();
+    }
+});
+</script>
 {% endblock %}

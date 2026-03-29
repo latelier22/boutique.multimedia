@@ -1,5 +1,18 @@
 {# templates/bundles/SyliusAdminBundle/Rachat/_menu_rachats.html.twig #}
-<div class="ui secondary pointing menu" style="margin-bottom:1rem">
+
+<style>
+    .admin-top-tools-menu {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    row-gap: 6px;
+}
+
+.admin-top-tools-menu .item {
+    white-space: nowrap;
+}
+ 
+</style>
+<div class="ui secondary pointing menu admin-top-tools-menu" style="margin-bottom:1rem">
     <a href="{{ path('admin_rachats_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_' ? 'active' : '' }}">
         📱 Rachats
@@ -30,6 +43,10 @@
         📱 Produits Hiboutik
     </a>
 
+       <a href="{{ path('admin_hiboutik_product_labels_builder') }}"
+          class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_labels_builder' ? 'active' : '' }}">
+         🏷️ Composeur étiquettes
+
     <a href="{{ path('admin_hiboutik_customer_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_customer_' ? 'active' : '' }}">
        👤 Clients Hiboutik
@@ -38,6 +55,16 @@
     <a href="{{ path('app_admin_intervention_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_' ? 'active' : '' }}">
        🔧 Interventions
+    </a>
+
+     <a href="{{ path('admin_boite_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_intervention_boite' ? 'active' : '' }}">
+       📦 Boites
+    </a>
+
+    <a href="{{ path('app_admin_intervention_sales_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_sales' ? 'active' : '' }}">
+       💶 Ventes (interventions)
     </a>
 </div>
 

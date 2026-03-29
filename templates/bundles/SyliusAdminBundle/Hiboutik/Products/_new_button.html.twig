@@ -1,0 +1,10 @@
+<form method="post" action="{{ path('admin_hiboutik_product_new') }}" style="display:inline-block;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('hiboutik_product_new') }}">
+    <input type="hidden" name="product_model" value="{{ product_model|default('Nouveau produit') }}">
+    <input type="hidden" name="product_price" value="{{ product_price|default('0.00') }}">
+
+    <button class="ui primary button" type="submit">
+        <i class="plus icon"></i>
+        Nouveau produit Hiboutik
+    </button>
+</form>

@@ -1,0 +1,479 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Nouvelle intervention{% endblock %}
+
+{% block content %}
+
+ 
+    {% include '@SyliusAdmin/Hiboutik/Customers/Tablet/_live_tablet_css.html.twig' %}
+    {# Top menu dans le pre_content du Layout Admin #}
+
+    <div class="ui segment">
+        <h1 class="ui header">Nouvelle intervention</h1>
+
+        <div class="ui segment">
+            <h3 class="ui header">Client Hiboutik</h3>
+
+            <div class="ui form" autocomplete="off">
+                <div class="three fields">
+                    <div class="field">
+                        <label>Téléphone</label>
+                        <input type="text" id="search_phone" placeholder="06 44 19 72 18" autocomplete="off">
+                    </div>
+
+                    <div class="field">
+                        <label>Nom</label>
+                        <input type="text" id="search_last_name" placeholder="Le Corre" autocomplete="off">
+                    </div>
+
+                    <div class="field">
+                        <label>Prénom</label>
+                        <input type="text" id="search_first_name" placeholder="Cyrille" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="ui buttons">
+                    <button type="button" id="btnSearchHiboutik" class="ui blue button">
+                        <i class="search icon"></i>
+                        Rechercher
+                    </button>
+
+                    <div class="or"></div>
+
+                    <button type="button" id="btnCreateHiboutikCustomer" class="ui teal button">
+                        <i class="user plus icon"></i>
+                        Créer client Hiboutik
+                    </button>
+
+                    <div class="or"></div>
+
+                    <button type="button" id="btnClearSelectedCustomer" class="ui button">
+                        Effacer la liaison
+                    </button>
+                </div>
+            </div>
+
+            <div id="hiboutikSearchMsg" style="margin-top:12px;"></div>
+            <div id="hiboutikSearchResults" style="margin-top:12px;"></div>
+        </div>
+
+        <form method="post" class="ui form" id="interventionCreateForm">
+            <input type="hidden" name="hiboutik_customer_id" id="hiboutik_customer_id" value="">
+
+            <div class="ui positive message" id="selectedCustomerBox" style="display:none;">
+    <div class="header">Client Hiboutik lié</div>
+    <p id="selectedCustomerText"></p>
+
+    <div style="margin-top:10px;">
+        <button
+            type="button"
+            id="btnEditSelectedCustomerTablet"
+            class="ui small button"
+            style="display:none;"
+            data-device="TAB1"
+        >
+            <i class="tablet alternate icon"></i>
+            Éditer sur tablette
+        </button>
+    </div>
+
+    <div id="selectedCustomerTabletMsg" style="margin-top:10px;"></div>
+</div>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Numéro d’intervention</label>
+                    <input type="number" name="intervention_number" min="1" placeholder="Laisser vide pour auto" autocomplete="off">
+                </div>
+
+                <div class="field">
+                    <label>Appareil</label>
+                    <input type="text" name="device_label" placeholder="Ex: iPhone 12 noir 128 Go">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Travail à faire</label>
+                <textarea name="work_to_do" rows="5" placeholder="Ex: changement écran, batterie, commande accessoire..."></textarea>
+            </div>
+
+            <h3 class="ui dividing header">Paiement</h3>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Montant total</label>
+                    <input type="number" step="0.01" min="0" name="amount_total" placeholder="0.00">
+                </div>
+
+                <div class="field">
+                    <label>Montant versé</label>
+                    <input type="number" step="0.01" min="0" name="amount_paid" placeholder="0.00">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Mode de paiement</label>
+                <select name="payment_mode" class="ui dropdown">
+                    <option value="">—</option>
+                    <option value="Espèces">Espèces</option>
+                    <option value="CB">CB</option>
+                    <option value="Chèque">Chèque</option>
+                    <option value="Virement">Virement</option>
+                    <option value="Autre">Autre</option>
+                </select>
+            </div>
+
+            <div class="ui warning message" id="customerRequiredMsg">
+                <div class="header">Client requis</div>
+                <p>Vous devez d’abord lier ou créer un client Hiboutik avant de créer l’intervention.</p>
+            </div>
+
+            <div class="ui buttons">
+                <button class="ui primary button" type="submit" id="submitInterventionBtn" disabled>
+                    <i class="plus icon"></i>
+                    Créer l’intervention
+                </button>
+                <div class="or"></div>
+                <a class="ui button" href="{{ path('app_admin_intervention_index') }}">
+                    Retour
+                </a>
+            </div>
+        </form>
+    </div>
+
+{% include '@SyliusAdmin/Hiboutik/Customers/Tablet/_live_tablet.html.twig' %}
+
+</div>
+
+<script>
+(function () {
+    const btnSearch = document.getElementById('btnSearchHiboutik');
+    const btnCreate = document.getElementById('btnCreateHiboutikCustomer');
+    const btnClear = document.getElementById('btnClearSelectedCustomer');
+
+    const phoneInput = document.getElementById('search_phone');
+    const lastNameInput = document.getElementById('search_last_name');
+    const firstNameInput = document.getElementById('search_first_name');
+
+    const msg = document.getElementById('hiboutikSearchMsg');
+    const results = document.getElementById('hiboutikSearchResults');
+
+    const hiddenCustomerId = document.getElementById('hiboutik_customer_id');
+    const selectedBox = document.getElementById('selectedCustomerBox');
+    const selectedText = document.getElementById('selectedCustomerText');
+
+    const btnEditSelectedCustomerTablet = document.getElementById('btnEditSelectedCustomerTablet');
+const selectedCustomerTabletMsg = document.getElementById('selectedCustomerTabletMsg');
+
+    const submitBtn = document.getElementById('submitInterventionBtn');
+    const customerRequiredMsg = document.getElementById('customerRequiredMsg');
+
+    let debounceTimer = null;
+    let abortController = null;
+
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function refreshSubmitState() {
+        const hasCustomer = !!hiddenCustomerId.value;
+
+        submitBtn.disabled = !hasCustomer;
+        customerRequiredMsg.style.display = hasCustomer ? 'none' : '';
+    }
+
+    function clearSelectedCustomer() {
+    hiddenCustomerId.value = '';
+    selectedBox.style.display = 'none';
+    selectedText.textContent = '';
+
+    if (btnEditSelectedCustomerTablet) {
+        btnEditSelectedCustomerTablet.style.display = 'none';
+    }
+
+    if (selectedCustomerTabletMsg) {
+        selectedCustomerTabletMsg.innerHTML = '';
+    }
+
+    refreshSubmitState();
+}
+
+    function selectCustomer(item) {
+    const customerId = item.customers_id || '';
+
+    hiddenCustomerId.value = customerId;
+    selectedText.textContent =
+        `#${customerId} — ${item.last_name || ''} ${item.first_name || ''}` +
+        `${item.phone ? ' — ' + item.phone : ''}`;
+
+    selectedBox.style.display = '';
+
+    if (btnEditSelectedCustomerTablet && customerId) {
+        btnEditSelectedCustomerTablet.style.display = '';
+        btnEditSelectedCustomerTablet.dataset.id = customerId;
+    }
+
+    if (selectedCustomerTabletMsg) {
+        selectedCustomerTabletMsg.innerHTML = '';
+    }
+
+        if (btnEditSelectedCustomerTablet) {
+        btnEditSelectedCustomerTablet.addEventListener('click', async () => {
+            const id = hiddenCustomerId.value;
+            const device = btnEditSelectedCustomerTablet.dataset.device || 'TAB1';
+
+            if (!id) {
+                if (selectedCustomerTabletMsg) {
+                    selectedCustomerTabletMsg.innerHTML = `
+                        <div class="ui warning message" style="margin:0;">
+                            Aucun client sélectionné.
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            btnEditSelectedCustomerTablet.disabled = true;
+            btnEditSelectedCustomerTablet.classList.add('loading');
+
+            if (selectedCustomerTabletMsg) {
+                selectedCustomerTabletMsg.innerHTML = '';
+            }
+
+            try {
+                const url = `/tablet/customers/${id}/edit?device=${device}`;
+
+                const push = await fetch(`/ws-tablet-push`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        device,
+                        url,
+                        token: '{{ tablet_socket_token|e("js") }}'
+                    })
+                });
+
+                const pj = await push.json().catch(() => ({}));
+
+                if (!pj.ok) {
+                    throw new Error(pj.error || 'push KO');
+                }
+
+                if (selectedCustomerTabletMsg) {
+                    selectedCustomerTabletMsg.innerHTML = `
+                        <div class="ui positive message" style="margin:0;">
+                            Client envoyé sur la tablette.
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                console.error(e);
+
+                if (selectedCustomerTabletMsg) {
+                    selectedCustomerTabletMsg.innerHTML = `
+                        <div class="ui negative message" style="margin:0;">
+                            ${escapeHtml(e.message || 'Erreur push tablette')}
+                        </div>
+                    `;
+                }
+            } finally {
+                btnEditSelectedCustomerTablet.disabled = false;
+                btnEditSelectedCustomerTablet.classList.remove('loading');
+            }
+        });
+    }
+
+    refreshSubmitState();
+}
+    function hasEnoughInput() {
+        const phone = (phoneInput.value || '').replace(/\D+/g, '');
+        const lastName = (lastNameInput.value || '').trim();
+        const firstName = (firstNameInput.value || '').trim();
+
+        return phone.length >= 4 || lastName.length >= 2 || firstName.length >= 2;
+    }
+
+    function canCreateCustomer() {
+        return true;
+        // return lastNameInput.value.trim() !== '' && firstNameInput.value.trim() !== '';
+    }
+
+    function renderResults(items) {
+        if (!items || !items.length) {
+            results.innerHTML = '';
+            msg.innerHTML = `<div class="ui message">Aucun client Hiboutik trouvé.</div>`;
+            return;
+        }
+
+        msg.innerHTML = `<div class="ui positive message">${items.length} client(s) trouvé(s).</div>`;
+
+        const rows = items.map(item => `
+            <tr>
+                <td>#${item.customers_id}</td>
+                <td>${escapeHtml(item.last_name)} ${escapeHtml(item.first_name)}</td>
+                <td>${escapeHtml(item.phone || '—')}</td>
+                <td>${escapeHtml(item.email || '—')}</td>
+                <td class="right aligned">
+                    <button
+                        type="button"
+                        class="ui tiny primary button btn-select-hib-customer"
+                        data-id="${escapeHtml(item.customers_id)}"
+                        data-last-name="${escapeHtml(item.last_name)}"
+                        data-first-name="${escapeHtml(item.first_name)}"
+                        data-phone="${escapeHtml(item.phone || '')}"
+                    >
+                        Choisir
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        results.innerHTML = `
+            <table class="ui celled table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nom</th>
+                        <th>Téléphone</th>
+                        <th>Email</th>
+                        <th class="right aligned">Action</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+
+        results.querySelectorAll('.btn-select-hib-customer').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectCustomer({
+                    customers_id: btn.dataset.id,
+                    last_name: btn.dataset.lastName,
+                    first_name: btn.dataset.firstName,
+                    phone: btn.dataset.phone
+                });
+            });
+        });
+    }
+
+    async function runSearch() {
+        const phone = phoneInput.value.trim();
+        const lastName = lastNameInput.value.trim();
+        const firstName = firstNameInput.value.trim();
+
+        if (!hasEnoughInput()) {
+            msg.innerHTML = '';
+            results.innerHTML = '';
+            return;
+        }
+
+        if (abortController) {
+            abortController.abort();
+        }
+        abortController = new AbortController();
+
+        btnSearch.classList.add('loading');
+        btnSearch.disabled = true;
+
+        try {
+            const url = new URL('{{ path('app_admin_intervention_hiboutik_search') }}', window.location.origin);
+            url.searchParams.set('phone', phone);
+            url.searchParams.set('last_name', lastName);
+            url.searchParams.set('first_name', firstName);
+
+            const res = await fetch(url.toString(), {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: abortController.signal
+            });
+
+            const j = await res.json();
+
+            if (!res.ok || !j.ok) {
+                throw new Error(j.error || 'Erreur de recherche');
+            }
+
+            renderResults(j.items || []);
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+            msg.innerHTML = `<div class="ui negative message">${escapeHtml(e.message || 'Erreur de recherche')}</div>`;
+        } finally {
+            btnSearch.classList.remove('loading');
+            btnSearch.disabled = false;
+        }
+    }
+
+    async function createCustomer() {
+        if (!canCreateCustomer()) {
+            msg.innerHTML = `<div class="ui warning message">Nom et prénom requis pour créer le client Hiboutik.</div>`;
+            return;
+        }
+
+        btnCreate.classList.add('loading');
+        btnCreate.disabled = true;
+
+        try {
+            const body = new URLSearchParams({
+                last_name: lastNameInput.value.trim(),
+                first_name: firstNameInput.value.trim(),
+                phone: phoneInput.value.trim()
+            });
+
+            const res = await fetch('{{ path('app_admin_intervention_hiboutik_create_customer') }}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body
+            });
+
+            const j = await res.json();
+
+            if (!res.ok || !j.ok || !j.item) {
+                throw new Error(j.error || 'Création du client Hiboutik impossible');
+            }
+
+            selectCustomer(j.item);
+            msg.innerHTML = `<div class="ui positive message">Client Hiboutik créé et sélectionné.</div>`;
+            results.innerHTML = '';
+        } catch (e) {
+            msg.innerHTML = `<div class="ui negative message">${escapeHtml(e.message || 'Erreur création client')}</div>`;
+        } finally {
+            btnCreate.classList.remove('loading');
+            btnCreate.disabled = false;
+        }
+    }
+
+    function scheduleSearch() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runSearch, 300);
+    }
+
+    [phoneInput, lastNameInput, firstNameInput].forEach(input => {
+        input.addEventListener('input', scheduleSearch);
+    });
+
+    btnSearch.addEventListener('click', runSearch);
+    btnCreate.addEventListener('click', createCustomer);
+    btnClear.addEventListener('click', clearSelectedCustomer);
+
+    refreshSubmitState();
+})();
+</script>
+
+<script>
+
+</script>
+
+
+
+
+{% endblock %}
+

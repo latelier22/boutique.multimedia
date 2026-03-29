@@ -192,7 +192,7 @@
   .iconbtn-violet{ border-color:#ddd6fe; background:#f5f3ff; }
 </style>
 
-{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+{# Top menu dans le pre_content du Layout Admin #}
 
 {# ===================== FILTRE GET (avant POST) ===================== #}
 <form method="get" action="{{ path('admin_rachats_index') }}"

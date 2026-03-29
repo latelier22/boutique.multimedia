@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Étiquette produit</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 210mm;
+            height: 297mm;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .page {
+            position: relative;
+            width: 210mm;
+            height: 297mm;
+            overflow: hidden;
+            background: white;
+        }
+
+        /*
+          Zone d'étiquette centrée.
+          Ici on prend une étiquette de 148 x 70 mm AVANT rotation visuelle.
+        */
+        .label-wrapper {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 148mm;
+            height: 70mm;
+            transform: translate(-50%, -50%);
+            border: 0.2mm dashed #ccc;
+            box-sizing: border-box;
+        }
+
+        /*
+          On tourne le contenu de 90° au centre
+        */
+        .label-rotated {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 70mm;
+            height: 148mm;
+            transform: translate(-50%, -50%) rotate(90deg);
+            transform-origin: center center;
+        }
+
+        .label {
+            width: 70mm;
+            height: 148mm;
+            border: 0.4mm solid #222;
+            box-sizing: border-box;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .top {
+            padding: 4mm 4mm 2mm 4mm;
+        }
+
+        .ref {
+            font-size: 3mm;
+            text-align: right;
+            color: #555;
+            margin-bottom: 2mm;
+        }
+
+        .brand {
+            font-size: 8mm;
+            font-weight: 800;
+            line-height: 1;
+            text-transform: uppercase;
+            margin-bottom: 2mm;
+        }
+
+        .model {
+            font-size: 6mm;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5mm;
+        }
+
+        .storage {
+            font-size: 5mm;
+            font-weight: 700;
+            margin-bottom: 4mm;
+        }
+
+        .state {
+            display: inline-block;
+            background: #d81b60;
+            color: white;
+            font-weight: 700;
+            font-size: 4mm;
+            padding: 1.2mm 2mm;
+            margin-bottom: 4mm;
+        }
+
+        .middle {
+            display: flex;
+            gap: 3mm;
+            align-items: flex-start;
+            padding: 0 4mm;
+        }
+
+        .price-block {
+            flex: 1;
+        }
+
+        .price {
+            font-size: 15mm;
+            font-weight: 900;
+            line-height: 0.9;
+            letter-spacing: -0.5mm;
+        }
+
+        .euro {
+            font-size: 10mm;
+            font-weight: 900;
+        }
+
+        .qr {
+            width: 22mm;
+            height: 22mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0.2mm solid #ddd;
+            box-sizing: border-box;
+        }
+
+        .qr img {
+            width: 20mm;
+            height: 20mm;
+            object-fit: contain;
+        }
+
+        .specs {
+            padding: 3mm 4mm 4mm 4mm;
+            font-size: 3.5mm;
+            line-height: 1.3;
+            color: #333;
+            flex: 1;
+        }
+
+        .bottom {
+            background: #d81b60;
+            color: #fff;
+            text-align: center;
+            font-size: 4.5mm;
+            font-weight: 700;
+            padding: 2.5mm 2mm;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="label-wrapper">
+        <div class="label-rotated">
+            <div class="label">
+                <div class="top">
+                    <div class="ref">
+                        {{ product.product_barcode ?? product.product_id ?? '' }}
+                    </div>
+
+                    <div class="brand">
+                        {{ product.brand_name ?? 'MARQUE' }}
+                    </div>
+
+                    <div class="model">
+                        {{ product.product_model ?? 'Modèle' }}
+                    </div>
+
+                    <div class="storage">
+                        {{ product.storage ?? '' }}
+                    </div>
+
+                    <div class="state">
+                        {{ product.state_label ?? 'BON ÉTAT' }}
+                    </div>
+                </div>
+
+                <div class="middle">
+                    <div class="price-block">
+                        <div class="price">
+                            {{ product.price_label ?? '229,99' }}<span class="euro">€</span>
+                        </div>
+                    </div>
+
+                    <div class="qr">
+                        {% if qr_code_data_uri %}
+                            <img src="{{ qr_code_data_uri }}" alt="QR code">
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="specs">
+                    {% if product.spec_1 is defined and product.spec_1 %}<div>{{ product.spec_1 }}</div>{% endif %}
+                    {% if product.spec_2 is defined and product.spec_2 %}<div>{{ product.spec_2 }}</div>{% endif %}
+                    {% if product.spec_3 is defined and product.spec_3 %}<div>{{ product.spec_3 }}</div>{% endif %}
+                    {% if product.spec_4 is defined and product.spec_4 %}<div>{{ product.spec_4 }}</div>{% endif %}
+                    {% if product.spec_5 is defined and product.spec_5 %}<div>{{ product.spec_5 }}</div>{% endif %}
+                </div>
+
+                <div class="bottom">
+                    GARANTIE 2 ANS
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

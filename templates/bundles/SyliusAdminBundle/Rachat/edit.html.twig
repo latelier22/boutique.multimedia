@@ -2,20 +2,175 @@
 {% block title %}Éditer rachat #{{ rachat.id ?? '—' }}{% endblock %}
 
 {% block content %}
-<div class="ui segment">
-  <h2 class="ui header">Rachat #{{ rachat.id ?? '—' }}</h2>
+{# Top menu dans le pre_content du Layout Admin #}
+<div class="ui breadcrumb" style="margin-bottom:1rem;">
+  <h1 class="ui header" style="margin:0;">
+    <i class="edit icon"></i>
+    Éditer rachat #{{ rachat.id ?? '—' }}
+  </h1>
+</div>
 
-  {# ================= REVendeur (STATUT + ACTION) ================= #}
-  {% set revendeur = attribute(rachat, 'revendeur') is defined ? rachat.revendeur : null %}
-  {% set revendeurId = revendeur ? revendeur.id : (attribute(rachat, 'revendeurId') is defined ? rachat.revendeurId : null) %}
-  {% set treated = revendeurId is not empty %}
+{% set revendeur = attribute(rachat, 'revendeur') is defined ? rachat.revendeur : null %}
+{% set revendeurId = revendeur ? revendeur.id : (attribute(rachat, 'revendeurId') is defined ? rachat.revendeurId : null) %}
+{% set treated = revendeurId is not empty %}
 
-  <div class="ui secondary segment" style="margin-top: .8rem;">
-    <div class="ui grid middle aligned">
-      <div class="ten wide column">
-        <div class="ui small header" style="margin-bottom:.4rem;">
-          <i class="user icon"></i> Revendeur
+{{ form_start(form, { attr: { class: 'ui form', id: 'rachat-form' } }) }}
+  <input type="hidden" name="rachat_attributes_json" id="rachatAttributesJson" value="{}">
+  <input type="hidden" name="_go_sign" id="go-sign" value="0">
+
+  <div class="ui stackable grid">
+
+    {# ===================== COLONNE GAUCHE ===================== #}
+    <div class="eight wide column">
+
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="box icon"></i>
+          Fiche rachat
+        </h3>
+
+        <div class="two fields">
+          <div class="field">{{ form_row(form.marqueModele) }}</div>
+          <div class="field">{{ form_row(form.imei) }}</div>
         </div>
+
+        <div class="two fields">
+         <div class="field">
+  <label>Marque</label>
+
+  {# vrai champ Symfony, caché mais conservé pour la sauvegarde #}
+  <div style="display:none;">
+    {{ form_widget(form.hibBrandId) }}
+  </div>
+
+  {# UI visible pour l'utilisateur #}
+  <select id="hib_brand_ui" class="ui fluid search selection dropdown hib-search-dropdown">
+    <option value="">Choisir une marque</option>
+    <option value="__new__">+ Nouvelle marque...</option>
+
+    {% for b in brands %}
+      <option
+        value="{{ b.brand_id }}"
+        {% if (rachat.hibBrandId ?? 0) == b.brand_id %}selected{% endif %}
+      >
+        {{ b.brand_name ?: ('BRAND #' ~ b.brand_id) }}
+      </option>
+    {% endfor %}
+  </select>
+
+  <input type="hidden" name="brand_ui_value" id="brand_ui_value" value="{{ rachat.hibBrandId ?? '' }}">
+
+  <div class="field" id="new-brand-field" style="display:none; margin-top:10px;">
+    <label>Nouvelle marque</label>
+    <input
+      type="text"
+      name="new_brand_name"
+      id="new_brand_name"
+      placeholder="Ex : Xiaomi"
+      value=""
+    >
+  </div>
+
+  {{ form_errors(form.hibBrandId) }}
+</div>
+
+          <div class="field">
+            <label>{{ form.hibCategoryId.vars.label|default('Catégorie') }}</label>
+
+            {{ form_widget(form.hibCategoryId, {
+  attr: { class: 'ui fluid search selection dropdown hib-search-dropdown' }
+}) }}
+
+            <div style="margin-top:6px;font-size:12px;color:#666;">
+              Les parents sont affichés pour le contexte, mais seuls les enfants peuvent être choisis.
+            </div>
+
+            {% if form_errors(form.hibCategoryId) %}
+              <div class="ui pointing red basic label" style="margin-top:6px;">
+                {{ form_errors(form.hibCategoryId) }}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="three fields">
+          <div class="field">{{ form_row(form.numeroCi) }}</div>
+          <div class="field">{{ form_row(form.prixAchat) }}</div>
+          <div class="field">{{ form_row(form.dateCession) }}</div>
+        </div>
+      </div>
+
+      {# ===== ATTRIBUTS ===== #}
+      <div class="ui segment">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <h3 class="ui header" style="margin:0;">
+            <i class="list icon"></i>
+            Attributs rachat
+          </h3>
+        </div>
+
+        <div class="ui info message" style="margin-top:12px;">
+          Les attributs suivent la catégorie choisie et seront enregistrés avec le bouton <strong>Enregistrer</strong>.
+        </div>
+
+        <div id="rachat-attributes-list">
+          <div class="ui active inline loader"></div> Chargement...
+        </div>
+
+        <div class="ui divider"></div>
+
+        <h4 class="ui header">
+          <i class="plus circle icon"></i>
+          Ajouter rapidement un attribut à la catégorie choisie
+        </h4>
+
+        <div class="ui form">
+          <div class="three fields">
+            <div class="field">
+              <label>Label</label>
+              <input type="text" id="quickAttrLabel" placeholder="Ex : Batterie">
+            </div>
+
+            <div class="field">
+              <label>Type</label>
+              <select id="quickAttrType" class="ui dropdown">
+                <option value="text">Texte</option>
+                <option value="select">Liste</option>
+              </select>
+            </div>
+
+            <div class="field" id="quickAttrOptionsField" style="display:none;">
+              <label>Options</label>
+              <input type="text" id="quickAttrOptions" placeholder="Ex : 64Go,128Go,256Go">
+            </div>
+          </div>
+
+          <button type="button" class="ui button" id="btnQuickCreateAttr">
+            <i class="plus icon"></i>
+            Ajouter à cette catégorie
+          </button>
+
+          <span id="quickAttrState" style="margin-left:8px;"></span>
+        </div>
+
+        <div class="ui divider"></div>
+
+        <details>
+          <summary style="cursor:pointer;font-weight:700;">Afficher JSON brut</summary>
+          <pre id="rachatAttributesRawBox" style="white-space:pre-wrap;border:1px dashed #ddd;padding:10px;border-radius:8px;background:#fff;margin-top:10px;"></pre>
+        </details>
+      </div>
+
+    </div>
+
+    {# ===================== COLONNE DROITE ===================== #}
+    <div class="eight wide column">
+
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="user icon"></i>
+          Revendeur / vendeur
+        </h3>
 
         {% if treated %}
           <div class="ui green label">
@@ -34,152 +189,172 @@
         {% endif %}
 
         {% if rachat.hibSupplierId %}
-          <div style="margin-top:.4rem;">
+          <div style="margin-top:.6rem;">
             <span class="ui tiny label">
               Hiboutik supplier_id : {{ rachat.hibSupplierId }}
             </span>
           </div>
         {% endif %}
-      </div>
 
-      <div class="six wide column right aligned">
-        {% if treated %}
-         <a class="ui button" href="{{ path('admin_revendeurs_show', {id: rachat.revendeur.id}) }}">
-    Voir revendeur
-  </a>
-          <a class="ui small basic button"
-             href="{{ path('admin_revendeurs_edit', {id: revendeurId}) }}">
-            <i class="user icon"></i> Voir revendeur
-          </a>
-    
- 
-
-
-          {% if rachat.hibSupplierId %}
-            <a class="ui small basic button"
-               href="{{ path('admin_vendors_edit', {id: rachat.hibSupplierId}) }}">
-              <i class="warehouse icon"></i> Voir vendor Hiboutik
+        <div style="margin-top:1rem; display:flex; gap:8px; flex-wrap:wrap;">
+          {% if treated %}
+            <a class="ui button" href="{{ path('admin_revendeurs_show', {id: rachat.revendeur.id}) }}">
+              Voir revendeur
             </a>
-          {% endif %}
-        {% else %}
-          {% if rachat.id %}
-            <form method="post"
-                  action="{{ path('admin_rachats_process_revendeur', {id: rachat.id}) }}"
-                  style="display:inline-block"
-                  onsubmit="return confirm('Créer/relier le revendeur pour ce rachat ?');">
-              <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ rachat.id) }}">
-              <button class="ui small blue button" type="submit">
-                <i class="user plus icon"></i> Créer / lier
-              </button>
-            </form>
+
+            <a class="ui basic button" href="{{ path('admin_revendeurs_edit', {id: revendeurId}) }}">
+              Éditer revendeur
+            </a>
+
+            {% if rachat.hibSupplierId %}
+              <a class="ui basic button" href="{{ path('admin_vendors_edit', {id: rachat.hibSupplierId}) }}">
+                Voir vendor Hiboutik
+              </a>
+            {% endif %}
           {% else %}
-            <div class="ui tiny message">Enregistrez d’abord pour créer le revendeur.</div>
+            {% if rachat.id %}
+              <form method="post"
+                    action="{{ path('admin_rachats_process_revendeur', {id: rachat.id}) }}"
+                    style="display:inline-block"
+                    onsubmit="return confirm('Créer/relier le revendeur pour ce rachat ?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('process_revendeur_' ~ rachat.id) }}">
+                <button class="ui blue button" type="submit">
+                  <i class="user plus icon"></i> Créer / lier
+                </button>
+              </form>
+            {% else %}
+              <div class="ui tiny message">Enregistrez d’abord pour créer le revendeur.</div>
+            {% endif %}
           {% endif %}
+        </div>
+
+        <div class="ui divider"></div>
+
+        <div class="field">
+          <label>Revendeur existant (recherche)</label>
+          <input type="text" id="rev-search" placeholder="Tape nom, téléphone ou email…">
+          <div id="rev-results" class="ui very relaxed list" style="margin-top: .5em;"></div>
+        </div>
+
+        <input type="hidden" id="apply_revendeur_token" value="{{ csrf_token('apply_revendeur_' ~ rachat.id) }}">
+      </div>
+
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="address card icon"></i>
+          Coordonnées vendeur
+        </h3>
+
+        <div class="three fields">
+          <div class="field">{{ form_row(form.nom) }}</div>
+          <div class="field">{{ form_row(form.prenom) }}</div>
+          <div class="field">{{ form_row(form.telephone) }}</div>
+        </div>
+
+        <div class="two fields">
+          <div class="field">{{ form_row(form.email) }}</div>
+          <div class="field">{{ form_row(form.codePostal) }}</div>
+        </div>
+
+        <div class="field">{{ form_row(form.adresse) }}</div>
+      </div>
+
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="id card outline icon"></i>
+          Pièce d’identité
+        </h3>
+
+        <div class="two fields">
+          <div class="field">
+            {{ form_row(form.pieceIdentiteRectoFile) }}
+            <div id="ci-recto-preview" style="margin-top:.5rem;display:none">
+              <div class="ui small header">Recto sélectionné</div>
+              <img id="ci-recto-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+            </div>
+          </div>
+
+          <div class="field">
+            {{ form_row(form.pieceIdentiteVersoFile) }}
+            <div id="ci-verso-preview" style="margin-top:.5rem;display:none">
+              <div class="ui small header">Verso sélectionné</div>
+              <img id="ci-verso-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
+            </div>
+          </div>
+        </div>
+
+        <div id="ci-saved" class="ui segment" style="background:#f8fafc; display:none">
+          <div class="ui header">Pièce d'identité enregistrée</div>
+          <div id="ci-saved-list" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+        </div>
+      </div>
+
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="camera icon"></i>
+          Photos produit
+        </h3>
+
+        <div class="field">
+          {{ form_row(form.photoFiles) }}
+          <div class="muted" style="margin-top:.3rem">
+            Les photos seront compressées en JPEG ≤ 1 Mo et stockées localement.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  {# ===================== ACTIONS ===================== #}
+  <div class="ui segment">
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="ui primary button" type="submit">
+        <i class="save icon"></i>
+        Enregistrer
+      </button>
+
+      {% if rachat.id %}
+        <button type="button" id="btn-save-and-sign" class="ui button">
+          <i class="edit outline icon"></i>
+          Signer
+        </button>
+
+        <button type="button" id="btn-open-on-tablet" class="ui teal button">
+          <i class="tablet alternate icon"></i>
+          Ouvrir sur tablette
+        </button>
+
+        <button type="button" class="ui button" id="btn-tablet-sign"
+                data-id="{{ rachat.id }}"
+                data-device="TAB1">
+          Signer sur tablette
+        </button>
+
+        {% if rachat.pdfUrl %}
+          <a class="ui button" target="_blank" href="{{ rachat.pdfUrl }}">
+            <i class="file pdf icon"></i>
+            Ouvrir le PDF
+          </a>
         {% endif %}
-      </div>
+      {% endif %}
+
+      <a class="ui button" href="{{ path('admin_rachats_index') }}">
+        Retour liste
+      </a>
     </div>
   </div>
-
-  {{ form_start(form, { attr: { class: 'ui form', id: 'rachat-form' } }) }}
-
-  <div class="four fields">
-    <div class="field">{{ form_row(form.marqueModele) }}</div>
-    <div class="field">{{ form_row(form.imei) }}</div>
-    <div class="field">{{ form_row(form.hibBrandId) }}</div>
-        <div class="field">{{ form_row(form.hibCategoryId) }}</div>
-  </div>
-
-
-  {% include '@SyliusAdmin/Rachat/_attributes.html.twig' with { rachat: rachat } %}
-
-  <div class="three fields">
-    <div class="field">{{ form_row(form.numeroCi) }}</div>
-    <div class="field">{{ form_row(form.prixAchat) }}</div>
-    <div class="field">{{ form_row(form.dateCession) }}</div>
-  </div>
-<div class="ui segment">
-  <div class="field">
-    <label>Revendeur existant (recherche)</label>
-    <input type="text" id="rev-search" placeholder="Tape nom, téléphone ou email…">
-    <div id="rev-results" class="ui very relaxed list" style="margin-top: .5em;"></div>
-  </div>
-
-  <input type="hidden" id="apply_revendeur_token" value="{{ csrf_token('apply_revendeur_' ~ rachat.id) }}">
-</div>
-  <div class="three fields">
-    <div class="field">{{ form_row(form.nom) }}</div>
-    <div class="field">{{ form_row(form.prenom) }}</div>
-    <div class="field">{{ form_row(form.telephone) }}</div>
-  </div>
-
-  <div class="two fields">
-    <div class="field">{{ form_row(form.email) }}</div>
-    <div class="field">{{ form_row(form.codePostal) }}</div>
-  </div>
-
-  <div class="field">{{ form_row(form.adresse) }}</div>
-
-  
-
-  <h4 class="ui dividing header">Pièce d'identité — Upload AJAX immédiat</h4>
-  <div class="two fields">
-    <div class="field">
-      {{ form_row(form.pieceIdentiteRectoFile) }}
-      <div id="ci-recto-preview" style="margin-top:.5rem;display:none">
-        <div class="ui small header">Recto sélectionné</div>
-        <img id="ci-recto-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
-      </div>
-    </div>
-    <div class="field">
-      {{ form_row(form.pieceIdentiteVersoFile) }}
-      <div id="ci-verso-preview" style="margin-top:.5rem;display:none">
-        <div class="ui small header">Verso sélectionné</div>
-        <img id="ci-verso-img" style="max-width:100%;border:1px solid #ccc;border-radius:6px">
-      </div>
-    </div>
-  </div>
-
-  <div id="ci-saved" class="ui segment" style="background:#f8fafc; display:none">
-    <div class="ui header">Pièce d'identité enregistrée</div>
-    <div id="ci-saved-list" style="display:flex;flex-wrap:wrap;gap:10px"></div>
-  </div>
-
-  <h4 class="ui dividing header">Photos produit</h4>
-  <div class="field">
-    {{ form_row(form.photoFiles) }}
-    <div class="muted" style="margin-top:.3rem">Les photos seront compressées en JPEG ≤ 1 Mo et stockées localement.</div>
-  </div>
-
-  <div class="two fields right aligned">
-    <button class="ui primary button" type="submit">Enregistrer</button>
-    <a class="ui button" href="{{ path('admin_rachats_index') }}">Retour liste</a>
-    
-  </div>
-
-  
 
   {{ form_row(form._token) }}
-  <input type="hidden" name="_go_sign" id="go-sign" value="0">
-  {{ form_end(form, { render_rest: false }) }}
-</div>
+{{ form_end(form, { render_rest: false }) }}
 
-
-{# <iframe 
-  src="{{ path('admin_rachats_attributes', {id: rachat.id}) }}" 
-  style="width:100%; height:300px; border:none;">
-</iframe> #}
-
-{% include '@SyliusAdmin/Rachat/_attributes.html.twig' with { rachat: rachat } %}
-
-
-{# ========= Photos locales : conteneur TOUJOURS PRÉSENT + placeholder ========= #}
+{# ===================== PHOTOS LOCALES ===================== #}
 <h4 class="ui dividing header">Photos locales</h4>
 <div id="photos-gallery" class="ui small images" style="display:flex;flex-wrap:wrap;gap:10px"></div>
 <div id="photos-placeholder" class="ui message">
   Aucune photo locale pour l’instant.
 </div>
 
-{# Pré-remplissage de la galerie au 1er rendu si des photos existent #}
 {% if rachat.id and rachat.photosJson %}
   {% set arr = rachat.photosJson is string ? (rachat.photosJson|json_decode) : rachat.photosJson %}
   {% if arr is iterable and (arr|length) > 0 %}
@@ -211,58 +386,15 @@
   {% endif %}
 {% endif %}
 
-
-
-{# ========= Actions bas de page ========= #}
-<div class="ui right aligned basic segment">
-  <a class="ui button" href="{{ path('admin_rachats_index') }}"><i class="left arrow icon"></i> Retour</a>
-
-  {% if rachat.id %}
-    <button type="button" id="btn-save-and-sign" class="ui primary button">
-      <i class="edit outline icon"></i> Signer
-    </button>
-
-    {# ✅ NOUVEAU : ouvrir sur tablette #}
-  <button type="button" id="btn-open-on-tablet" class="ui teal button">
-    <i class="tablet alternate icon"></i> Ouvrir sur tablette
-  </button>
-  <div class="ui message">
-  <strong>DEBUG TOKEN:</strong>
-  <code id="dbg-token">{{ tablet_socket_token }}</code>
-</div>
-
-<button type="button" class="btn btn-primary" id="btn-tablet-sign"
-        data-id="{{ rachat.id }}"
-        data-device="TAB1">
-  Signer sur tablette
-</button>
-
-    {% if rachat.pdfUrl %}
-      <a class="ui button" target="_blank" href="{{ rachat.pdfUrl }}"><i class="file pdf icon"></i> Ouvrir le PDF</a>
-    {% endif %}
-  {% else %}
-    <div class="ui warning message" style="display:inline-block;margin-left:1rem">
-      Enregistrez le rachat pour accéder à la signature et au PDF.
-    </div>
-  {% endif %}
-</div>
-{# 
-<form method="post"
-      action="{{ path('admin_rachats_create_hib_product_arrivage', {id: rachat.id}) }}"
-      style="display:inline-block">
-  <button type="submit" class="ui orange button">
-    <i class="cube icon"></i>
-    Créer produit Hiboutik + ajout arrivage mensuel
-  </button>
-</form> #}
-
+{# ===================== HIB PRODUCT ===================== #}
 <div class="ui segment">
   <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
 
     {% if rachat.hibProductId %}
-      <span class="ui green label">
-        Produit Hiboutik lié : #{{ rachat.hibProductId }}
-      </span>
+      
+      <button type="button" class="ui basic button" onclick="window.open('{{ path('admin_hiboutik_product_edit', {id: rachat.hibProductId}) }}', '_blank')">
+        Voir produit Hiboutik #{{ rachat.hibProductId }}
+      </button>
 
       <button type="button" class="ui button disabled">
         <i class="plus icon"></i>
@@ -300,10 +432,287 @@
   </div>
 </div>
 
-
-{# ======================= JS ======================= #}
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.$ && $.fn.dropdown) {
+        $('.ui.dropdown').dropdown();
+    }
+
+    if (window.$ && $.fn.checkbox) {
+        $('.ui.checkbox').checkbox();
+    }
+});
+</script>
+
+<script>
+/* ===================== ATTRIBUTS DYNAMIQUES ===================== */
+document.addEventListener("DOMContentLoaded", () => {
+    const INITIAL_VALUES = {{ initialAttributeValues|default({})|json_encode|raw }};
+    const INITIAL_CATEGORY_ID = {{ selectedCategoryId|default(0)|json_encode|raw }};
+    const INITIAL_ATTR_DEFS = {{ initialAttributeDefs|default([])|json_encode|raw }};
+
+    const catSelect = document.getElementById('{{ form.hibCategoryId.vars.id|e("js") }}');
+    const listEl = document.getElementById('rachat-attributes-list');
+    const rawBox = document.getElementById('rachatAttributesRawBox');
+    const hiddenInput = document.getElementById('rachatAttributesJson');
+
+    const QUICK_ATTR_URL = '{{ path("admin_rachats_create_attribute_definition") }}';
+    const DEFS_BASE_URL = '{{ path("admin_rachats_attributes_definitions", {category: "__CATEGORY__"}) }}';
+
+    const quickAttrLabel = document.getElementById('quickAttrLabel');
+    const quickAttrType = document.getElementById('quickAttrType');
+    const quickAttrOptions = document.getElementById('quickAttrOptions');
+    const quickAttrOptionsField = document.getElementById('quickAttrOptionsField');
+    const quickAttrBtn = document.getElementById('btnQuickCreateAttr');
+    const quickAttrState = document.getElementById('quickAttrState');
+
+    let defs = [];
+    let values = JSON.parse(JSON.stringify(INITIAL_VALUES || {}));
+    const preloadedDefsByCategory = {};
+
+    if (String(INITIAL_CATEGORY_ID || '0') !== '0') {
+        preloadedDefsByCategory[String(INITIAL_CATEGORY_ID)] = Array.isArray(INITIAL_ATTR_DEFS) ? INITIAL_ATTR_DEFS : [];
+    }
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function slugifyCode(str) {
+        return String(str || '')
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+    }
+
+    function buildPreviewRows() {
+        if (!Array.isArray(defs) || defs.length === 0) {
+            return values || {};
+        }
+
+        return defs.map(def => ({
+            code: String(def.code || ''),
+            label: String(def.label || def.code || ''),
+            value: String(values?.[def.code] ?? '')
+        }));
+    }
+
+    function syncHiddenInput() {
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(values || {});
+        }
+
+        if (rawBox) {
+            rawBox.textContent = JSON.stringify(buildPreviewRows(), null, 2);
+        }
+    }
+
+    function refreshQuickAttrVisibility() {
+        if (!quickAttrType || !quickAttrOptionsField) return;
+        quickAttrOptionsField.style.display = quickAttrType.value === 'select' ? '' : 'none';
+    }
+
+    function normalizeValuesForCurrentDefs() {
+        const allowedCodes = new Set((defs || []).map(d => String(d.code || '')));
+        const nextValues = {};
+
+        for (const code of Object.keys(values || {})) {
+            if (allowedCodes.has(code)) {
+                nextValues[code] = values[code];
+            }
+        }
+
+        values = nextValues;
+    }
+
+    function renderDefs() {
+        if (!defs.length) {
+            listEl.innerHTML = `<div class="ui message">Aucun attribut défini pour cette catégorie.</div>`;
+            syncHiddenInput();
+            return;
+        }
+
+        listEl.innerHTML = '';
+
+        defs.forEach(def => {
+            const currentValue = String(values?.[def.code] ?? '');
+            const wrapper = document.createElement('div');
+            wrapper.className = 'ui segment';
+
+            let inputHtml = '';
+
+            if (def.type === 'select') {
+                const opts = Array.isArray(def.options) ? def.options : [];
+
+                inputHtml = `
+                    <select data-code="${escapeHtml(def.code)}" class="rachat-misc-input" style="width:100%;padding:8px;">
+                        <option value="">-- choisir --</option>
+                        ${opts.map(o => `
+                            <option value="${escapeHtml(o)}" ${String(o) === currentValue ? 'selected' : ''}>
+                                ${escapeHtml(o)}
+                            </option>
+                        `).join('')}
+                    </select>
+                `;
+            } else {
+                inputHtml = `
+                    <input
+                        type="text"
+                        value="${escapeHtml(currentValue)}"
+                        data-code="${escapeHtml(def.code)}"
+                        class="rachat-misc-input"
+                        style="width:100%;padding:8px;"
+                    >
+                `;
+            }
+
+            wrapper.innerHTML = `
+                <div style="font-weight:700;margin-bottom:6px;">${escapeHtml(def.label || def.code)}</div>
+                <div style="font-size:12px;color:#666;margin-bottom:8px;">
+                    code: <code>${escapeHtml(def.code)}</code>
+                </div>
+                ${inputHtml}
+            `;
+
+            listEl.appendChild(wrapper);
+        });
+
+        bindInputs();
+        syncHiddenInput();
+    }
+
+    function bindInputs() {
+        listEl.querySelectorAll('.rachat-misc-input').forEach(el => {
+            const update = () => {
+                const code = el.getAttribute('data-code');
+                values[code] = el.value;
+                syncHiddenInput();
+            };
+
+            el.addEventListener('change', update);
+            el.addEventListener('input', update);
+        });
+
+        syncHiddenInput();
+    }
+
+    async function loadDefs() {
+        const catId = String(catSelect?.value || '0');
+
+        if (!catId || catId === '0') {
+            listEl.innerHTML = `<div class="ui message">Choisis une catégorie pour afficher les attributs.</div>`;
+            defs = [];
+            values = {};
+            syncHiddenInput();
+            return;
+        }
+
+        if (preloadedDefsByCategory[catId]) {
+            defs = preloadedDefsByCategory[catId];
+            normalizeValuesForCurrentDefs();
+            renderDefs();
+            return;
+        }
+
+        listEl.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
+
+        try {
+            const res = await fetch(DEFS_BASE_URL.replace('__CATEGORY__', encodeURIComponent(catId)));
+            if (!res.ok) {
+                listEl.innerHTML = `<div class="ui negative message">Erreur chargement attributs</div>`;
+                return;
+            }
+
+            defs = await res.json();
+            preloadedDefsByCategory[catId] = defs;
+            normalizeValuesForCurrentDefs();
+            renderDefs();
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
+        }
+    }
+
+    async function createQuickAttribute() {
+        const catId = String(catSelect?.value || '0');
+        const label = String(quickAttrLabel?.value || '').trim();
+        const type = String(quickAttrType?.value || 'text');
+        const options = String(quickAttrOptions?.value || '').trim();
+
+        if (!catId || catId === '0') {
+            quickAttrState.textContent = 'Choisis d’abord une catégorie';
+            return;
+        }
+
+        if (!label) {
+            quickAttrState.textContent = 'Label obligatoire';
+            return;
+        }
+
+        quickAttrState.textContent = 'Création...';
+
+        try {
+            const res = await fetch(QUICK_ATTR_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    category_id: catId,
+                    category: catId,
+                    code: slugifyCode(label),
+                    label: label,
+                    type: type,
+                    options: options
+                })
+            });
+
+            const json = await res.json();
+
+            if (!res.ok || !json.ok) {
+                console.error(json);
+                quickAttrState.textContent = json.error || 'Erreur';
+                return;
+            }
+
+            quickAttrLabel.value = '';
+            quickAttrType.value = 'text';
+            quickAttrOptions.value = '';
+            refreshQuickAttrVisibility();
+
+            delete preloadedDefsByCategory[catId];
+            quickAttrState.textContent = 'Attribut créé';
+            await loadDefs();
+        } catch (e) {
+            console.error(e);
+            quickAttrState.textContent = 'Erreur JS';
+        }
+    }
+
+    if (catSelect) {
+        catSelect.addEventListener('change', loadDefs);
+    }
+
+    if (quickAttrType) {
+        quickAttrType.addEventListener('change', refreshQuickAttrVisibility);
+        refreshQuickAttrVisibility();
+    }
+
+    if (quickAttrBtn) {
+        quickAttrBtn.addEventListener('click', createQuickAttribute);
+    }
+
+    syncHiddenInput();
+    loadDefs();
+});
+</script>
 
 <script>
 /* ===================== CI: crop + upload ===================== */
@@ -334,7 +743,6 @@
     ciSavedList.appendChild(wrap);
   }
 
-  // Pré-affichage des URLs existantes
   {% if rachat.pieceIdentiteUrl %}
   try {
     const saved = JSON.parse({{ rachat.pieceIdentiteUrl|json_encode|raw }});
@@ -406,10 +814,10 @@
 </script>
 
 <script>
-/* ===================== Bouton "Signer" (NE TOUCHE PAS go-sign) ===================== */
+/* ===================== Bouton "Signer" ===================== */
 (function () {
   const btnSaveAndSign = document.getElementById('btn-save-and-sign');
-  const go = document.getElementById('go-sign');      // on l’utilise tel quel
+  const go = document.getElementById('go-sign');
   const frm = document.getElementById('rachat-form');
 
   if (!btnSaveAndSign || !go || !frm) return;
@@ -435,43 +843,72 @@
   let timer = null;
   let abortCtl = null;
 
+  function setVal(name, value) {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (el) el.value = value ?? '';
+  }
+
   function render(list) {
     results.innerHTML = (list || []).map(v => `
-      <div class="item" style="cursor:pointer" data-id="${v.id}">
+      <div class="item" style="cursor:pointer;padding:.6rem;border-bottom:1px solid #eee" data-id="${v.id}">
         <i class="user icon"></i>
-        <div class="content"><div class="header">${v.label}</div></div>
+        <div class="content">
+          <div class="header">${v.label}</div>
+        </div>
       </div>
     `).join('');
 
     results.querySelectorAll('.item').forEach(el => {
       el.addEventListener('click', async () => {
         const revId = el.getAttribute('data-id');
+        if (!revId) {
+          alert('ID revendeur manquant');
+          return;
+        }
 
-        const fd = new FormData();
-        fd.append('_token', token);
-        fd.append('revendeur_id', revId);
+        try {
+          const fd = new FormData();
+          fd.append('_token', token);
+          fd.append('revendeur_id', revId);
 
-        const r = await fetch(`/admin/rachats/{{ rachat.id }}/apply-revendeur`, {
-          method: 'POST',
-          body: fd
-        });
-        const data = await r.json();
-        if (!data.ok) { alert(data.error || 'Erreur'); return; }
+          const r = await fetch(`{{ path('admin_rachats_apply_revendeur', { id: rachat.id }) }}`, {
+            method: 'POST',
+            body: fd,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
 
-        const setVal = (name, value) => {
-          const el = document.querySelector(`[name="${name}"]`);
-          if (el) el.value = value ?? '';
-        };
+          const txt = await r.text();
 
-        setVal('rachat[nom]', data.filled?.nom);
-        setVal('rachat[prenom]', data.filled?.prenom);
-        setVal('rachat[telephone]', data.filled?.telephone);
-        setVal('rachat[email]', data.filled?.email);
-        setVal('rachat[adresse]', data.filled?.adresse);
-        setVal('rachat[codePostal]', data.filled?.codePostal ?? data.filled?.code_postal);
+          let data = {};
+          try {
+            data = JSON.parse(txt);
+          } catch (e) {
+            alert('La réponse n’est pas du JSON. Regarde la console.');
+            return;
+          }
 
-        results.innerHTML = '';
-        inp.value = '';
+          if (!r.ok || !data.ok) {
+            alert(data.error || ('Erreur HTTP ' + r.status));
+            return;
+          }
+
+          setVal('rachat[nom]', data.filled?.nom);
+          setVal('rachat[prenom]', data.filled?.prenom);
+          setVal('rachat[telephone]', data.filled?.telephone);
+          setVal('rachat[email]', data.filled?.email);
+          setVal('rachat[adresse]', data.filled?.adresse);
+          setVal('rachat[codePostal]', data.filled?.code_postal);
+
+          results.innerHTML = '';
+          inp.value = '';
+
+          alert('Revendeur appliqué');
+        } catch (e) {
+          console.error('[REV] erreur apply', e);
+          alert('Erreur JS / réseau, regarde la console');
+        }
       });
     });
   }
@@ -480,7 +917,10 @@
     clearTimeout(timer);
     const q = inp.value.trim();
 
-    if (q.length < 2) { results.innerHTML = ''; return; }
+    if (q.length < 2) {
+      results.innerHTML = '';
+      return;
+    }
 
     timer = setTimeout(async () => {
       try {
@@ -488,12 +928,25 @@
         abortCtl = new AbortController();
 
         const res = await fetch(`/admin/revendeurs/search?q=${encodeURIComponent(q)}`, {
-          signal: abortCtl.signal
+          signal: abortCtl.signal,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
-        const list = await res.json();
+
+        const txt = await res.text();
+
+        let list = [];
+        try {
+          list = JSON.parse(txt);
+        } catch (e) {
+          results.innerHTML = '<div class="ui tiny red message">Réponse recherche invalide</div>';
+          return;
+        }
+
         render(list);
       } catch (e) {
-        // abort => silencieux
+        if (e.name !== 'AbortError') {
+          console.error('[REV] search error', e);
+        }
       }
     }, 250);
   });
@@ -523,7 +976,6 @@
       });
 
       const data = await res.json();
-      console.log('[TABLET] push', data);
 
       if (!data.ok) {
         alert("Push KO: " + (data.error || ''));
@@ -549,7 +1001,6 @@
       const id = btnTabletSign.dataset.id;
       const device = btnTabletSign.dataset.device || 'TAB1';
 
-      // 1) créer lien public tablette
       const res = await fetch(`/admin/rachats/${id}/tablet-link`, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -557,7 +1008,6 @@
       const j = await res.json();
       if (!j || !j.url) throw new Error('tablet-link: url manquante');
 
-      // 2) push vers tablette
       const u = new URL(j.url, window.location.origin);
       const push = await fetch(`/ws-tablet-push`, {
         method: 'POST',
@@ -570,7 +1020,6 @@
       });
 
       const pj = await push.json();
-      console.log('[TABLET] push', pj);
 
       if (!pj.ok) alert('Push KO: ' + (pj.error || ''));
     } catch (e) {
@@ -580,6 +1029,39 @@
   });
 })();
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const realBrandField = document.getElementById('{{ form.hibBrandId.vars.id|e("js") }}');
+    const brandUi = document.getElementById('hib_brand_ui');
+    const brandUiValue = document.getElementById('brand_ui_value');
+    const newBrandField = document.getElementById('new-brand-field');
+    const newBrandInput = document.getElementById('new_brand_name');
+
+    function syncBrandUi() {
+        if (!brandUi || !realBrandField || !brandUiValue) return;
+
+        const val = brandUi.value;
+        brandUiValue.value = val;
+
+        if (val === '__new__') {
+            newBrandField.style.display = '';
+            realBrandField.value = '';
+        } else {
+            newBrandField.style.display = 'none';
+            if (newBrandInput) newBrandInput.value = '';
+            realBrandField.value = val || '';
+        }
+    }
+
+    if (brandUi) {
+        brandUi.addEventListener('change', syncBrandUi);
+        syncBrandUi();
+    }
+});
+</script>
+
+
 
 
 {% endblock %}

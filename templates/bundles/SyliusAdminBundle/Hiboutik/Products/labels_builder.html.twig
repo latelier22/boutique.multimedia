@@ -1,0 +1,314 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+
+{% block title %}Composeur planche étiquettes
+{% endblock %}
+
+{% block content %}
+	<style>
+		.labels-builder-layout {
+			display: grid;
+			grid-template-columns: 760px minmax(420px, 1fr);
+			gap: 24px;
+			align-items: start;
+		}
+
+		.labels-sheet-wrap {
+			position: sticky;
+			top: 90px;
+		}
+
+		.labels-sheet {
+			width: 740px;
+			height: 1050px;
+			position: relative;
+			background: #fff;
+			border: 1px solid #ccc;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+		}
+
+		.label-slot {
+			position: absolute;
+			width: 300px;
+			height: 525px;
+			border: 1px solid #222;
+			box-sizing: border-box;
+			padding: 16px;
+			overflow: hidden;
+			background: #fff;
+		}
+
+		.builder-panel {
+			background: #fff;
+			border: 1px solid #e5e7eb;
+			border-radius: 12px;
+			padding: 16px;
+		}
+
+		.builder-actions {
+			margin-bottom: 1rem;
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+
+		.search-results {
+			margin-top: 12px;
+			max-height: 900px;
+			overflow: auto;
+		}
+
+		.search-loading {
+			display: none;
+			color: #64748b;
+			margin-top: 8px;
+		}
+
+		.search-empty {
+			color: #64748b;
+			padding: 16px 0;
+		}
+
+		@media(max-width: 1280px) {
+			.labels-builder-layout {
+				grid-template-columns: 1fr;
+			}
+
+			.labels-sheet-wrap {
+				position: static;
+			}
+		}
+	</style>
+
+	{# Top menu dans le pre_content du Layout Admin #}
+
+	<h1 class="ui header">
+		<i class="clone outline icon"></i>
+		<div class="content">
+			Composeur planche A5
+			<div class="sub header">4 slots maximum</div>
+		</div>
+	</h1>
+
+	<div class="builder-actions">
+		<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_pdf') }}">
+			<button class="ui primary button" type="submit">
+				<i class="file pdf icon"></i>
+				Générer le PDF
+			</button>
+		</form>
+
+		<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_clear') }}">
+			<button class="ui button" type="submit">
+				<i class="trash icon"></i>
+				Vider la planche
+			</button>
+		</form>
+	</div>
+
+	<div class="labels-builder-layout">
+		<div class="labels-sheet-wrap">
+			<h3 class="ui header">
+				<i class="clone outline icon"></i>
+				<div class="content">
+					Planche
+					<div class="sub header">Aperçu des 4 slots</div>
+				</div>
+			</h3>
+
+			<div class="labels-sheet">
+				{% for slot in slots %}
+					{% set row = slot.slot >= 2 ? 1 : 0 %}
+					{% set col = slot.slot is odd ? 1 : 0 %}
+					{% set left = col == 0 ? 70 : 370 %}
+					{% set top = row == 0 ? 0 : 525 %}
+
+					<div class="label-slot" style="left:{{ left }}px; top:{{ top }}px;">
+						{% if slot.product %}
+							<div style="font-size:12px; color:#999; text-align:right;">
+								{{ slot.product.product_barcode }}
+							</div>
+
+							<div style="font-size:22px; font-weight:900; line-height:1; margin-bottom:6px;">
+								{{ slot.product.brand_name }}
+							</div>
+
+							<div style="font-size:34px; font-weight:900; line-height:1.05; margin-bottom:6px;">
+								{{ slot.product.product_model }}
+							</div>
+
+							{% if slot.product.storage %}
+								<div style="font-size:22px; font-weight:800; margin-bottom:16px;">
+									{{ slot.product.storage }}
+								</div>
+							{% endif %}
+
+							<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+								<div style="background:#2e7d32; color:#fff; font-weight:900; font-size:16px; padding:5px 10px;">
+									{{ slot.product.state_label }}
+								</div>
+
+								{% if slot.product.qr_code_data_uri %}
+									<img src="{{ slot.product.qr_code_data_uri }}" alt="QR code" style="width:80px; height:80px; object-fit:contain; display:block;">
+								{% else %}
+									<div style="width:80px; height:80px; border:1px solid #ddd; display:flex; align-items:center; justify-content:center; color:#777; font-size:12px;">
+										QR
+									</div>
+								{% endif %}
+							</div>
+
+							<div style="font-size:52px; font-weight:900; line-height:1; margin-bottom:18px;">
+								{{ slot.product.price_label }}€
+							</div>
+
+							<div style="font-size:14px; line-height:1.25;">
+								{% for row in slot.product.misc_rows %}
+									{% if row.label|lower != 'stockage' %}
+										<div>
+											<strong>{{ row.label }}
+												:</strong>
+											{{ row.value }}</div>
+									{% endif %}
+								{% endfor %}
+							</div>
+							{% if slot.product.barcode_png_data_uri %}
+	<div style="
+	        position:absolute;
+	        left:5px;
+	        right:5px;
+	        bottom:32px;
+	        height:42px;
+	        display:flex;
+	        align-items:flex-end;
+	        justify-content:center;
+	        z-index:2;
+	    ">
+		<img src="{{ slot.product.barcode_png_data_uri }}" alt="Code-barres" style="width:100%; height:100%; object-fit:fill; display:block;">
+	</div>
+{% endif %}
+							<div style="
+                                            position:absolute;
+                                            left:0; right:0; bottom:0;
+                                            background:#e37820;
+                                            color:#fff;
+                                            text-align:center;
+                                            font-weight:900;
+                                            font-size:18px;
+                                            padding:10px 0;
+											z-index:10;
+            ">  
+								{{ slot.product.footer_label }}
+							</div>
+
+							<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_remove', {slot: slot.slot}) }}" style="position:absolute; top:8px; left:8px;">
+								<button class="ui mini button" type="submit">Retirer</button>
+							</form>
+
+							<a href="{{ path('admin_hiboutik_product_edit', {id: slot.product.product_id}) }}" style="
+																          position:absolute;
+																          top:8px;
+																          right:8px;
+																          display:inline-flex;
+																          align-items:center;
+																          justify-content:center;
+																          width:32px;
+																          height:32px;
+																          border-radius:8px;
+																          border:1px solid rgba(0,0,0,.12);
+																          background:#fff;
+																          color:#111;
+																          text-decoration:none;
+																       " title="Éditer le produit">
+								<i class="edit icon" style="margin:0;"></i>
+							</a>
+						{% else %}
+							<div style="height:100%; display:flex; align-items:center; justify-content:center; color:#999; font-size:24px; font-weight:bold;">
+								Slot vide
+							</div>
+						{% endif %}
+					</div>
+				{% endfor %}
+			</div>
+		</div>
+
+		<div class="builder-panel">
+			<h3 class="ui header">
+				<i class="search icon"></i>
+				<div class="content">
+					Produits
+					<div class="sub header">Recherche et ajout à la planche</div>
+				</div>
+			</h3>
+
+			<form id="builderSearchForm" method="get" action="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui form" onsubmit="return false;">
+				<div class="field">
+					<input type="text" id="builderSearchInput" name="q" value="{{ q ?? '' }}" placeholder="Recherche produit..." autocomplete="off">
+				</div>
+			</form>
+
+			<div id="builderSearchLoading" class="search-loading">Recherche…</div>
+
+			<div id="builderSearchResults" class="search-results">
+				{% include '@SyliusAdmin/Hiboutik/Products/_labels_builder_results.html.twig' with {
+                q: q ?? '',
+                results: results ?? []
+            } %}
+			</div>
+		</div>
+	</div>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', function () {
+const input = document.getElementById('builderSearchInput');
+const resultsBox = document.getElementById('builderSearchResults');
+const loading = document.getElementById('builderSearchLoading');
+
+if (! input || ! resultsBox || ! loading) 
+return;
+
+
+
+let timer = null;
+let controller = null;
+
+async function runSearch() {
+const q = input.value.trim();
+
+if (controller) {
+controller.abort();
+}
+
+controller = new AbortController();
+
+loading.style.display = 'block';
+
+try {
+const url = new URL('{{ path('admin_hiboutik_product_labels_builder') }}', window.location.origin);
+url.searchParams.set('q', q);
+url.searchParams.set('ajax', '1');
+
+const response = await fetch(url.toString(), {
+headers: {
+'X-Requested-With': 'XMLHttpRequest'
+},
+signal: controller.signal
+});
+
+const html = await response.text();
+resultsBox.innerHTML = html;
+} catch (e) {
+if (e.name !== 'AbortError') {
+resultsBox.innerHTML = '<div class="search-empty">Erreur pendant la recherche.</div>';
+}
+} finally {
+loading.style.display = 'none';
+}
+}
+
+input.addEventListener('input', function () {
+clearTimeout(timer);
+timer = setTimeout(runSearch, 250);
+});
+});
+	</script>
+{% endblock %}

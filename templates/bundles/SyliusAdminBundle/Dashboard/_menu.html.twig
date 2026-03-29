@@ -30,6 +30,12 @@
                 📦 Produits Hiboutik
             </a>
         </div>
+            <div class="column">
+                <a href="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui basic big fluid button">
+                    <i class="icon"></i>
+                    🏷️ Composeur étiquettes
+                </a>    
+        </div>
         <div class="column">
             <a href="{{ path('admin_hiboutik_customer_index') }}" class="ui basic big fluid button">
                 <i class="icon"></i>
@@ -42,6 +48,20 @@
                 🔧 Interventions
             </a>
         </div>
+        <div class="column">
+
+            <a href="{{ path('admin_boite_index') }}"
+            class="item {{ app.request.attributes.get('_route') starts with 'admin_boite' ? 'active' : '' }}">
+            <i class="icon"></i>
+            📦 Boites
+        </a>
+    </div>
+
+        <div class="column">
+            <a href="{{ path('app_admin_intervention_sales_index') }}" class="ui basic big fluid button">
+                <i class="icon"></i>
+                💶 Ventes (interventions)
+            </a>
 
     </div>
 </div>

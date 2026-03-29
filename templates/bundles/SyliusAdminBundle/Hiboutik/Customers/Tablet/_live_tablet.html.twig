@@ -1,0 +1,188 @@
+
+<div class="ui fluid card" style="width:100%; margin-top:18px;">
+    <div class="content">
+        <div class="header">Recopie tablette</div>
+        <div class="meta">Aperçu visuel de la page client</div>
+    </div>
+
+    <div class="content">
+        <div id="tabletLiveBox">
+            <div class="ui message">
+                Aucune activité tablette pour le moment.
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const box = document.getElementById('tabletLiveBox');
+    if (!box) return;
+
+    const stateUrl = "{{ path('app_admin_tablet_live_state', {device: 'TAB1'}) }}";
+    const resetUrl = "{{ path('app_admin_tablet_live_reset', {device: 'TAB1'}) }}";
+    const logoUrl = "{{ asset('logo-multimedia.png') }}";
+    let lastRev = 0;
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function valueOf(form, key, fallback = '—') {
+        const v = form && Object.prototype.hasOwnProperty.call(form, key) ? form[key] : '';
+        return (v === null || v === undefined || String(v).trim() === '') ? fallback : String(v);
+    }
+
+    function field(label, value, isActive, extraClass = '') {
+        return `
+            <div class="tablet-live-field ${extraClass}">
+                <label>${escapeHtml(label)}</label>
+                <div class="tablet-live-value ${isActive ? 'is-active' : ''}">${escapeHtml(value)}</div>
+            </div>
+        `;
+    }
+
+    function renderEmpty() {
+        box.innerHTML = `
+            <div class="ui message">
+                Aucune activité tablette pour le moment.
+            </div>
+        `;
+    }
+
+    function renderState(state) {
+        if (!state) {
+            renderEmpty();
+            return;
+        }
+
+        const form = state.form || {};
+        const active = state.activeField || '';
+
+        box.innerHTML = `
+            <div class="tablet-live-shell">
+                <div class="tablet-live-preview">
+                    <div class="tablet-live-header">
+                        <div class="tablet-live-header-top">
+                            <div class="tablet-live-logo-box">
+                                <img src="${logoUrl}" alt="Logo Multimédia Services">
+                            </div>
+
+                            <div class="tablet-live-title-wrap">
+                                <div class="tablet-live-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                                <div class="tablet-live-subtitle">Achat - Vente - Réparation</div>
+                                <div class="tablet-live-client-id">
+                                    Client #${escapeHtml(state.hiboutikCustomerId || valueOf(form, 'customers_id', '—'))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tablet-live-content">
+                        <div class="tablet-live-meta">
+                            <span class="tablet-live-pill">Écran : ${escapeHtml(state.screen || '—')}</span>
+                            <span class="tablet-live-pill">Statut : ${escapeHtml(state.status || '—')}</span>
+                            <span class="tablet-live-pill">Intervention : ${escapeHtml(state.interventionId || '—')}</span>
+                            <span class="tablet-live-pill">Champ actif : ${escapeHtml(active || '—')}</span>
+                            <span class="tablet-live-pill">Maj : ${escapeHtml(state.updatedAt || '—')}</span>
+                        </div>
+
+                        <div class="tablet-live-section">
+                            <h2 class="tablet-live-section-title">Informations client</h2>
+
+                            <div class="tablet-live-grid">
+                                ${field('Nom', valueOf(form, 'last_name'), active === 'last_name')}
+                                ${field('Prénom', valueOf(form, 'first_name'), active === 'first_name')}
+                                ${field('Société', valueOf(form, 'company'), active === 'company', 'tablet-live-field-full')}
+                                ${field('Email', valueOf(form, 'email'), active === 'email')}
+                                ${field('Téléphone', valueOf(form, 'phone'), active === 'phone')}
+                                ${field('Pays', valueOf(form, 'country', 'FRA'), active === 'country', 'tablet-live-field-full')}
+                            </div>
+                        </div>
+
+                        <div class="tablet-live-section">
+                            <h2 class="tablet-live-section-title">Adresse</h2>
+
+                            <div class="tablet-live-grid">
+                                ${field('Adresse', valueOf(form, 'address_address'), active === 'address_address', 'tablet-live-field-full')}
+                                ${field('Code postal', valueOf(form, 'address_zip_code'), active === 'address_zip_code')}
+                                ${field('Ville', valueOf(form, 'address_city'), active === 'address_city')}
+                                ${field('Département / Région', valueOf(form, 'address_state'), active === 'address_state')}
+                                ${field('Pays adresse', valueOf(form, 'address_country', 'FRA'), active === 'address_country')}
+                            </div>
+                        </div>
+
+                        <div class="tablet-live-actions">
+                            <div class="tablet-live-btn tablet-live-btn-save">
+                                ENREGISTRER
+                            </div>
+
+                            ${state.status === 'saved' ? `
+                                <div class="tablet-live-btn tablet-live-btn-quit">
+                                    QUITTER
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function resetState() {
+        renderEmpty();
+        lastRev = 0;
+
+        try {
+            await fetch(resetUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+        } catch (e) {
+            console.error('[tablet-live-reset]', e);
+        }
+    }
+
+    async function refreshState() {
+        try {
+            const res = await fetch(stateUrl, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            const j = await res.json();
+            if (!j.ok) return;
+
+            const state = j.state;
+
+            if (!state) {
+                if (lastRev !== 0) {
+                    lastRev = 0;
+                    renderEmpty();
+                }
+                return;
+            }
+
+            if ((state.rev || 0) === lastRev) {
+                return;
+            }
+
+            lastRev = state.rev || 0;
+            renderState(state);
+        } catch (e) {
+            console.error('[tablet-live-admin]', e);
+        }
+    }
+
+    resetState().then(() => {
+        refreshState();
+        setInterval(refreshState, 500);
+    });
+})();
+</script>

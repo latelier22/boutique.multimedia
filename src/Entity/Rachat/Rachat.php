@@ -5,6 +5,8 @@ namespace App\Entity\Rachat;
 use Doctrine\ORM\Mapping as ORM;
 use App\Entity\Rachat\Revendeur;
 
+use App\Entity\Stock\Boite;
+
 /**
  * @ORM\Entity()
  * @ORM\Table(name="rachats")
@@ -112,8 +114,27 @@ class Rachat
 private ?Revendeur $revendeur = null;
 
 
+    /**
+     * @ORM\OneToOne(targetEntity=Boite::class, inversedBy="rachat")
+     * @ORM\JoinColumn(name="boite_id", referencedColumnName="id", nullable=true, onDelete="SET NULL")
+     */
+    private ?Boite $boite = null;
+
+    public function getBoite(): ?Boite
+    {
+        return $this->boite;
+    }
+
+    public function setBoite(?Boite $boite): self
+    {
+        $this->boite = $boite;
+        return $this;
+    }
+
+
 /** @ORM\Column(name="hib_inventory_input_id", type="integer", nullable=true) */
 private ?int $hibInventoryInputId = null;
+
 
 public function getHibInventoryInputId(): ?int
 {

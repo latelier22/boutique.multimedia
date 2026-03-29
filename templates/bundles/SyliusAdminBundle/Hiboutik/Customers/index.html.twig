@@ -3,7 +3,7 @@
 {% block title %}Clients Hiboutik{% endblock %}
 
 {% block content %}
-{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+{# Top menu dans le pre_content du Layout Admin #}
 <div class="ui segment">
     <div class="ui clearing basic segment" style="padding:0 0 1rem 0;">
         <h1 class="ui left floated header">
@@ -109,10 +109,15 @@
                         <i class="edit icon"></i>
                         Éditer
                     </a>
-                    <button class="ui primary button btn-tablet-edit"
-        data-id="{{ c.customers_id }}"
-        data-device="TAB1">
-  📱 Tablette
+                    <button
+    type="button"
+    class="ui tiny button btn-tablet-edit"
+    data-id="{{ c.customers_id }}"
+    data-device="TAB1"
+>
+    <i class="tablet alternate icon"></i>
+    Tablette
+</button>
                 </td>
             </tr>
         {% else %}

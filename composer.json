@@ -34,6 +34,7 @@
         "monsieurbiz/sylius-rich-editor-plugin": "*",
         "monsieurbiz/sylius-search-plugin": "^2.3",
         "nikic/php-parser": "^4.0",
+        "picqer/php-barcode-generator": "*",
         "portphp/csv": "^2.0",
         "portphp/spreadsheet": "^1.0",
         "psr/http-factory": "*",
@@ -46,7 +47,8 @@
         "symfony/ux-cropperjs": "^2.24",
         "symfony/ux-dropzone": "^2.24",
         "symfony/ux-react": "^2.24",
-        "symfony/ux-turbo": "^2.24"
+        "symfony/ux-turbo": "^2.24",
+        "tecnickcom/tcpdf": "^6.11"
     },
     "require-dev": {
         "behat/mink-selenium2-driver": "^1.4",

@@ -3,6 +3,8 @@
 namespace App\Entity\Intervention;
 
 use Doctrine\ORM\Mapping as ORM;
+use App\Entity\Stock\Boite;
+
 
 /**
  * @ORM\Entity
@@ -92,6 +94,46 @@ class Intervention
      */
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * @ORM\OneToOne(targetEntity=Boite::class, inversedBy="intervention")
+     * @ORM\JoinColumn(name="boite_id", referencedColumnName="id", nullable=true, onDelete="SET NULL")
+     */
+    private ?Boite $boite = null;
+
+    public function getBoite(): ?Boite
+    {
+        return $this->boite;
+    }
+
+    public function setBoite(?Boite $boite): self
+    {
+        $this->boite = $boite;
+        return $this;
+    }
+    
+// --- RECENTLY EDITED FIELDS BELOW (DO NOT SUGGEST DELETED FIELDS) ---
+/**
+ * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
+ */
+private ?string $amountTotal = null;
+
+/**
+ * @ORM\Column(type="decimal", precision=10, scale=2, nullable=true)
+ */
+private ?string $amountPaid = null;
+
+/**
+ * @ORM\Column(type="string", length=50, nullable=true)
+ */
+private ?string $paymentMode = null;
+
+/**
+ * @ORM\Column(type="integer", nullable=true)
+ */
+private ?int $hiboutikSaleId = null;
+
+
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
@@ -128,7 +170,7 @@ class Intervention
     public function setStatus(string $status): self
     {
         $status = trim($status);
-        $this->status = $status !== '' ? $status : 'open';
+        $this->status = $status !== '' ? $status : 'Ouverte';
         return $this;
     }
 
@@ -266,4 +308,65 @@ class Intervention
         $this->updatedAt = $updatedAt;
         return $this;
     }
+
+public function getAmountTotal(): ?string
+{
+    return $this->amountTotal;
+}
+
+public function setAmountTotal(?string $amountTotal): self
+{
+    $this->amountTotal = $amountTotal;
+    return $this;
+}
+
+public function getAmountPaid(): ?string
+{
+    return $this->amountPaid;
+}
+
+public function setAmountPaid(?string $amountPaid): self
+{
+    $this->amountPaid = $amountPaid;
+    return $this;
+}
+
+public function getPaymentMode(): ?string
+{
+    return $this->paymentMode;
+}
+
+public function setPaymentMode(?string $paymentMode): self
+{
+    $this->paymentMode = $paymentMode;
+    return $this;
+}
+
+public function getHiboutikSaleId(): ?int
+{
+    return $this->hiboutikSaleId;
+}
+
+public function setHiboutikSaleId(?int $hiboutikSaleId): self
+{
+    $this->hiboutikSaleId = $hiboutikSaleId;
+    return $this;
+}
+
+public function getRemainingAmount(): float
+{
+    $total = (float) ($this->amountTotal ?? 0);
+    $paid = (float) ($this->amountPaid ?? 0);
+
+    return max(0, $total - $paid);
+}
+
+public function isFullyPaid(): bool
+{
+    $total = (float) ($this->amountTotal ?? 0);
+    $paid = (float) ($this->amountPaid ?? 0);
+
+    return $total > 0 && $paid >= $total;
+}
+
 }

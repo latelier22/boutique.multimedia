@@ -1,0 +1,36 @@
+{% if q is empty %}
+    <div class="search-empty">Tape au moins quelques lettres pour rechercher un produit.</div>
+{% else %}
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nom</th>
+                <th>Marque</th>
+                <th>Prix</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in results %}
+            <tr>
+                <td>{{ p.product_id }}</td>
+                <td>{{ p.product_model ?: '—' }}</td>
+                <td>{{ p.product_brand_name ?: '—' }}</td>
+                <td>{{ p.product_price ?: '—' }}</td>
+                <td>
+                    <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_add', {id: p.product_id}) }}">
+                        <button class="ui mini primary button" type="submit">
+                            Ajouter
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">Aucun résultat.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}

@@ -68,83 +68,151 @@ final class TabletCustomerController extends AbstractController
     // =========================================================
     // EDIT CLIENT (appel Hiboutik)
     // =========================================================
-    #[Route('/tablet/customers/{id}/edit', name: 'tablet_customer_edit', methods: ['GET', 'POST'])]
-    public function edit(int $id, Request $request): Response
-    {
-        if (!$this->isUnlocked($request)) {
-            return $this->redirectToRoute('tablet_index');
-        }
+#[Route('/tablet/customers/{id}/edit', name: 'tablet_customer_edit', methods: ['GET', 'POST'])]
+public function edit(int $id, Request $request): Response
+{
+    if (!$this->isUnlocked($request)) {
+        return $this->redirectToRoute('tablet_index');
+    }
 
-        // 🔥 client complet (IMPORTANT)
-        $customer = $this->hib->getCustomer($id);
+    $customer = $this->hib->getCustomer($id);
 
-        if (!$customer) {
-            return new Response('Client introuvable', 404);
-        }
+    if (!$customer) {
+        return new Response('Client introuvable', 404);
+    }
 
-        // 🔥 adresse
-        $address = null;
-        $addressId = null;
+    $address = null;
+    $addressId = null;
 
-        if (!empty($customer['addresses'][0]['address_id'])) {
-            $addressId = (int)$customer['addresses'][0]['address_id'];
-            $address = $this->hib->getCustomerAddress($addressId);
-        }
+    if (!empty($customer['addresses'][0]['address_id'])) {
+        $addressId = (int) $customer['addresses'][0]['address_id'];
+        $address = $this->hib->getCustomerAddress($addressId);
+    }
 
-        // =====================================================
-        // SAVE
-        // =====================================================
-        if ($request->isMethod('POST')) {
+  if ($request->isMethod('POST')) {
+    try {
+        $lastName  = trim((string) $request->request->get('last_name', ''));
+        $firstName = trim((string) $request->request->get('first_name', ''));
+        $company   = trim((string) $request->request->get('company', ''));
+        $email     = trim((string) $request->request->get('email', ''));
+        $phone     = trim((string) $request->request->get('phone', ''));
+        $country   = trim((string) $request->request->get('country', ''));
 
-            // CLIENT
-            $customerFields = array_filter([
-                'last_name'  => trim($request->get('last_name')),
-                'first_name' => trim($request->get('first_name')),
-                'company'    => trim($request->get('company')),
-                'email'      => trim($request->get('email')),
-                'phone'      => trim($request->get('phone')),
-                'country'    => trim($request->get('country')),
-            ], fn($v) => $v !== '');
+        $addressLine = trim((string) $request->request->get('address_address', ''));
+        $zipCode     = trim((string) $request->request->get('address_zip_code', ''));
+        $city        = trim((string) $request->request->get('address_city', ''));
+        $state       = trim((string) $request->request->get('address_state', ''));
+        $addrCountry = trim((string) $request->request->get('address_country', ''));
 
-            if ($customerFields) {
-                $this->hib->updateCustomerAttributes($id, $customerFields);
-            }
+        // Vérification email déjà utilisé par un autre client
+        if ($email !== '') {
+            $allCustomers = $this->hib->getCustomers();
 
-            // ADRESSE
-            $addressFields = [
-                'address'  => trim($request->get('address_address')),
-                'zip_code' => trim($request->get('address_zip_code')),
-                'city'     => trim($request->get('address_city')),
-                'state'    => trim($request->get('address_state')),
-                'country'  => trim($request->get('address_country')),
-            ];
+            foreach ($allCustomers as $c) {
+                $otherId = (int) ($c['customers_id'] ?? 0);
+                $otherEmail = trim((string) ($c['email'] ?? ''));
 
-            $hasAddress = array_filter($addressFields);
-
-            if ($addressId) {
-                if ($hasAddress) {
-                    $this->hib->updateCustomerAddressAttributes($addressId, $addressFields);
-                }
-            } else {
-                if ($hasAddress) {
-                    $this->hib->createCustomerAddress(array_merge([
-                        'customers_id' => $id,
-                        'gender'       => '0',
-                        'first_name'   => $customer['first_name'] ?? '',
-                        'last_name'    => $customer['last_name'] ?? '',
-                        'email'        => $customer['email'] ?? '',
-                        'phone'        => $customer['phone'] ?? '',
-                        'company'      => $customer['company'] ?? '',
-                    ], $addressFields));
+                if (
+                    $otherId !== $id &&
+                    $otherEmail !== '' &&
+                    mb_strtolower($otherEmail) === mb_strtolower($email)
+                ) {
+                    throw new \RuntimeException('Cette adresse e-mail est déjà utilisée par un autre client.');
                 }
             }
-
-            return $this->redirectToRoute('tablet_customer_edit', ['id' => $id]);
         }
 
-        return $this->render('tablet/customer/edit.html.twig', [
-            'customer' => $customer,
-            'address'  => $address,
+        $customerFields = [
+            'last_name'  => $lastName,
+            'first_name' => $firstName,
+            'company'    => $company,
+            'email'      => $email,
+            'phone'      => $phone,
+            'country'    => $country,
+        ];
+
+        $this->hib->updateCustomerAttributes($id, $customerFields);
+
+        $addressFields = [
+            'address'  => $addressLine,
+            'zip_code' => $zipCode,
+            'city'     => $city,
+            'state'    => $state,
+            'country'  => $addrCountry !== '' ? $addrCountry : 'FRA',
+        ];
+
+        $hasAddress = false;
+        foreach ($addressFields as $v) {
+            if ($v !== '') {
+                $hasAddress = true;
+                break;
+            }
+        }
+
+        if ($addressId) {
+            if ($hasAddress) {
+                $this->hib->updateCustomerAddressAttributes($addressId, $addressFields);
+            }
+        } else {
+            if ($hasAddress) {
+                $this->hib->createCustomerAddress([
+                    'customers_id' => $id,
+                    'gender'       => '0',
+                    'first_name'   => $firstName,
+                    'last_name'    => $lastName,
+                    'email'        => $email,
+                    'phone'        => $phone,
+                    'company'      => $company,
+                    'address'      => $addressFields['address'],
+                    'zip_code'     => $addressFields['zip_code'],
+                    'city'         => $addressFields['city'],
+                    'state'        => $addressFields['state'],
+                    'country'      => $addressFields['country'],
+                ]);
+            }
+        }
+
+        // Vérification réelle après sauvegarde
+        $reloadedCustomer = $this->hib->getCustomer($id);
+
+        $savedEmail = trim((string) ($reloadedCustomer['email'] ?? ''));
+        $savedPhone = trim((string) ($reloadedCustomer['phone'] ?? ''));
+
+        if ($email !== '' && mb_strtolower($savedEmail) !== mb_strtolower($email)) {
+            throw new \RuntimeException('L’adresse e-mail n’a pas pu être enregistrée. Elle existe peut-être déjà.');
+        }
+
+        if ($phone !== '' && $savedPhone !== $phone) {
+            throw new \RuntimeException('Le téléphone n’a pas pu être enregistré.');
+        }
+
+        $this->addFlash('success', 'Informations enregistrées.');
+
+        return $this->redirectToRoute('tablet_customer_edit', [
+            'id' => $id,
+            'saved' => 1,
+        ]);
+    } catch (\Throwable $e) {
+        $this->addFlash('error', 'Erreur enregistrement : ' . $e->getMessage());
+        return $this->redirectToRoute('tablet_customer_edit', [
+            'id' => $id,
         ]);
     }
+}
+
+    // Rechargement après sauvegarde pour avoir les vraies données Hiboutik
+    $customer = $this->hib->getCustomer($id);
+
+    $address = null;
+    if (!empty($customer['addresses'][0]['address_id'])) {
+        $addressId = (int) $customer['addresses'][0]['address_id'];
+        $address = $this->hib->getCustomerAddress($addressId);
+    }
+
+    return $this->render('tablet/customer/edit.html.twig', [
+        'customer' => $customer,
+        'address'  => $address,
+        'saved'    => (bool) $request->query->get('saved', false),
+    ]);
+}
 }

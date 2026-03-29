@@ -1,0 +1,41 @@
+<div class="label">
+	<div class="ref">{{ product.product_barcode ?? product.product_id ?? '' }}</div>
+
+	<div class="top-row">
+		<div class="top-left">
+			<div class="brand">{{ product.brand_name ?? '' }}</div>
+			<div class="model">{{ product.product_model ?? '' }}</div>
+			{% if product.storage %}
+				<div class="storage">{{ product.storage }}</div>
+			{% endif %}
+		</div>
+	</div>
+
+	<div class="top-row">
+		<div class="top-left">
+			<div class="state {{ product.state_class ?? 'state-yellow' }}">
+				{{ product.state_label ?? 'BON ÉTAT' }}
+			</div>
+		</div>
+		<div class="top-right qr-code">
+			{% if qr_code_data_uri %}
+				<img src="{{ qr_code_data_uri }}" alt="QR code">
+			{% endif %}
+		</div>
+	</div>
+
+	<div class="price-line">
+		<span class="price-main">{{ product.price_label ?? '0,00' }}</span>
+		<span class="euro">€</span>
+	</div>
+
+	<div class="specs">
+		{% for row in product.misc_rows ?? [] %}
+			{% if row.label|lower != 'stockage' %}
+				<div>{{ row.label }} : {{ row.value }}</div>
+			{% endif %}
+		{% endfor %}
+	</div>
+
+	<div class="bottom">{{ product.footer_label ?? 'GARANTIE 2 ANS' }}</div>
+</div>

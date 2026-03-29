@@ -2,7 +2,7 @@
 
 namespace App\Service;
 
-use App\Entity\Revendeur;
+use App\Entity\Rachat\Revendeur;
 use Doctrine\ORM\EntityManagerInterface;
 
 class RevendeurHiboutikSync

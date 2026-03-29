@@ -1,0 +1,107 @@
+window.TabletLabel = (function () {
+	const root = document.getElementById("productLabel");
+	const imgWrap = document.getElementById("imgWrap");
+
+	if (!root) {
+		return {
+			hide() {},
+			render() {},
+		};
+	}
+
+	const brandEl = document.getElementById("labelBrand");
+	const modelEl = document.getElementById("labelModel");
+	const storageEl = document.getElementById("labelStorage");
+	const stateEl = document.getElementById("labelState");
+	const priceEl = document.getElementById("labelPrice");
+	const labelIdEl = document.getElementById("labelId");
+	const oldPriceEl = document.getElementById("labelOldPrice");
+	const attrsEl = document.getElementById("labelAttrs");
+	const guaranteeEl = document.getElementById("labelGuarantee");
+
+	function formatPrice(p) {
+		const n = Number(p ?? 0);
+		if (Number.isNaN(n)) return "—";
+		return n.toFixed(2).replace(".", ",") + " €";
+	}
+
+	function escapeHtml(s) {
+		return String(s)
+			.replaceAll("&", "&amp;")
+			.replaceAll("<", "&lt;")
+			.replaceAll(">", "&gt;")
+			.replaceAll('"', "&quot;")
+			.replaceAll("'", "&#039;");
+	}
+
+	function hide() {
+		root.classList.remove("show");
+		root.setAttribute("aria-hidden", "true");
+		imgWrap?.classList.remove("hasLabel");
+	}
+
+	function renderAttrs(rows) {
+	if (!attrsEl) return;
+
+	const list = Array.isArray(rows) ? rows : [];
+	attrsEl.innerHTML = list.map((row) => {
+		const label = escapeHtml(row?.label ?? "");
+		const value = escapeHtml(row?.value ?? "");
+		return `<div class="tablet-label__attr"><strong>${label} :</strong> ${value}</div>`;
+	}).join("");
+}
+
+	function render(product) {
+		const p = product || {};
+
+		modelEl.textContent = String(p.product_model ?? "Produit");
+		labelIdEl.textContent = String("Code produit : #" + (p.product_id ?? "Id"));
+
+		const brand = String(p.label_brand ?? "").trim();
+		if (brand) {
+			brandEl.textContent = brand;
+			brandEl.style.display = "";
+		} else {
+			brandEl.style.display = "none";
+		}
+
+		const storage = String(p.label_storage ?? "").trim();
+		if (storage) {
+			storageEl.textContent = storage;
+			storageEl.style.display = "";
+		} else {
+			storageEl.style.display = "none";
+		}
+
+		const hasPromo = (p.product_discount_price ?? "0") !== "0" && Number(p.product_discount_price) > 0;
+		priceEl.textContent = formatPrice(hasPromo ? p.product_discount_price : p.product_price);
+
+		if (hasPromo) {
+			oldPriceEl.textContent = formatPrice(p.product_price);
+			oldPriceEl.style.display = "";
+		} else {
+			oldPriceEl.style.display = "none";
+		}
+
+		const state = String(p.label_state ?? "").trim();
+		const stateColor = String(p.label_state_color ?? "").trim();
+		if (state) {
+			stateEl.textContent = state;
+			stateEl.style.display = "inline-flex";
+			stateEl.style.background = stateColor || "#2e7d32";
+		} else {
+			stateEl.style.display = "none";
+		}
+
+		renderAttrs(p.label_attributes ?? []);
+
+		const guarantee = String(p.label_guarantee ?? "").trim() || "1 AN";
+		guaranteeEl.textContent = "GARANTIE : " + guarantee;
+
+		root.classList.add("show");
+		root.setAttribute("aria-hidden", "false");
+		imgWrap?.classList.add("hasLabel");
+	}
+
+	return { hide, render };
+})();

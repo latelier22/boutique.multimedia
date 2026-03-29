@@ -1,0 +1,558 @@
+(function () {
+	const API_PRODUCTS = "{{ path('tablet_products') }}";
+
+	console.log("Products API:", API_PRODUCTS);
+
+	const GRID_COUNT = 9;
+	const GRID_SHOW_MS = 3000;
+	const SLIDE_MS = 5000;
+	const REFRESH_MS = 60000;
+
+	const device = {{ device|json_encode|raw }};
+	const token = {{ token|json_encode|raw }};
+
+	const stage = document.getElementById("stage");
+	const imgEl = document.getElementById("img");
+	const titleEl = document.getElementById("title");
+	const priceEl = document.getElementById("price");
+	const labelIdEl = document.getElementById("labelId");
+	const oldPriceEl = document.getElementById("oldPrice");
+	const badgeEl = document.getElementById("badge");
+	const wsStateEl = document.getElementById("wsState");
+	const btnReco = document.getElementById("btn-reco");
+	const newBannerEl = document.getElementById("newBanner");
+	const grid9 = document.getElementById("grid9");
+	const grid9Inner = document.getElementById("grid9Inner");
+
+	const bootLoaderEl = document.getElementById("bootLoader");
+
+	let initialLoadDone = false;
+
+	function formatPrice(p) {
+		const n = Number(p ?? 0);
+		if (Number.isNaN(n)) return "—";
+		return n.toFixed(2).replace(".", ",") + " €";
+	}
+
+	function proxify(url) {
+		if (!url) return "";
+		if (url.includes("multimediaservices22.hiboutik.com/api/products_images/")) {
+			return "https://shop.multimedia-services.fr/api/hiboutik/image?src=" + encodeURIComponent(url);
+		}
+		return url;
+	}
+
+	function showBootLoader() {
+		bootLoaderEl?.classList.add("show");
+		stage?.classList.add("isBooting");
+	}
+
+	function hideBootLoader() {
+		bootLoaderEl?.classList.remove("show");
+		stage?.classList.remove("isBooting");
+	}
+
+	function setGridMode(on) {
+		if (!stage) return;
+		stage.classList.toggle("gridMode", !!on);
+}
+
+
+	function pickFirstNonEmpty(arr) {
+		if (!Array.isArray(arr)) return "";
+		for (const u of arr) {
+			const s = String(u ?? "").trim();
+			if (s) return s;
+		}
+		return "";
+	}
+
+	function firstImageRaw(p) {
+		const list = Array.isArray(p?.images) ? p.images : [];
+		return String(p?.image ?? "").trim() || String(p?.thumb ?? "").trim() || pickFirstNonEmpty(list);
+	}
+
+	function firstImage(p) {
+		const raw = firstImageRaw(p);
+		return String(proxify(raw) ?? "").trim();
+	}
+
+	function hasImage(p) {
+		return !!firstImage(p);
+	}
+
+	function normalizeProducts(list) {
+		const map = new Map();
+
+		for (const p of (Array.isArray(list) ? list : [])) {
+			const id = Number(p?.product_id || 0);
+			if (!id) continue;
+
+			if (!map.has(id)) {
+				map.set(id, p);
+			} else {
+				const a = String(map.get(id)?.updated_at ?? "");
+				const b = String(p?.updated_at ?? "");
+				if (b && (!a || b > a)) map.set(id, p);
+			}
+		}
+
+		return Array.from(map.values()).filter(hasImage);
+	}
+
+	function escapeHtml(s) {
+		return String(s)
+			.replaceAll("&", "&amp;")
+			.replaceAll("<", "&lt;")
+			.replaceAll(">", "&gt;")
+			.replaceAll('"', "&quot;")
+			.replaceAll("'", "&#039;");
+	}
+
+	function buildProductsSnapshot(list) {
+		const map = new Map();
+
+		for (const p of (Array.isArray(list) ? list : [])) {
+			const id = Number(p?.product_id || 0);
+			if (!id) continue;
+
+			map.set(id, {
+				id,
+				updated_at: String(p?.updated_at ?? ""),
+			});
+		}
+
+		return map;
+	}
+
+	function findHighlightProduct(newProducts, previousSnapshot, focusId = 0) {
+		const list = Array.isArray(newProducts) ? newProducts : [];
+
+		// priorité 1 : un nouveau produit
+		for (const p of list) {
+			const id = Number(p?.product_id || 0);
+			if (!id) continue;
+
+			if (!previousSnapshot.has(id)) {
+				return id;
+			}
+		}
+
+		// priorité 2 : le produit ciblé par l'event
+		if (focusId) {
+			const id = Number(focusId);
+			const found = list.find(x => Number(x?.product_id) === id);
+			if (found) return id;
+		}
+
+		// priorité 3 : un produit mis à jour
+		for (const p of list) {
+			const id = Number(p?.product_id || 0);
+			if (!id) continue;
+
+			const prev = previousSnapshot.get(id);
+			const currUpdated = String(p?.updated_at ?? "");
+			const prevUpdated = String(prev?.updated_at ?? "");
+
+			if (prev && currUpdated && currUpdated !== prevUpdated) {
+				return id;
+			}
+		}
+
+		return 0;
+	}
+
+	let products = [];
+	let knownProducts = new Map();
+
+	let index = 0;
+	let mode = "grid";
+	let cycleStep = 0;
+
+	let slideTimer = null;
+	let refreshTimer = null;
+	let gridTimer = null;
+	let highlightTimer = null;
+	let restartAfterHighlightTimer = null;
+
+	function showNewBanner(ms = 5000) {
+		if (!newBannerEl) return;
+		newBannerEl.classList.add("show");
+		if (highlightTimer) clearTimeout(highlightTimer);
+		highlightTimer = setTimeout(() => newBannerEl.classList.remove("show"), ms);
+	}
+
+	function buildGrid() {
+		if (!grid9Inner) return;
+
+		const slice = products.slice(0, GRID_COUNT);
+
+		grid9Inner.innerHTML = slice.map((p) => {
+			const img = firstImage(p);
+			const hasPromo = (p?.product_discount_price ?? "0") !== "0" && Number(p?.product_discount_price) > 0;
+			const price = formatPrice(hasPromo ? p.product_discount_price : p.product_price);
+			const name = String(p?.product_model ?? "Produit");
+
+			return `
+				<div class="gridCard">
+					<div class="ph"><img src="${img}" alt="${escapeHtml(name)}"></div>
+					<div class="meta">
+						<div class="name">${escapeHtml(name)}</div>
+						<div class="p">${escapeHtml(price)}</div>
+					</div>
+				</div>
+			`;
+		}).join("");
+	}
+
+	function clearRestartTimer() {
+		if (restartAfterHighlightTimer) {
+			clearTimeout(restartAfterHighlightTimer);
+			restartAfterHighlightTimer = null;
+		}
+	}
+
+	function hideGrid() {
+	if (gridTimer) {
+		clearTimeout(gridTimer);
+		gridTimer = null;
+	}
+	grid9?.classList.remove("show");
+	setGridMode(false);
+}
+
+	function showGrid() {
+	mode = "grid";
+	stopSlide();
+	clearRestartTimer?.();
+	window.TabletLabel?.hide?.();
+	document.body.classList.remove("labelMode");
+	setGridMode(true);
+
+	buildGrid();
+	grid9?.classList.add("show");
+
+	if (gridTimer) clearTimeout(gridTimer);
+
+	gridTimer = setTimeout(() => {
+		hideGrid();
+		startCycleSlides();
+	}, GRID_SHOW_MS);
+}
+	function stopSlide() {
+		if (slideTimer) clearInterval(slideTimer);
+		slideTimer = null;
+	}
+
+	function render(i) {
+		if (!products.length) {
+			hideGrid();
+			window.TabletLabel?.hide?.();
+			document.body.classList.remove("labelMode");
+
+			if (titleEl) titleEl.textContent = "Aucun produit (avec image) en stock";
+			if (priceEl) priceEl.textContent = "—";
+			if (oldPriceEl) oldPriceEl.style.display = "none";
+			if (badgeEl) badgeEl.style.display = "none";
+			if (labelIdEl) labelIdEl.textContent = "";
+			if (imgEl) {
+				imgEl.removeAttribute("src");
+				imgEl.alt = "";
+			}
+			stopSlide();
+			return;
+		}
+
+		index = ((i % products.length) + products.length) % products.length;
+		const p = products[index];
+
+		const img = firstImage(p);
+		if (imgEl) {
+			if (img) imgEl.src = img;
+			else imgEl.removeAttribute("src");
+			imgEl.alt = p?.product_model ?? "Produit";
+		}
+
+		if (titleEl) titleEl.textContent = p?.product_model ?? "Produit";
+		if (labelIdEl) labelIdEl.textContent = String(p?.product_id ?? "");
+
+		const hasPromo = (p?.product_discount_price ?? "0") !== "0" && Number(p?.product_discount_price) > 0;
+		const priceStr = hasPromo ? p.product_discount_price : p.product_price;
+
+		if (priceEl) priceEl.textContent = formatPrice(priceStr);
+
+		if (hasPromo) {
+			if (oldPriceEl) {
+				oldPriceEl.style.display = "";
+				oldPriceEl.textContent = formatPrice(p.product_price);
+			}
+			if (badgeEl) badgeEl.style.display = "";
+		} else {
+			if (oldPriceEl) oldPriceEl.style.display = "none";
+			if (badgeEl) badgeEl.style.display = "none";
+		}
+
+		window.TabletLabel?.render?.(p);
+		document.body.classList.add("labelMode");
+
+		if (products.length > 1) {
+			const nextP = products[(index + 1) % products.length];
+			const nextImg = firstImage(nextP);
+			if (nextImg) {
+				const pre = new Image();
+				pre.src = nextImg;
+			}
+		}
+	}
+
+	function startCycleSlides() {
+		mode = "slide";
+		cycleStep = 0;
+		clearRestartTimer();
+		render(index);
+
+		stopSlide();
+		if (products.length > 1) {
+			slideTimer = setInterval(() => nextSlide(), SLIDE_MS);
+		}
+	}
+
+	function nextSlide() {
+		render(index + 1);
+		cycleStep++;
+
+		if (products.length > 0 && cycleStep >= products.length) {
+			index = 0;
+			showGrid();
+		}
+	}
+
+	function showUpdatedProductOnce(productId) {
+		const id = Number(productId || 0);
+		if (!id || !products.length) return;
+
+		const idx = products.findIndex(p => Number(p?.product_id) === id);
+		if (idx < 0) return;
+
+		hideGrid();
+		stopSlide();
+		clearRestartTimer();
+
+		mode = "slide";
+		index = idx;
+		render(index);
+		showNewBanner(5000);
+
+		restartAfterHighlightTimer = setTimeout(() => {
+			index = 0;
+			startCycleSlides();
+		}, SLIDE_MS);
+	}
+
+	stage?.addEventListener("click", () => {
+		if (mode !== "slide") return;
+		if (products.length > 1) nextSlide();
+	});
+async function loadProducts({ focusId = 0, forceRestart = false } = {}) {
+	try {
+		if (!initialLoadDone) {
+			showBootLoader();
+		}
+
+		const res = await fetch(API_PRODUCTS, { cache: "no-store" });
+		if (!res.ok) throw new Error("HTTP " + res.status);
+
+		const json = await res.json();
+		const raw = Array.isArray(json?.data) ? json.data : [];
+		const nextProducts = normalizeProducts(raw);
+
+		const previousSnapshot = knownProducts;
+		const nextSnapshot = buildProductsSnapshot(nextProducts);
+
+		products = nextProducts;
+		knownProducts = nextSnapshot;
+
+		if (!products.length) {
+			render(0);
+			hideBootLoader();
+			initialLoadDone = true;
+			return;
+		}
+
+		if (index >= products.length) index = 0;
+
+		// IMPORTANT :
+		// au tout premier chargement on NE met PAS en avant new/maj
+		if (!initialLoadDone) {
+			hideBootLoader();
+			initialLoadDone = true;
+
+			if (forceRestart) {
+				index = 0;
+				showGrid();
+				return;
+			}
+
+			if (mode === "grid") {
+				buildGrid();
+			} else {
+				render(index);
+			}
+			return;
+		}
+
+		// Ensuite seulement, fonctionnement normal :
+		const highlightId = findHighlightProduct(products, previousSnapshot, focusId);
+
+		if (highlightId) {
+			showUpdatedProductOnce(highlightId);
+			return;
+		}
+
+		if (forceRestart) {
+			index = 0;
+			showGrid();
+			return;
+		}
+
+		if (mode === "grid") {
+			buildGrid();
+		} else {
+			render(index);
+		}
+	} catch (e) {
+		console.error(e);
+		hideGrid();
+		window.TabletLabel?.hide?.();
+		document.body.classList.remove("labelMode");
+		setGridMode(false);
+
+		if (titleEl) titleEl.textContent = "Impossible de charger les produits";
+		if (priceEl) priceEl.textContent = "Vérifier la connexion";
+		if (oldPriceEl) oldPriceEl.style.display = "none";
+		if (badgeEl) badgeEl.style.display = "none";
+		if (labelIdEl) labelIdEl.textContent = "";
+		if (imgEl) imgEl.removeAttribute("src");
+
+		stopSlide();
+		clearRestartTimer?.();
+		hideBootLoader();
+		initialLoadDone = true;
+	}
+}
+	function startRefresh() {
+		if (refreshTimer) clearInterval(refreshTimer);
+		refreshTimer = setInterval(() => loadProducts({}), REFRESH_MS);
+	}
+
+	let es = null;
+	function connectSSE() {
+		try {
+			if (es) {
+				try { es.close(); } catch (e) {}
+				es = null;
+			}
+
+			es = new EventSource("https://api.multimedia-services.fr/api/events");
+
+			es.addEventListener("product_updated", (ev) => {
+				try {
+					const data = JSON.parse(ev.data || "{}");
+					const id = Number(data?.product_id || 0);
+					loadProducts({ focusId: id });
+				} catch (e) {}
+			});
+
+			es.onerror = () => {};
+			return es;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	let ws = null, retry = 0, retryTimer = null, pingTimer = null;
+	const PING_EVERY_MS = 20000;
+
+	function wsUrl() {
+		const proto = (location.protocol === "https:") ? "wss" : "ws";
+		return `${proto}://${location.host}/ws-tablet?device=${encodeURIComponent(device)}&token=${encodeURIComponent(token)}`;
+	}
+
+	function setWsState(t) {
+		if (wsStateEl) wsStateEl.textContent = t;
+	}
+
+	function clearWsTimers() {
+		if (retryTimer) clearTimeout(retryTimer);
+		if (pingTimer) clearInterval(pingTimer);
+		retryTimer = null;
+		pingTimer = null;
+	}
+
+	function startPing() {
+		pingTimer = setInterval(() => {
+			try {
+				if (ws && ws.readyState === 1) {
+					ws.send(JSON.stringify({ type: "ping", t: Date.now() }));
+				}
+			} catch (e) {}
+		}, PING_EVERY_MS);
+	}
+
+	function scheduleReconnect() {
+		clearWsTimers();
+		const delay = Math.min(15000, Math.round(800 * Math.pow(2, retry)));
+		retry = Math.min(retry + 1, 6);
+		setWsState("Hors ligne");
+		retryTimer = setTimeout(connectWs, delay);
+	}
+
+	function connectWs() {
+		clearWsTimers();
+
+		try {
+			if (ws && (ws.readyState === 0 || ws.readyState === 1)) ws.close();
+		} catch (e) {}
+
+		setWsState("Connexion…");
+
+		try {
+			ws = new WebSocket(wsUrl());
+		} catch (e) {
+			scheduleReconnect();
+			return;
+		}
+
+		ws.onopen = () => {
+			retry = 0;
+			setWsState("Connecté");
+			startPing();
+		};
+
+		ws.onerror = () => setWsState("Instable");
+		ws.onclose = () => scheduleReconnect();
+
+		ws.onmessage = (e) => {
+			try {
+				const msg = JSON.parse(e.data);
+				if (msg && msg.url) location.href = msg.url;
+			} catch (err) {}
+		};
+	}
+
+	btnReco?.addEventListener("click", () => {
+		retry = 0;
+		connectWs();
+		loadProducts({ forceRestart: true });
+	});
+
+	document.addEventListener("visibilitychange", () => {
+		if (!document.hidden && (!ws || ws.readyState === 3)) connectWs();
+	});
+	showBootLoader();
+stage?.classList.add("isBooting");
+	loadProducts({ forceRestart: true });
+	startRefresh();
+	connectWs();
+	connectSSE();
+})();

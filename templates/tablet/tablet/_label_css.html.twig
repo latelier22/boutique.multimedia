@@ -1,0 +1,264 @@
+.tablet-label {
+	position: absolute;
+	left: 32px;
+	top: 110px;
+	bottom: 32px;
+	width: 390px;
+	z-index: 8;
+	display: none;
+	pointer-events: none;
+}
+
+.tablet-label.show {
+	display: block;
+}
+
+.tablet-label__card {
+	position: relative;
+	height: 100%;
+	background: rgba(255,255,255,.97);
+	color: #111;
+	border-radius: 24px;
+	overflow: hidden;
+	box-shadow: 0 24px 80px rgba(0,0,0,.38);
+	border: 1px solid rgba(0,0,0,.08);
+	display: flex;
+	flex-direction: column;
+	padding: 22px 22px 78px 22px;
+}
+
+.tablet-label__head {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 14px;
+	margin-bottom: 18px;
+}
+
+.tablet-label__logo {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	height: auto;
+	object-fit: contain;
+}
+
+.tablet-label__state {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	align-self: flex-end;
+	min-height: 38px;
+	padding: 8px 16px;
+	border-radius: 999px;
+	font-weight: 900;
+	font-size: 14px;
+	line-height: 1;
+	color: #fff;
+	background: #2e7d32;
+	white-space: nowrap;
+}
+
+.tablet-label__brand {
+	font-size: 22px;
+	font-weight: 900;
+	line-height: 1.1;
+	margin-bottom: 12px;
+	color: #111;
+	text-transform: uppercase;
+}
+
+.tablet-label__model {
+	font-family: Rajdhani, Inter, system-ui, sans-serif;
+	font-size: 34px;
+	line-height: 1.02;
+	font-weight: 800;
+	letter-spacing: .2px;
+	margin-bottom: 14px;
+	color: #111;
+}
+
+.tablet-label__storage {
+	font-size: 22px;
+	font-weight: 800;
+	line-height: 1.1;
+	margin-bottom: 22px;
+	color: #1f2937;
+}
+
+.tablet-label__price-wrap {
+	margin-bottom: 22px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.tablet-label__price {
+	font-size: 54px;
+	line-height: .95;
+	font-weight: 900;
+	color: #111;
+}
+
+.tablet-label__id {
+	font-size: 24px;
+	line-height: 1;
+	font-weight: 700;
+	color: #111;
+	align-self: flex-end;
+}
+
+.tablet-label__old-price {
+	font-size: 20px;
+	color: #7b8794;
+	text-decoration: line-through;
+	font-weight: 700;
+}
+
+.tablet-label__attrs {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 12px;
+	margin-top: 16px;
+	overflow: hidden;
+}
+
+.tablet-label__attr {
+	font-size: 20px;
+	line-height: 1.35;
+	color: #111827;
+}
+
+.tablet-label__attr strong {
+	font-weight: 900;
+}
+
+.tablet-label__footer {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: #e37820;
+	color: #fff;
+	text-align: center;
+	font-size: 20px;
+	font-weight: 900;
+	padding: 12px 10px;
+	letter-spacing: .2px;
+}
+
+.imgWrap.hasLabel {
+	padding-left: 470px;
+	padding-right: 5vw;
+}
+
+@media (max-width: 1100px) {
+	.tablet-label {
+		width: 320px;
+		left: 20px;
+		top: 96px;
+		bottom: 20px;
+	}
+
+	.tablet-label__card {
+		padding: 18px 18px 68px 18px;
+		border-radius: 20px;
+	}
+
+	.tablet-label__head {
+		gap: 12px;
+		margin-bottom: 16px;
+	}
+
+	.tablet-label__model {
+		font-size: 28px;
+	}
+
+	.tablet-label__storage {
+		font-size: 20px;
+		margin-bottom: 18px;
+	}
+
+	.tablet-label__price {
+		font-size: 44px;
+	}
+
+	.tablet-label__attrs {
+		gap: 10px;
+	}
+
+	.tablet-label__attr {
+		font-size: 15px;
+	}
+
+	.imgWrap.hasLabel {
+		padding-left: 380px;
+	}
+}
+
+@media (max-width: 740px) {
+	.tablet-label {
+		left: 12px;
+		right: 12px;
+		top: auto;
+		bottom: 78px;
+		width: auto;
+		height: auto;
+	}
+
+	.tablet-label__card {
+		height: auto;
+		padding: 16px 16px 58px 16px;
+	}
+
+	.tablet-label__head {
+		gap: 10px;
+		margin-bottom: 14px;
+	}
+
+	.tablet-label__model {
+		font-size: 24px;
+	}
+
+	.tablet-label__brand {
+		font-size: 18px;
+	}
+
+	.tablet-label__storage {
+		font-size: 18px;
+		margin-bottom: 14px;
+	}
+
+	.tablet-label__price {
+		font-size: 34px;
+	}
+
+	.tablet-label__id {
+		font-size: 20px;
+	}
+
+	.tablet-label__old-price {
+		font-size: 17px;
+	}
+
+	.tablet-label__attrs {
+		gap: 8px;
+	}
+
+	.tablet-label__attr {
+		font-size: 14px;
+		line-height: 1.3;
+	}
+
+	.tablet-label__footer {
+		font-size: 17px;
+		padding: 30px 8px;
+	}
+
+	.imgWrap.hasLabel {
+		padding-left: 5vw;
+		padding-right: 5vw;
+		padding-bottom: 320px;
+	}
+}

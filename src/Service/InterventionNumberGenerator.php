@@ -86,4 +86,40 @@ class InterventionNumberGenerator
 
         return $counter;
     }
+
+    public function rewindIfLastDeleted(int $deletedNumber): void
+{
+    $conn = $this->em->getConnection();
+    $conn->beginTransaction();
+
+    try {
+        $counter = $this->getOrCreateCounter();
+        $this->em->lock($counter, LockMode::PESSIMISTIC_WRITE);
+
+        $currentNext = $counter->getNextValue();
+
+        // On ne recule que si le numéro supprimé est exactement le dernier attribué
+        if ($deletedNumber === $currentNext - 1) {
+            $maxExisting = $this->em->getRepository(Intervention::class)
+                ->createQueryBuilder('i')
+                ->select('MAX(i.interventionNumber)')
+                ->getQuery()
+                ->getSingleScalarResult();
+
+            $maxExisting = $maxExisting !== null ? (int) $maxExisting : 0;
+
+            // Après suppression, deletedNumber ne doit plus exister
+            // et le max doit être juste en dessous
+            if ($maxExisting < $deletedNumber) {
+                $counter->setNextValue($deletedNumber);
+                $this->em->flush();
+            }
+        }
+
+        $conn->commit();
+    } catch (\Throwable $e) {$number = $intervention->getInterventionNumber();
+        $conn->rollBack();
+        throw $e;
+    }
+}
 }

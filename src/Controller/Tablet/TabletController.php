@@ -257,8 +257,6 @@ final class TabletController extends AbstractController
     }
 
 
-
-
 #[Route('/tablet/products', name: 'tablet_products', methods: ['GET'])]
 public function products(Request $request): JsonResponse
 {
@@ -266,31 +264,230 @@ public function products(Request $request): JsonResponse
         return new JsonResponse(['ok' => false, 'error' => 'locked'], 403);
     }
 
-    $cacheKey = 'tablet_products_v1';
+    $cacheKey = 'tablet_products_tablette_v3';
     $item = $this->cache->getItem($cacheKey);
 
     if ($item->isHit()) {
         return new JsonResponse($item->get());
     }
 
-    $url = 'https://api.multimedia-services.fr/api/products';
-    $json = @file_get_contents($url);
-    if (!$json) {
+    $list = $this->fetchApiJson('https://api.multimedia-services.fr/api/productsByTag?tag=tablette');
+    if (!is_array($list) || !isset($list['data']) || !is_array($list['data'])) {
         return new JsonResponse(['ok' => false, 'error' => 'fetch_failed'], 502);
     }
 
-    $data = json_decode($json, true);
-    if (!is_array($data) || !isset($data['data']) || !is_array($data['data'])) {
-        return new JsonResponse(['ok' => false, 'error' => 'bad_format'], 502);
-    }
+    $products = array_values(array_filter(
+        $list['data'],
+        static fn(array $p) => (int)($p['stock_available'] ?? 0) > 0
+    ));
 
-    // filtre: uniquement dispo (optionnel)
-    $data['data'] = array_values(array_filter($data['data'], fn($p) => (int)($p['stock_available'] ?? 0) === 1));
+    $products = array_map(fn(array $p) => $this->enrichTabletProduct($p), $products);
+
+    $data = [
+        'ok' => true,
+        'data' => $products,
+    ];
 
     $item->set($data);
-    $item->expiresAfter(30); // 30s
+    $item->expiresAfter(30);
     $this->cache->save($item);
 
     return new JsonResponse($data);
 }
+
+private function fetchApiJson(string $url): ?array
+{
+    $json = @file_get_contents($url);
+    if (!$json) {
+        return null;
+    }
+
+    $data = json_decode($json, true);
+    return is_array($data) ? $data : null;
+}
+
+private function parseMiscRows(mixed $miscText): array
+{
+    if (!is_string($miscText) || trim($miscText) === '') {
+        return [];
+    }
+
+    $rows = json_decode($miscText, true);
+    return is_array($rows) ? $rows : [];
+}
+
+private function miscValue(array $rows, string $codeOrLabel): ?string
+{
+    $needle = mb_strtolower(trim($codeOrLabel));
+
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $code = mb_strtolower(trim((string)($row['code'] ?? '')));
+        $label = mb_strtolower(trim((string)($row['label'] ?? '')));
+        $value = trim((string)($row['value'] ?? ''));
+
+        if (($code === $needle || $label === $needle) && $value !== '') {
+            return $value;
+        }
+    }
+
+    return null;
+}
+
+private function detectStateFromTags(array $tags): ?array
+{
+    $tags = array_map(static fn($v) => mb_strtolower((string)$v), $tags);
+
+    if (in_array('neuf', $tags, true)) {
+        return ['label' => 'NEUF', 'color' => '#2563eb'];
+    }
+
+    if (in_array('tres-bon-etat-reconditionne', $tags, true) || in_array('tres-bon-etat', $tags, true)) {
+        return ['label' => 'TRÈS BON', 'color' => '#2e7d32'];
+    }
+
+    if (in_array('bon-etat', $tags, true)) {
+        return ['label' => 'BON', 'color' => '#d97706'];
+    }
+
+    if (in_array('etat-correct', $tags, true) || in_array('defaut', $tags, true) || in_array('defauts', $tags, true)) {
+        return ['label' => 'OK', 'color' => '#b91c1c'];
+    }
+
+    return null;
+}
+
+
+private function normalizeAttrCodeOrLabel(array $row): string
+{
+    $code = mb_strtolower(trim((string)($row['code'] ?? '')));
+    $label = mb_strtolower(trim((string)($row['label'] ?? '')));
+
+    return $code !== '' ? $code : $label;
+}
+
+private function buildLabelAttributes(array $miscRows): array
+{
+    $out = [];
+
+    foreach ($miscRows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $label = trim((string)($row['label'] ?? ''));
+        $value = trim((string)($row['value'] ?? ''));
+        $key   = $this->normalizeAttrCodeOrLabel($row);
+
+        if ($label === '' || $value === '') {
+            continue;
+        }
+
+        // on n'affiche pas ces champs ici
+        if (in_array($key, ['garantie', 'stockage'], true)) {
+            continue;
+        }
+
+        $out[] = [
+            'label' => $label,
+            'value' => $value,
+        ];
+    }
+
+    return array_values($out);
+}
+
+
+private function buildLabelBadges(array $tags, array $miscRows): array
+{
+    $badges = [];
+
+    $garantie = $this->miscValue($miscRows, 'garantie');
+    if ($garantie) {
+        $badges[] = $garantie;
+    }
+
+    $couleur = $this->miscValue($miscRows, 'couleur');
+    if ($couleur) {
+        $badges[] = $couleur;
+    }
+
+    $os = $this->miscValue($miscRows, 'os');
+    if ($os) {
+        $badges[] = $os;
+    }
+
+    foreach ($tags as $tag) {
+        $tag = trim((string)$tag);
+        if ($tag === '') {
+            continue;
+        }
+
+        $slug = mb_strtolower($tag);
+        if (in_array($slug, [
+            'tablette',
+            'vitrine-droite',
+            'vitrine-gauche',
+            'vitrine-centre',
+            'neuf',
+            'tres-bon-etat',
+            'tres-bon-etat-reconditionne',
+            'bon-etat',
+            'etat-correct',
+        ], true)) {
+            continue;
+        }
+
+        $badges[] = mb_convert_case(str_replace('-', ' ', $tag), MB_CASE_TITLE, 'UTF-8');
+    }
+
+    return array_values(array_slice(array_unique(array_filter($badges)), 0, 4));
+}
+
+private function enrichTabletProduct(array $product): array
+{
+    $id = (int)($product['product_id'] ?? 0);
+    if ($id <= 0) {
+        return $product;
+    }
+
+    $detailCacheKey = 'tablet_product_detail_' . $id;
+    $detailItem = $this->cache->getItem($detailCacheKey);
+
+    if ($detailItem->isHit()) {
+        $detail = $detailItem->get();
+    } else {
+        $detail = $this->fetchApiJson('https://api.multimedia-services.fr/api/products/' . $id);
+        if (is_array($detail)) {
+            $detailItem->set($detail);
+            $detailItem->expiresAfter(300);
+            $this->cache->save($detailItem);
+        }
+    }
+
+    $raw = is_array($detail['raw'] ?? null) ? $detail['raw'] : [];
+
+    $tags = is_array($raw['tags_slug'] ?? null)
+        ? $raw['tags_slug']
+        : (is_array($product['tags_slug'] ?? null) ? $product['tags_slug'] : []);
+
+    $miscRows = $this->parseMiscRows($raw['misc_text'] ?? null);
+    $state = $this->detectStateFromTags($tags);
+
+    $product['label_brand'] = trim((string)($raw['product_brand_name'] ?? $product['product_brand_name'] ?? ''));
+    $product['label_storage'] = $this->miscValue($miscRows, 'stockage') ?: '';
+    $product['label_state'] = $state['label'] ?? null;
+    $product['label_state_color'] = $state['color'] ?? null;
+    $product['label_footer'] = 'Multimédia Services';
+
+    $product['label_guarantee'] = $this->miscValue($miscRows, 'garantie') ?: '1 AN';
+    $product['label_attributes'] = $this->buildLabelAttributes($miscRows);
+
+    return $product;
+}
+
+
 }

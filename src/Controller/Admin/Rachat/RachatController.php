@@ -412,6 +412,33 @@ $reshaped['ciVerso'] = $ciVerso;
         // Choices Hiboutik
         $brandsRes = $this->hib->listBrands();
         $catsRes = $this->hib->listCategories();
+        $categories = ($catsRes['ok'] ?? false) && is_array($catsRes['data'] ?? null)
+    ? $catsRes['data']
+    : [];
+
+$categoryOptions = $this->buildCategorySelectOptions($categories);
+$defaultCategoryId = $this->findDefaultPhoneOccasionCategoryId($categories);
+
+$selectedCategoryId = (int)($r->getHibCategoryId() ?: ($defaultCategoryId ?: 0));
+
+$initialAttributeValues = is_array($r->getAttributes()) ? $r->getAttributes() : [];
+
+$initialAttributeDefs = [];
+if ($selectedCategoryId > 0) {
+    $defs = $this->em->getRepository(AttributeDefinition::class)
+        ->findBy(['category' => (string)$selectedCategoryId], ['id' => 'ASC']);
+
+    $initialAttributeDefs = array_map(static function (AttributeDefinition $def) {
+        return [
+            'id' => $def->getId(),
+            'code' => $def->getCode(),
+            'label' => $def->getLabel(),
+            'type' => $def->getType(),
+            'category' => $def->getCategory(),
+            'options' => $def->getOptions() ?? [],
+        ];
+    }, $defs);
+}
 
         $brandChoices = [];
         if (($brandsRes['ok'] ?? false) && is_array($brandsRes['data'] ?? null)) {
@@ -422,14 +449,25 @@ $reshaped['ciVerso'] = $ciVerso;
             }
         }
 
-        $catChoices = [];
-        if (($catsRes['ok'] ?? false) && is_array($catsRes['data'] ?? null)) {
-            foreach ($catsRes['data'] as $c) {
-                $cid = (int)($c['category_id'] ?? 0);
-                $name = trim((string)($c['category_name'] ?? $c['name'] ?? ''));
-                if ($cid > 0 && $name !== '') $catChoices[$name] = $cid;
-            }
-        }
+        $categories = ($catsRes['ok'] ?? false) && is_array($catsRes['data'] ?? null)
+    ? $catsRes['data']
+    : [];
+
+$categoryOptions = $this->buildCategorySelectOptions($categories);
+
+$catChoices = [];
+$catDisabled = [];
+
+foreach ($categoryOptions as $opt) {
+    $label = $opt['is_parent']
+        ? '[Parent] ' . $opt['label']
+        : $opt['label'];
+
+    $value = (string)$opt['id'];
+
+    $catChoices[$label] = $value;
+    $catDisabled[$value] = !$opt['selectable'];
+}
 
         $form = $this->createForm(RachatType::class, $r, [
             'hib_brands_choices' => $brandChoices,
@@ -504,6 +542,82 @@ $reshaped['ciVerso'] = $ciVerso;
                 $r->setUpdatedAt(new \DateTimeImmutable());
             }
 
+            $postedAttributes = json_decode((string)$request->request->get('rachat_attributes_json', '{}'), true);
+if (is_array($postedAttributes)) {
+    $r->setAttributes($postedAttributes);
+}
+
+
+// AJOUT BRAND + CATÉGORIE HIBOUTIK
+
+$brandUiValue = trim((string)$request->request->get('brand_ui_value', ''));
+$newBrandName = trim((string)$request->request->get('new_brand_name', ''));
+
+if ($brandUiValue === '__new__' && $newBrandName !== '') {
+    $brandsData = is_array($brandsRes['data'] ?? null) ? $brandsRes['data'] : [];
+
+    $brandId = 0;
+    $targetNorm = $this->normalizeBrandName($newBrandName);
+
+    foreach ($brandsData as $b) {
+        $bid = (int)($b['brand_id'] ?? 0);
+        $bname = trim((string)($b['brand_name'] ?? ''));
+
+        if ($bid > 0 && $this->normalizeBrandName($bname) === $targetNorm) {
+            $brandId = $bid;
+            break;
+        }
+    }
+
+    if ($brandId <= 0) {
+        $maxPosition = 0;
+        foreach ($brandsData as $b) {
+            $pos = (int)($b['brand_position'] ?? 0);
+            if ($pos > $maxPosition) {
+                $maxPosition = $pos;
+            }
+        }
+
+        $createRes = $this->hib->createBrand([
+            'brand_name' => $newBrandName,
+            'brand_enabled' => 1,
+            'brand_enabled_www' => 0,
+            'brand_position' => $maxPosition + 1,
+        ]);
+
+        if (!($createRes['ok'] ?? false)) {
+            $this->addFlash('error', 'Impossible de créer la nouvelle marque Hiboutik.');
+            return $this->redirectToRoute('admin_rachats_edit', ['id' => $r->getId()]);
+        }
+
+        $brandId = (int)($createRes['data']['brand_id'] ?? $createRes['brand_id'] ?? 0);
+
+        if ($brandId <= 0) {
+            $brandsReload = $this->hib->listBrands();
+            $brandsReloadData = is_array($brandsReload['data'] ?? null) ? $brandsReload['data'] : [];
+
+            foreach ($brandsReloadData as $b) {
+                $bid = (int)($b['brand_id'] ?? 0);
+                $bname = trim((string)($b['brand_name'] ?? ''));
+
+                if ($bid > 0 && $this->normalizeBrandName($bname) === $targetNorm) {
+                    $brandId = $bid;
+                    break;
+                }
+            }
+        }
+    }
+
+    if ($brandId <= 0) {
+        $this->addFlash('error', 'La marque a peut-être été créée, mais son identifiant est introuvable.');
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $r->getId()]);
+    }
+
+    $r->setHibBrandId($brandId);
+}
+
+
+
             $this->em->flush();
 
             $goSign = (bool)$request->request->get('_go_sign', false);
@@ -520,8 +634,25 @@ $reshaped['ciVerso'] = $ciVerso;
             'rachat' => $r,
             'form' => $form->createView(),
             'tablet_socket_token' => $this->getParameter('tablet_socket_token'),
+            'categoryOptions' => $categoryOptions,
+'selectedCategoryId' => $selectedCategoryId,
+'defaultCategoryId' => $defaultCategoryId,
+'initialAttributeDefs' => $initialAttributeDefs,
+'initialAttributeValues' => $initialAttributeValues,
+'brands' => ($brandsRes['data'] ?? []),
         ]);
     }
+
+
+    private function normalizeBrandName(string $name): string
+{
+    $name = mb_strtolower(trim($name), 'UTF-8');
+    $name = str_replace(['&', '+'], ' and ', $name);
+    $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+    $name = preg_replace('/[^a-z0-9]+/', '', $name);
+
+    return (string)$name;
+}
 
     /* ============================================================
      *  DELETE
@@ -2283,19 +2414,59 @@ public function defs(string $category): JsonResponse
 #[Route('/attributes-definitions', name: 'create_attribute_definition', methods: ['POST'])]
 public function createDef(Request $req): JsonResponse
 {
-    $data = json_decode($req->getContent(), true);
+    $data = json_decode($req->getContent(), true) ?? [];
+
+    $label = trim((string)($data['label'] ?? ''));
+    $type = trim((string)($data['type'] ?? 'text'));
+    $category = trim((string)($data['category'] ?? $data['category_id'] ?? ''));
+    $code = trim((string)($data['code'] ?? ''));
+
+    if ($label === '' || $category === '') {
+        return $this->json(['ok' => false, 'error' => 'label/category manquant'], 400);
+    }
+
+    if ($code === '') {
+        $code = $this->slugifyAttributeCode($label);
+    }
+
+    $options = $data['options'] ?? [];
+    if (is_string($options)) {
+        $options = array_values(array_filter(array_map('trim', explode(',', $options))));
+    }
+    if (!is_array($options)) {
+        $options = [];
+    }
+
+    $exists = $this->em->getRepository(AttributeDefinition::class)->findOneBy([
+        'category' => $category,
+        'code' => $code,
+    ]);
+
+    if ($exists) {
+        return $this->json(['ok' => false, 'error' => 'code déjà existant'], 409);
+    }
 
     $attr = new AttributeDefinition();
-    $attr->setCode($data['code']);
-    $attr->setLabel($data['label']);
-    $attr->setType($data['type']);
-    $attr->setCategory($data['category']);
-    $attr->setOptions($data['options'] ?? []);
+    $attr->setCode($code);
+    $attr->setLabel($label);
+    $attr->setType(in_array($type, ['text', 'select'], true) ? $type : 'text');
+    $attr->setCategory($category);
+    $attr->setOptions($options);
 
     $this->em->persist($attr);
     $this->em->flush();
 
-    return $this->json(['ok'=>true]);
+    return $this->json(['ok' => true]);
+}
+
+private function slugifyAttributeCode(string $label): string
+{
+    $code = mb_strtolower(trim($label), 'UTF-8');
+    $code = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $code);
+    $code = preg_replace('/[^a-z0-9]+/', '_', (string)$code);
+    $code = trim((string)$code, '_');
+
+    return $code !== '' ? $code : 'attr_' . substr(md5($label . microtime(true)), 0, 8);
 }
 
 private function buildRachatAttributesMiscText(Rachat $r): string
@@ -2358,5 +2529,136 @@ public function hibProductUpdate(int $id, Request $request): Response
 
     return $this->redirect($returnUrl);
 }
+
+private function normalizeCategoryLabel(string $label): string
+{
+    $label = mb_strtolower(trim($label), 'UTF-8');
+    $label = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $label);
+    $label = preg_replace('/[^a-z0-9]+/', ' ', (string)$label);
+    $label = trim((string)$label);
+
+    return $label;
+}
+
+private function buildCategorySelectOptions(array $categories): array
+{
+    $byId = [];
+    $childrenByParent = [];
+
+    foreach ($categories as $c) {
+        $id = (int)($c['category_id'] ?? 0);
+        if ($id > 0) {
+            $byId[$id] = $c;
+        }
+    }
+
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        $childrenByParent[$pid] ??= [];
+        $childrenByParent[$pid][] = $c;
+    }
+
+    foreach ($childrenByParent as &$kids) {
+        usort($kids, function ($a, $b) {
+            $pa = (int)($a['category_position'] ?? 0);
+            $pb = (int)($b['category_position'] ?? 0);
+
+            if ($pa !== $pb) {
+                return $pa <=> $pb;
+            }
+
+            return strcmp(
+                (string)($a['category_name'] ?? ''),
+                (string)($b['category_name'] ?? '')
+            );
+        });
+    }
+    unset($kids);
+
+    $roots = [];
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        if ($pid === 0 || !isset($byId[$pid])) {
+            $roots[] = $c;
+        }
+    }
+
+    $options = [];
+
+    $walk = function (array $nodes, array $parents = []) use (&$walk, &$options, $childrenByParent) {
+        foreach ($nodes as $c) {
+            $id = (int)($c['category_id'] ?? 0);
+            $name = trim((string)($c['category_name'] ?? ''));
+            if ($id <= 0 || $name === '') {
+                continue;
+            }
+
+            $children = $childrenByParent[$id] ?? [];
+            $hasChildren = count($children) > 0;
+
+            $pathParts = array_merge($parents, [$name]);
+            $fullLabel = implode(' › ', $pathParts);
+
+            $options[] = [
+                'id' => $id,
+                'label' => $fullLabel,
+                'selectable' => !$hasChildren,
+                'is_parent' => $hasChildren,
+                'level' => count($parents),
+            ];
+
+            if ($hasChildren) {
+                $walk($children, $pathParts);
+            }
+        }
+    };
+
+    $walk($roots, []);
+
+    return $options;
+}
+
+private function findDefaultPhoneOccasionCategoryId(array $categories): ?int
+{
+    $byId = [];
+    $childrenByParent = [];
+
+    foreach ($categories as $c) {
+        $id = (int)($c['category_id'] ?? 0);
+        if ($id > 0) {
+            $byId[$id] = $c;
+        }
+    }
+
+    foreach ($categories as $c) {
+        $pid = (int)($c['category_id_parent'] ?? 0);
+        $childrenByParent[$pid] ??= [];
+        $childrenByParent[$pid][] = $c;
+    }
+
+    $targetParentNorm = $this->normalizeCategoryLabel('Téléphones');
+    $targetChildNorm  = $this->normalizeCategoryLabel('Occasion / reconditionné');
+
+    foreach ($categories as $c) {
+        $parentId = (int)($c['category_id'] ?? 0);
+        $parentName = $this->normalizeCategoryLabel((string)($c['category_name'] ?? ''));
+
+        if ($parentName !== $targetParentNorm) {
+            continue;
+        }
+
+        foreach ($childrenByParent[$parentId] ?? [] as $child) {
+            $childId = (int)($child['category_id'] ?? 0);
+            $childName = $this->normalizeCategoryLabel((string)($child['category_name'] ?? ''));
+
+            if ($childId > 0 && $childName === $targetChildNorm) {
+                return $childId;
+            }
+        }
+    }
+
+    return null;
+}
+
 
 }

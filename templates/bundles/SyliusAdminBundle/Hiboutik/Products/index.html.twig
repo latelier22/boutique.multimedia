@@ -112,19 +112,34 @@
   }
 </style>
 
-{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+{# Top menu dans le pre_content du Layout Admin #}
 
 <h1 class="ui header">📦 Produits Hiboutik</h1>
-<form method="post" action="{{ path('admin_hiboutik_product_import_external_brands') }}" style="margin-bottom:12px;">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_import_external_brands') }}">
-  <button class="ui button primary" type="submit">
-    <i class="download icon"></i>
-    Charger les marques externes
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+
+{% include '@SyliusAdmin/Hiboutik/Products/_new_button.html.twig' %}
+  <button type="button" class="ui primary button" id="btnAddToLabelsBoard">
+    <i class="plus icon"></i>
+    Ajouter à la planche
   </button>
 
-  <button class="ui button" type="submit" name="dry" value="1">
-    Test à blanc
-  </button>
+  <a href="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui button">
+    <i class="clone outline icon"></i>
+    Ouvrir la planche
+  </a>
+
+  <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_clear') }}" style="display:inline-block;">
+    <button type="submit" class="ui button">
+      <i class="trash icon"></i>
+      Vider la planche
+    </button>
+  </form>
+</div>
+
+<form id="labels_builder_hidden_form"
+      method="post"
+      action="{{ path('admin_hiboutik_product_labels_builder_add_batch') }}"
+      style="display:none;">
 </form>
 <div id="stickyTop">
   {# ======= FILTRES GET ======= #}
@@ -211,6 +226,10 @@
   <div id="bar">
 
     {# ===== WWW ===== #}
+
+
+
+
     <button type="submit" name="val" value="1" class="btn">
       <i class="check icon"></i> WWW=Oui
     </button>
@@ -293,7 +312,7 @@
 
 
     <tr id="p-{{ pid }}" style="{{ mini ? '' : 'background:#fff7ed' }}">
-      <td class="select-col"><input type="checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></td>
+      <td class="select-col"><input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></td>
       <td class="nowrap mono">#{{ pid }}</td>
      <td>
   {% if mini %}
@@ -364,7 +383,7 @@
     {% endif %}
 
     <div class="cardRow" id="p-{{ pid }}">
-      <div class="cardCheck"><input type="checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></div>
+      <div class="cardCheck"><input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></div>
       <div class="cardThumb">{% if mini %}<img src="{{ mini }}" alt="mini {{ pid }}">{% endif %}</div>
 
       <div class="cardMain">
@@ -413,8 +432,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
   checkAll.addEventListener('change', function(e){
     const checked = e.target.checked;
-    document.querySelectorAll('input[name="ids[]"]').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.js-label-product-checkbox').forEach(cb => {
+      cb.checked = checked;
+    });
   });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('btnAddToLabelsBoard');
+    const form = document.getElementById('labels_builder_hidden_form');
+
+    if (!btn || !form) return;
+
+    btn.addEventListener('click', function () {
+        form.innerHTML = '';
+
+        const checked = Array.from(document.querySelectorAll('.js-label-product-checkbox:checked'));
+        const ids = [...new Set(checked.map(cb => cb.value).filter(Boolean))];
+
+        if (ids.length === 0) {
+            alert('Aucun produit sélectionné.');
+            return;
+        }
+
+        ids.forEach(function (id) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'ids[]';
+            input.value = id;
+            form.appendChild(input);
+        });
+
+        form.submit();
+    });
 });
 </script>
 

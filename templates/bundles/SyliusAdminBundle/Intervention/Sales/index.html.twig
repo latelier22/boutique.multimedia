@@ -1,0 +1,137 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Ventes Hiboutik liées aux interventions{% endblock %}
+
+{% block content %}
+
+{# Top menu dans le pre_content du Layout Admin #}
+
+<div class="ui segment">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+    <h1 class="ui header" style="margin:0;">Ventes Hiboutik liées aux interventions</h1>
+    <a class="ui button" href="{{ path('app_admin_intervention_index') }}">
+      Retour interventions
+    </a>
+  </div>
+
+  <form method="get" class="ui form" style="margin-bottom:16px;">
+    <div class="fields">
+      <div class="twelve wide field">
+        <label>Recherche</label>
+        <input
+          type="text"
+          name="q"
+          value="{{ filters.q ?? '' }}"
+          placeholder="N° intervention, sale_id, client, appareil, travail..."
+        >
+      </div>
+      <div class="four wide field">
+        <label>&nbsp;</label>
+        <div>
+          <button class="ui primary button" type="submit">
+            Rechercher
+          </button>
+          <a class="ui button" href="{{ path('app_admin_intervention_sales_index') }}">
+            Réinitialiser
+          </a>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <table class="ui celled table">
+    <thead>
+      <tr>
+        <th>Intervention</th>
+        <th>Date</th>
+        <th>Client</th>
+        <th>Appareil</th>
+        <th>Sale Hiboutik</th>
+        <th>Statut vente</th>
+        <th>Montant intervention</th>
+        <th>Montant payé</th>
+        <th>Mode paiement</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        {% set item = row.intervention %}
+        {% set sale = row.sale %}
+
+        <tr>
+          <td>#{{ item.interventionNumber }}</td>
+          <td>{{ item.createdAt|date('d/m/Y H:i') }}</td>
+          <td>{{ item.customerLastName }} {{ item.customerFirstName }}</td>
+          <td>{{ item.deviceLabel ?: '—' }}</td>
+          <td>
+            {% if item.hiboutikSaleId %}
+              <div class="ui basic label">#{{ item.hiboutikSaleId }}</div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if row.saleError %}
+              <div class="ui red basic label">Erreur Hiboutik</div>
+            {% elseif sale %}
+              {% set saleStatus = sale.sale_status ?? sale.status ?? sale.sale_state ?? '—' %}
+              <div class="ui label">{{ saleStatus }}</div>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if item.amountTotal %}
+              {{ item.amountTotal|number_format(2, ',', ' ') }} €
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if item.amountPaid %}
+              {{ item.amountPaid|number_format(2, ',', ' ') }} €
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {{ item.paymentMode ?: '—' }}
+          </td>
+          <td class="right aligned">
+            <div class="ui tiny buttons">
+              <a class="ui button" href="{{ path('app_admin_intervention_edit', {id: item.id}) }}">
+                <i class="pencil icon"></i>
+                Intervention
+              </a>
+
+              {% if item.hiboutikSaleId %}
+                <a
+                  class="ui button"
+                  href="https://{{ app.request.host }}"
+                  onclick="return false;"
+                  title="Tu pourras remplacer ce bouton par le vrai lien Hiboutik si tu l’as"
+                >
+                  <i class="shopping cart icon"></i>
+                  Sale #{{ item.hiboutikSaleId }}
+                </a>
+              {% endif %}
+            </div>
+
+            {% if row.saleError %}
+              <div style="margin-top:6px;color:#b94a48;font-size:12px;">
+                {{ row.saleError }}
+              </div>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="10">Aucune vente Hiboutik liée à une intervention.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

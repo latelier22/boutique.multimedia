@@ -1,0 +1,78 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Boîtes{% endblock %}
+
+{% block content %}
+{# Top menu dans le pre_content du Layout Admin #}
+<div class="ui segment">
+    <div class="ui clearing basic segment" style="padding:0 0 1rem 0;">
+        <h1 class="ui left floated header">Boîtes</h1>
+
+        <form method="post" action="{{ path('admin_boite_create') }}" class="ui right floated form" style="margin:0;">
+            <button class="ui primary button" type="submit">
+                <i class="plus icon"></i>
+                Nouvelle boîte
+            </button>
+        </form>
+    </div>
+
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Statut</th>
+                <th>Affectation</th>
+                <th>Référence</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td>{{ item.code }}</td>
+                <td>
+                    {% if item.status == 'available' %}
+                        <span class="ui green empty circular label"></span> Libre
+                    {% elseif item.status == 'occupied' %}
+                        <span class="ui orange empty circular label"></span> Occupée
+                    {% else %}
+                        <span class="ui grey empty circular label"></span> Inactive
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.intervention %}
+                        Intervention
+                    {% elseif item.rachat %}
+                        Rachat
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.intervention %}
+                        <a href="{{ path('app_admin_intervention_edit', {id: item.intervention.id}) }}">
+                            #{{ item.intervention.interventionNumber }}
+                        </a>
+                    {% elseif item.rachat %}
+                        #{{ item.rachat.id }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="right aligned">
+                    {% if item.status == 'occupied' %}
+                        <form method="post" action="{{ path('admin_boite_release', {id: item.id}) }}" style="display:inline-block;">
+                            <button class="ui mini button" type="submit">Libérer</button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">Aucune boîte</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

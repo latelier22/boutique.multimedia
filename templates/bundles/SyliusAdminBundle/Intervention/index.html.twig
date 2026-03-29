@@ -1,162 +1,494 @@
 {% extends '@!SyliusAdmin/layout.html.twig' %}
 
-{% block title %}Interventions
-{% endblock %}
+{% block title %}Interventions{% endblock %}
 
 {% block content %}
 
-	{% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %}
+<style>
+  .tr-status-open > td { background-color: #e8f4fd !important; }
+  .tr-status-wait > td { background-color: #fff8e1 !important; }
+  .tr-status-done > td { background-color: #e8f5e9 !important; }
+  .tr-status-cancel > td { background-color: #fdecea !important; }
 
-	<div class="ui segment">
-		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-			<h1 class="ui header" style="margin:0;">Interventions</h1>
-			<a class="ui primary button" href="{{ path('app_admin_intervention_new') }}">Nouvelle intervention</a>
-		</div>
+  .intervention-table-loading {
+    opacity: .55;
+    pointer-events: none;
+    transition: opacity .15s ease;
+  }
 
-		<table class="ui celled table">
-			<thead>
-				<tr>
-					<th>N°</th>
-					<th>Client</th>
-					<th>Téléphone</th>
-					<th>Appareil</th>
-					<th>Travail</th>
-					<th>Hiboutik</th>
-					<th>Déverrouillage</th>
-					<th>Statut</th>
-					<th>ACTIONS</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for item in items %}
-					<tr>
-						<td>{{ item.interventionNumber }}</td>
-						<td>{{ item.customerLastName }}
-							{{ item.customerFirstName }}</td>
-						<td>{{ item.customerPhone ?: '—' }}</td>
-						<td>{{ item.deviceLabel ?: '—' }}</td>
-						<td>{{ item.workToDo ?: '—' }}</td>
-						<td>{{ item.hiboutikCustomerId ?: '—' }}</td>
-						<td>{{ item.unlockSummary ?: '—' }}</td>
-						<td>{{ item.status }}</td>
-						<td class="right aligned">
-							<div class="ui tiny buttons">
-								<a class="ui button" href="{{ path('app_admin_intervention_edit', {id: item.id}) }}">
-									<i class="pencil icon"></i>
-									Éditer
-								</a>
+  .intervention-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
 
-								<button type="button" class="ui button blue btn-tablet-unlock-push" data-id="{{ item.id }}" data-device="TAB1" data-link-template="{{ path('app_admin_intervention_tablet_link', {id: item.id}) }}" data-msg-id="tabletMsg{{ item.id }}">
-									<i class="tablet alternate icon"></i>
-									Tablette
-								</button>
+  .intervention-actions form {
+    margin: 0;
+  }
 
-								<form method="post" action="{{ path('app_admin_intervention_delete', {id: item.id}) }}" onsubmit="return confirm('Supprimer l’intervention #{{ item.interventionNumber }} ?');" style="display:inline-block;margin:0;">
-									<input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ item.id) }}">
-									<button class="ui button red" type="submit">
-										<i class="trash icon"></i>
-										Supprimer
-									</button>
-								</form>
-							</div>
+  .intervention-actions > .button,
+  .intervention-actions > a.button,
+  .intervention-actions > form > .button {
+    margin: 0 !important;
+  }
 
-							<div id="tabletMsg{{ item.id }}" style="margin-top:8px;"></div>
-						</td>
-					</tr>
-				{% else %}
-					<tr>
-						<td colspan="9">Aucune intervention.</td>
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	</div>
+  @media (max-width: 991px) {
+    .intervention-actions {
+      justify-content: flex-start;
+    }
+  }
+</style>
 
+{# {% include '@SyliusAdmin/Rachat/_menu_rachats.html.twig' %} #}
 
-	<script>
-		(function () {
-const buttons = document.querySelectorAll('.btn-tablet-unlock-push');
-if (! buttons.length) 
-return;
+<div class="ui segment">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+    <h1 class="ui header" style="margin:0;">Interventions</h1>
+    <a class="ui primary button" href="{{ path('app_admin_intervention_new') }}">
+      Nouvelle intervention (client)
+    </a>
+    <form method="post" action="{{ path('app_admin_intervention_quick_create') }}" style="display:inline-block;">
+    <button class="ui primary button" type="submit">
+        <i class="flash icon"></i>
+        Intervention rapide (vide)
+    </button>
+</form>
 
+  </div>
 
-buttons.forEach(btn => {
-btn.addEventListener('click', async () => {
-const msg = document.getElementById(btn.dataset.msgId);
-if (msg) 
-msg.innerHTML = '';
+  <form class="ui form" id="filterForm" onsubmit="return false;" style="margin-bottom:16px;">
+    <div class="fields">
+      <div class="eight wide field">
+        <label>Recherche</label>
+        <input
+          type="text"
+          name="q"
+          placeholder="N°, client, téléphone, appareil, travail, déverrouillage..."
+          value="{{ filters.q ?? '' }}"
+          autocomplete="off"
+        >
+      </div>
 
+      <div class="four wide field">
+        <label>Statut</label>
+        <select name="status" class="ui dropdown">
+          <option value="">Tous statuts</option>
+          <option value="Ouverte" {{ (filters.status ?? '') == 'Ouverte' ? 'selected' : '' }}>Ouverte</option>
+          <option value="En attente" {{ (filters.status ?? '') == 'En attente' ? 'selected' : '' }}>En attente</option>
+          <option value="Terminée" {{ (filters.status ?? '') == 'Terminée' ? 'selected' : '' }}>Terminée</option>
+          <option value="Annulée" {{ (filters.status ?? '') == 'Annulée' ? 'selected' : '' }}>Annulée</option>
+        </select>
+      </div>
 
-btn.disabled = true;
-btn.classList.add('loading');
+      <div class="four wide field">
+        <label>&nbsp;</label>
+        <button type="button" class="ui button" id="resetFiltersBtn">
+          Réinitialiser
+        </button>
+      </div>
+    </div>
+  </form>
 
-try {
-const device = btn.dataset.device || 'TAB1';
+  <div id="interventionTableWrap">
+    <table class="ui celled table">
+      <thead>
+        <tr>
+          <th>N°</th>
+		  <th>Date</th>
+          <th>Client</th>
+          <th> Société</th>
+          <th>Téléphone</th>
+          <th>Appareil</th>
+          <th>Travail</th>
+          <th>BOITE</th>
+          <th>Statut</th>
+		  <th>Paiement</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr class="
+            {% if item.status == 'Ouverte' %}
+              tr-status-open
+            {% elseif item.status == 'En attente' %}
+              tr-status-wait
+            {% elseif item.status == 'Terminée' %}
+              tr-status-done
+            {% elseif item.status == 'Annulée' %}
+              tr-status-cancel
+            {% endif %}
+          ">
+            <td>{{ item.interventionNumber }}</td>
+			<td>{{ item.createdAt|date('d/m/Y H:i') }}</td>
+           {% set hc = item.hiboutikCustomerId and hibCustomers[item.hiboutikCustomerId] is defined ? hibCustomers[item.hiboutikCustomerId] : null %}
 
-// 1) générer l’URL tablette de saisie
-const res = await fetch(btn.dataset.linkTemplate, {
-method: 'POST',
-headers: {
-'X-Requested-With': 'XMLHttpRequest'
-}
-});
+<td>
+  {% if hc %}
+    <div>{{ hc.last_name ?? '' }} {{ hc.first_name ?? '' }}</div>
 
-const j = await res.json();
-if (! j || ! j.ok || ! j.url) {
-throw new Error(j ?. error || 'Génération du lien tablette impossible');
-}
+    {% if item.hiboutikCustomerId %}
+      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+        <a
+          class="ui icon mini button"
+          href="{{ path('admin_hiboutik_customer_edit', {id: item.hiboutikCustomerId}) }}"
+          title="Éditer client"
+        >
+          <i class="pencil icon"></i>
+        </a>
 
-// 2) pousser l’URL vers la tablette wait
-const u = new URL(j.url, window.location.origin);
+        <button
+          type="button"
+          class="ui icon mini button btn-tablet-edit-customer"
+          data-id="{{ item.hiboutikCustomerId }}"
+          data-device="TAB1"
+          data-msg-id="tabletClientMsg{{ item.id }}"
+          title="Éditer client sur tablette"
+        >
+          <i class="tablet alternate icon"></i>
+        </button>
+      </div>
 
-const push = await fetch('/ws-tablet-push', {
-method: 'POST',
-headers: {
-'Content-Type': 'application/x-www-form-urlencoded'
-},
-body: new URLSearchParams(
-{
-device,
-url: u.pathname + u.search,
-token: '{{ tablet_socket_token|default('')|e('js') }}'
-}
-)
-});
+      <div id="tabletClientMsg{{ item.id }}" style="margin-top:6px;"></div>
+    {% endif %}
+  {% else %}
+    —
+  {% endif %}
+</td>
+<td>
+  {% if hc and hc.company is defined and hc.company %}
+    {{ hc.company }}
+  {% else %}
+    —
+  {% endif %}
+</td>
+<td>
+  {% if hc and hc.phone is defined and hc.phone %}
+    {{ hc.phone }}
+  {% else %}
+    —
+  {% endif %}
+</td>
+            <td>{{ item.deviceLabel ?: '—' }}</td>
+            <td>{{ item.workToDo ?: '—' }}</td>
+            <td>
+    {% if item.boite %}
+        {{ item.boite.code }}
+    {% else %}
+        —
+    {% endif %}
+</td>
+            <!-- <td>{{ item.unlockSummary ?: '—' }}</td> -->
+            <td>
+              <div class="ui label
+                {% if item.status == 'Ouverte' %}blue
+                {% elseif item.status == 'En attente' %}yellow
+                {% elseif item.status == 'Terminée' %}green
+                {% elseif item.status == 'Annulée' %}red
+                {% endif %}
+              ">
+                {{ item.status }}
+              </div>
+            </td>
+		<td>
+  {% set total = item.amountTotal is defined and item.amountTotal is not null and item.amountTotal != '' ? (item.amountTotal + 0) : 0 %}
+  {% set paid = item.amountPaid is defined and item.amountPaid is not null and item.amountPaid != '' ? (item.amountPaid + 0) : 0 %}
 
-const pj = await push.json().catch(() => ({}));
+  {% if total > 0 %}
+    <div style="margin-bottom:4px;font-size:12px;">
+      Total : {{ total|number_format(2, ',', ' ') }} €
+    </div>
 
-if (! pj.ok) {
-throw new Error('Push KO: ' + (
-pj.error || ''
-));
-}
+    {% if paid >= total and paid > 0 %}
+      <div class="ui green label">PAYÉ</div>
+      <div style="margin-top:4px;font-size:12px;">
+        Versé : {{ paid|number_format(2, ',', ' ') }} €
+      </div>
 
-if (msg) {
-msg.innerHTML = `
-            <div class="alert alert-success py-2 px-3 mb-0">
-              Intervention #${
-j.intervention_number
-} envoyée sur la tablette.
-            </div>
-          `;
-}
-} catch (e) {
-console.error(e);
-if (msg) {
-msg.innerHTML = `
-            <div class="alert alert-danger py-2 px-3 mb-0">
-              ${
-e.message || 'Erreur push tablette'
-}
-            </div>
-          `;
-}
-} finally {
-btn.disabled = false;
-btn.classList.remove('loading');
-}
-});
-});
+    {% elseif paid > 0 and paid < total %}
+      <div class="ui yellow label">
+        Acompte versé : {{ paid|number_format(2, ',', ' ') }} €
+      </div>
+      <div style="margin-top:4px;font-size:12px;">
+        Reste : {{ (total - paid)|number_format(2, ',', ' ') }} €
+      </div>
+
+    {% else %}
+      <div class="ui grey label">Non payé</div>
+    {% endif %}
+
+    <div style="margin-top:4px;">
+      {% if item.paymentMode %}
+        <div class="ui basic label">{{ item.paymentMode }}</div>
+      {% endif %}
+    </div>
+  {% else %}
+    —
+  {% endif %}
+</td>
+           <td class="right aligned">
+  <div class="intervention-actions">
+    <a
+      class="ui icon mini button"
+      href="{{ path('app_admin_intervention_edit', {id: item.id}) }}"
+      title="Éditer intervention"
+    >
+      <i class="pencil icon"></i>
+    </a>
+
+    <button
+      type="button"
+      class="ui icon mini blue button btn-tablet-unlock-push"
+      data-id="{{ item.id }}"
+      data-device="TAB1"
+      data-link-template="{{ path('app_admin_intervention_tablet_link', {id: item.id}) }}"
+      data-msg-id="tabletMsg{{ item.id }}"
+      title="Envoyer sur tablette"
+    >
+      <i class="tablet alternate icon"></i>
+    </button>
+
+    <form
+      method="post"
+      action="{{ path('app_admin_intervention_delete', {id: item.id}) }}"
+      onsubmit="return confirm('Supprimer l’intervention #{{ item.interventionNumber }} ?');"
+      style="display:inline-block;margin:0;"
+    >
+      <input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ item.id) }}">
+      <button class="ui icon mini red button" type="submit" title="Supprimer">
+        <i class="trash icon"></i>
+      </button>
+    </form>
+  </div>
+
+  <div id="tabletMsg{{ item.id }}" style="margin-top:8px;"></div>
+</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="12">Aucune intervention.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById('filterForm');
+  const tableWrap = document.getElementById('interventionTableWrap');
+  const resetBtn = document.getElementById('resetFiltersBtn');
+
+  if (!form || !tableWrap) return;
+
+  let timeout = null;
+  let currentAbort = null;
+
+  function bindTabletButtons(scope = document) {
+    const buttons = scope.querySelectorAll('.btn-tablet-unlock-push');
+    if (!buttons.length) return;
+
+    buttons.forEach(btn => {
+      if (btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+
+      btn.addEventListener('click', async () => {
+        const msg = document.getElementById(btn.dataset.msgId);
+        if (msg) msg.innerHTML = '';
+
+        btn.disabled = true;
+        btn.classList.add('loading');
+
+        try {
+          const device = btn.dataset.device || 'TAB1';
+
+          const res = await fetch(btn.dataset.linkTemplate, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+
+          const j = await res.json();
+          if (!j || !j.ok || !j.url) {
+            throw new Error(j?.error || 'Génération du lien tablette impossible');
+          }
+
+          const u = new URL(j.url, window.location.origin);
+
+          const push = await fetch('/ws-tablet-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              device,
+              url: u.pathname + u.search,
+              token: '{{ tablet_socket_token|default('')|e('js') }}'
+            })
+          });
+
+          const pj = await push.json().catch(() => ({}));
+
+          if (!pj.ok) {
+            throw new Error('Push KO: ' + (pj.error || ''));
+          }
+
+          if (msg) {
+            msg.innerHTML = `
+              <div class="ui positive message" style="margin:0;">
+                Intervention #${j.intervention_number} envoyée sur la tablette.
+              </div>
+            `;
+          }
+        } catch (e) {
+          console.error(e);
+          if (msg) {
+            msg.innerHTML = `
+              <div class="ui negative message" style="margin:0;">
+                ${e.message || 'Erreur push tablette'}
+              </div>
+            `;
+          }
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      });
+    });
+  }
+
+  async function refreshTable() {
+    const params = new URLSearchParams(new FormData(form));
+    const url = window.location.pathname + '?' + params.toString();
+
+    if (currentAbort) {
+      currentAbort.abort();
+    }
+
+    currentAbort = new AbortController();
+    tableWrap.classList.add('intervention-table-loading');
+
+    try {
+      const res = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        signal: currentAbort.signal
+      });
+
+      const html = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const newWrap = doc.querySelector('#interventionTableWrap');
+      if (!newWrap) return;
+
+      tableWrap.innerHTML = newWrap.innerHTML;
+      bindTabletButtons(tableWrap);
+
+      window.history.replaceState({}, '', url);
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error('Erreur refresh filtre', e);
+      }
+    } finally {
+      tableWrap.classList.remove('intervention-table-loading');
+    }
+  }
+
+  form.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(refreshTable, 250);
+    });
+
+    el.addEventListener('change', () => {
+      clearTimeout(timeout);
+      refreshTable();
+    });
+  });
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      form.reset();
+      refreshTable();
+    });
+  }
+
+  bindTabletButtons(document);
 })();
-	</script>
+</script>
+
+
+<script>
+(function () {
+  function bindTabletCustomerButtons(scope = document) {
+    const buttons = scope.querySelectorAll('.btn-tablet-edit-customer');
+    if (!buttons.length) return;
+
+    buttons.forEach(btn => {
+      if (btn.dataset.boundCustomer === '1') return;
+      btn.dataset.boundCustomer = '1';
+
+      btn.addEventListener('click', async () => {
+        const msg = btn.dataset.msgId ? document.getElementById(btn.dataset.msgId) : null;
+        if (msg) msg.innerHTML = '';
+
+        btn.disabled = true;
+        btn.classList.add('loading');
+
+        try {
+          const id = btn.dataset.id;
+          const device = btn.dataset.device || 'TAB1';
+
+          const url = `/tablet/customers/${id}/edit?device=${device}`;
+
+          const push = await fetch(`/ws-tablet-push`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              device,
+              url,
+              token: '{{ tablet_socket_token|e("js") }}'
+            })
+          });
+
+          const pj = await push.json().catch(() => ({}));
+
+          if (!pj.ok) {
+            throw new Error(pj.error || 'push KO');
+          }
+
+          if (msg) {
+            msg.innerHTML = `
+              <div class="ui positive message" style="margin:0;">
+                Client envoyé sur la tablette.
+              </div>
+            `;
+          }
+        } catch (e) {
+          console.error(e);
+          if (msg) {
+            msg.innerHTML = `
+              <div class="ui negative message" style="margin:0;">
+                ${e.message || 'Erreur push tablette'}
+              </div>
+            `;
+          }
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      });
+    });
+  }
+
+  bindTabletCustomerButtons(document);
+
+  // si ta page recharge le tableau en AJAX
+  // pense à rappeler bindTabletCustomerButtons(tableWrap)
+})();
+</script>
+
 {% endblock %}

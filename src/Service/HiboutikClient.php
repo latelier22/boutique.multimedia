@@ -887,8 +887,6 @@ public function uploadProductWeb1000(int $productId, string $path, int $imageId 
         $raw    = $r->getContent(false);
         $data   = json_decode($raw, true);
 
-        dump("LIST IMAGES RAW:", $raw);
-
         $this->lastDebug = ['method' => 'GET', 'url' => $url, 'status' => $status, 'raw' => $raw];
 
         return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'data' => $data, 'debug' => $this->lastDebug];
@@ -1235,28 +1233,37 @@ public function buildProductTagChoices(): array
     $map = [];
 
     $rows = $res['data'] ?? [];
-    if (!is_array($rows)) $rows = [];
+    if (!is_array($rows)) {
+        $rows = [];
+    }
 
     foreach ($rows as $cat) {
         $catName = trim((string)($cat['tag_cat'] ?? ''));
         $details = $cat['tag_details'] ?? [];
-        if (!is_array($details)) $details = [];
+        if (!is_array($details)) {
+            $details = [];
+        }
 
         foreach ($details as $t) {
             $id = (int)($t['tag_id'] ?? 0);
             $label = trim((string)($t['tag'] ?? $t['tag_label'] ?? ''));
-            if ($id <= 0 || $label === '') continue;
+            if ($id <= 0 || $label === '') {
+                continue;
+            }
 
-            $full = $catName !== '' ? ($catName.' — '.$label) : $label;
+            $full = $catName !== '' ? ($catName . ' — ' . $label) : $label;
             $choices[$full] = $id;
             $map[$id] = $full;
         }
     }
 
-    ksort($choices, SORT_NATURAL | SORT_FLAG_CASE);
-    return ['ok' => ($res['ok'] ?? false), 'choices' => $choices, 'map' => $map, 'raw' => $res];
+    return [
+        'ok' => ($res['ok'] ?? false),
+        'choices' => $choices,
+        'map' => $map,
+        'raw' => $res,
+    ];
 }
-
 /**
  * GET /products_tags/{product_id}
  * Retourne les tags d’un produit
@@ -1295,7 +1302,65 @@ public function setProductWWW(int $productId, int $val): array
     return $this->putProductAttributeSingle($productId, 'product_display_www', (string)$val);
 }
 
+public function buildGroupedProductTagCatalog(): array
+{
+    $res = $this->listProductTagCatalog();
 
+    $rows = $res['data'] ?? [];
+    if (!is_array($rows)) {
+        $rows = [];
+    }
+
+    $groups = [];
+    $map = [];
+
+    foreach ($rows as $cat) {
+        $catId = (int)($cat['tag_cat_id'] ?? 0);
+        $catName = trim((string)($cat['tag_cat'] ?? ''));
+        $catDesc = trim((string)($cat['tag_cat_desc'] ?? ''));
+        $details = $cat['tag_details'] ?? [];
+
+        if (!is_array($details)) {
+            $details = [];
+        }
+
+        $group = [
+            'id' => $catId,
+            'name' => $catName,
+            'desc' => $catDesc,
+            'tags' => [],
+        ];
+
+        foreach ($details as $t) {
+            $id = (int)($t['tag_id'] ?? 0);
+            $label = trim((string)($t['tag'] ?? $t['tag_label'] ?? ''));
+            $desc = trim((string)($t['tag_desc'] ?? ''));
+
+            if ($id <= 0 || $label === '') {
+                continue;
+            }
+
+            $group['tags'][] = [
+                'id' => $id,
+                'label' => $label,
+                'desc' => $desc,
+                'enabled' => (int)($t['tag_enabled'] ?? 0),
+                'enabled_www' => (int)($t['tag_enabled_www'] ?? 0),
+            ];
+
+            $map[$id] = $label;
+        }
+
+        $groups[] = $group;
+    }
+
+    return [
+        'ok' => ($res['ok'] ?? false),
+        'groups' => $groups,
+        'map' => $map,
+        'raw' => $res,
+    ];
+}
 
 public function getOrCreateMonthlyRachatInput(
     int $stockId,
@@ -1452,7 +1517,6 @@ public function getCustomer(int $id): array
         'data'   => $data,
     ];
 
-    dump($data);
 
     if (is_array($data) && isset($data[0]) && is_array($data[0])) {
         return $data[0];
@@ -1747,4 +1811,85 @@ public function createCustomer(array $fields): array
         'customer_id' => $customerId,
     ];
 }
+
+
+public function getSale(int $saleId): array
+{
+    $res = $this->req('GET', 'sale/' . $saleId);
+
+    $data = $res['data'] ?? null;
+
+    $this->lastDebug = [
+        'method' => 'GET',
+        'url'    => $this->baseUrl('sale/' . $saleId),
+        'status' => $res['status'] ?? null,
+        'raw'    => $res['raw'] ?? null,
+        'data'   => $data,
+    ];
+
+    if (is_array($data) && isset($data[0]) && is_array($data[0])) {
+        return $data[0];
+    }
+
+    return is_array($data) ? $data : [];
+}
+
+public function createSale(array $fields): array
+{
+    $payload = [
+        'store_id'             => (int)($fields['store_id'] ?? 1),
+        'customer_id'          => (int)($fields['customer_id'] ?? 0),
+        'duty_free_sale'       => (int)($fields['duty_free_sale'] ?? 0),
+        'prices_without_taxes' => (int)($fields['prices_without_taxes'] ?? 0),
+        'quotation'            => (int)($fields['quotation'] ?? 0),
+        'currency_code'        => (string)($fields['currency_code'] ?? 'EUR'),
+    ];
+
+    if (!empty($fields['vendor_id'])) {
+        $payload['vendor_id'] = (string)$fields['vendor_id'];
+    }
+
+    $res = $this->req('POST', 'sales/', [
+        'json' => $payload,
+        'headers' => [
+            'Accept' => '*/*',
+        ],
+    ]);
+
+    $data = $res['data'] ?? null;
+    $saleId = 0;
+
+    if (is_array($data)) {
+        if (isset($data['sale_id'])) {
+            $saleId = (int)$data['sale_id'];
+        } elseif (isset($data['id'])) {
+            $saleId = (int)$data['id'];
+        } elseif (isset($data[0]) && is_array($data[0])) {
+            $saleId = (int)($data[0]['sale_id'] ?? $data[0]['id'] ?? 0);
+        }
+    }
+
+    $this->lastDebug = [
+        'method' => 'POST',
+        'url'    => $this->baseUrl('sales/'),
+        'sent'   => $payload,
+        'status' => $res['status'] ?? null,
+        'raw'    => $res['raw'] ?? null,
+        'data'   => $data,
+        'sale_id_detected' => $saleId,
+    ];
+
+    if ($this->logger) {
+        $this->logger->info('[HIB CREATE SALE]', $this->lastDebug);
+    }
+
+    return [
+        'ok'      => (bool)($res['ok'] ?? false),
+        'status'  => $res['status'] ?? 0,
+        'raw'     => $res['raw'] ?? null,
+        'data'    => $data,
+        'sale_id' => $saleId,
+    ];
+}
+
 }

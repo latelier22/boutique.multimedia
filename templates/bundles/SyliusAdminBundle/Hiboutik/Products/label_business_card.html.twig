@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Étiquette 55x85 verticale</title>
+    <style>
+     
+    @page {
+        margin: 0;
+    }
+
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    body {
+        position: relative;
+        overflow: hidden;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #fff;
+    }
+
+    .label {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        border: 0.25mm solid #222;
+        background: #fff;
+        overflow: hidden;
+        padding: 2mm;
+    }
+
+
+        .ref {
+            position: absolute;
+            top: 1mm;
+            right: 1mm;
+            font-size: 1.4mm;
+            color: #777;
+        }
+
+        .top {
+            display: table;
+            width: 100%;
+            margin-top: 3mm;
+            margin-bottom: 2mm;
+        }
+
+        .left, .right {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .left {
+            width: 68%;
+        }
+
+        .right {
+            width: 32%;
+            text-align: right;
+        }
+
+        .right img {
+            width: 13mm;
+            height: 13mm;
+            object-fit: contain;
+        }
+
+        .brand {
+            font-size: 5.2mm;
+            font-weight: 900;
+            line-height: 1;
+            text-transform: uppercase;
+            margin-bottom: 0.8mm;
+        }
+
+        .model {
+            font-size: 3.7mm;
+            font-weight: 900;
+            line-height: 1.02;
+            text-transform: uppercase;
+            margin-bottom: 0.8mm;
+        }
+
+        .storage {
+            font-size: 4.3mm;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 0.4mm;
+            margin-bottom: 2mm;
+        }
+
+        .state {
+            display: inline-block;
+            font-size: 3.1mm;
+            font-weight: 900;
+            padding: 1mm 1.8mm;
+            margin-bottom: 3mm;
+            text-transform: uppercase;
+        }
+
+        .state-blue {
+            background: #1e88e5;
+            color: #fff;
+        }
+
+        .state-green {
+            background: #2e7d32;
+            color: #fff;
+        }
+
+        .state-yellow {
+            background: #f1c40f;
+            color: #111;
+        }
+
+        .state-red {
+            background: #c62828;
+            color: #fff;
+        }
+
+        .price-line {
+            line-height: 1;
+            margin-bottom: 3mm;
+        }
+
+        .price-main {
+            font-size: 16mm;
+            font-weight: 900;
+            letter-spacing: -0.5mm;
+        }
+
+        .euro {
+            font-size: 9mm;
+            font-weight: 900;
+        }
+
+        .specs {
+            font-size: 2.8mm;
+            line-height: 1.2;
+            color: #222;
+        }
+
+        .specs div {
+            margin-bottom: 0.35mm;
+        }
+
+        .bottom {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f28c00;
+            color: #fff;
+            text-align: center;
+            font-size: 3.3mm;
+            font-weight: 900;
+            padding: 2mm 1mm;
+            text-transform: uppercase;
+            box-sizing: border-box;
+        }
+
+        .top {
+    width: 100%;
+    margin-top: 3mm;
+    margin-bottom: 1.5mm;
+}
+
+.left {
+    width: 100%;
+}
+
+.brand {
+    font-size: 5.2mm;
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    margin-bottom: 0.8mm;
+}
+
+.model {
+    font-size: 3.7mm;
+    font-weight: 900;
+    line-height: 1.02;
+    text-transform: uppercase;
+    margin-bottom: 0.8mm;
+}
+
+.storage {
+    font-size: 4.3mm;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 0.4mm;
+    margin-bottom: 1.2mm;
+}
+
+.state-qr-row {
+    display: table;
+    width: 100%;
+    margin-bottom: 2mm;
+}
+
+.state-qr-row .state,
+.state-qr-row .qr-box {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.state-qr-row .state {
+    width: 60%;
+}
+
+.state {
+    display: inline-block;
+    font-size: 2.8mm;
+    font-weight: 900;
+    padding: 1.2mm 2mm;
+    text-transform: uppercase;
+}
+
+.state {
+    
+    
+}
+
+.qr-box {
+    width: 40%;
+    text-align: right;
+}
+
+.qr-box img {
+    width: 20mm;
+    height: 20 mm;
+    object-fit: contain;
+}
+    </style>
+</head>
+<body>
+<div class="label">
+    <div class="ref">{{ product.product_barcode ?? product.product_id ?? '' }}</div>
+
+   <div class="top">
+    <div class="left">
+        <div class="brand">{{ product.brand_name ?? '' }}</div>
+        <div class="model">{{ product.product_model ?? '' }}</div>
+        {% if product.storage %}
+            <div class="storage">{{ product.storage }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="state-qr-row">
+    <div class="state {{ product.state_class ?? 'state-yellow' }}">
+        {{ product.state_label ?? 'BON ÉTAT' }}
+    </div>
+
+    {% if qr_code_data_uri %}
+        <div class="qr-box">
+            <img src="{{ qr_code_data_uri }}" alt="QR code">
+        </div>
+    {% endif %}
+</div>
+
+    <div class="price-line">
+        <span class="price-main">{{ product.price_label ?? '0,00' }}</span><span class="euro">€</span>
+    </div>
+
+    <div class="specs">
+        {% for row in product.misc_rows ?? [] %}
+            {% if row.label|lower != 'stockage' %}
+                <div>{{ row.label }} : {{ row.value }}</div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="bottom">{{ product.footer_label ?? 'GARANTIE 2 ANS' }}</div>
+</div>
+</body>
+</html>
