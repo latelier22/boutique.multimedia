@@ -1,0 +1,10 @@
+<a class="item" href="{{ path('sylius_admin_dashboard') }}" style="padding: 13px 0;">
+    <div style="width: 100%; height: auto; margin: 0 auto;">
+        {% if use_webpack %}
+                <img src="{{ asset('logo-multimedia.png') }}" class="ui fluid image">               
+            {# <img src="{{ asset('build/admin/images/admin-logo.svg', 'admin') }}" class="ui fluid image"> #}
+        {% else %}
+             <img src="{{ asset('logo-multimedia.png') }}" class="ui fluid image">       
+        {% endif %}
+    </div>
+</a>

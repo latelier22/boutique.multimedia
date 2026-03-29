@@ -38,6 +38,186 @@
                 }
             }
         </style>
+
+        <style>
+:root{
+    --ms-orange: #ef6c00;
+    --ms-orange-dark: #d85f00;
+    --ms-orange-light: #ff7f11;
+
+    --ms-blue: #1f4ea8;
+    --ms-blue-dark: #163c83;
+    --ms-blue-light: #dfeafe;
+
+    --ms-white: #ffffff;
+    --ms-text: #1d2a3a;
+}
+
+/* FOND GLOBAL SIDEBAR : orange + bleu */
+.admin-layout__sidebar {
+    background:
+        linear-gradient(180deg, rgba(22,60,131,.22) 0%, rgba(22,60,131,.10) 18%, rgba(0,0,0,0) 35%),
+        linear-gradient(180deg, var(--ms-orange-light) 0%, var(--ms-orange) 58%, var(--ms-orange-dark) 100%) !important;
+    border-right: none !important;
+    box-shadow: 10px 0 28px rgba(239, 108, 0, .24);
+}
+
+/* zone nav */
+.admin-layout__nav {
+    padding: 12px 10px 16px 10px;
+}
+
+/* logo */
+.admin-layout__sidebar > .admin-layout__nav > a.item:first-child {
+    background: linear-gradient(135deg, rgba(255,255,255,.18) 0%, rgba(223,234,254,.22) 100%) !important;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 18px !important;
+    margin: 8px 8px 14px 8px !important;
+    padding: 16px 12px !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.10);
+}
+
+/* champ recherche */
+.admin-layout__sidebar .ui.icon.input input,
+.admin-layout__sidebar .ui.input input {
+    background: rgba(22,60,131,.28) !important;
+    border: 1px solid rgba(223,234,254,.22) !important;
+    border-radius: 14px !important;
+    color: #fff !important;
+    box-shadow: none !important;
+}
+
+.admin-layout__sidebar .ui.icon.input input::placeholder,
+.admin-layout__sidebar .ui.input input::placeholder {
+    color: rgba(255,255,255,.76) !important;
+}
+
+.admin-layout__sidebar .ui.icon.input i.icon {
+    color: var(--ms-blue-light) !important;
+}
+
+/* menu wrapper */
+.sylius-admin-menu {
+    margin-top: 8px;
+}
+
+/* BLOCS DE SECTION : bleu foncé translucide */
+.sylius-admin-menu > .item {
+    background: linear-gradient(180deg, rgba(22,60,131,.52) 0%, rgba(31,78,168,.34) 100%);
+    border: 1px solid rgba(223,234,254,.14);
+    border-radius: 18px;
+    margin: 0 8px 12px 8px !important;
+    padding: 10px 10px 8px 10px !important;
+    box-shadow: 0 10px 22px rgba(11, 30, 68, .16);
+    backdrop-filter: blur(2px);
+}
+
+/* titres sections */
+.sylius-admin-menu > .item > .header {
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    margin-bottom: 8px !important;
+    padding: 2px 6px 8px 6px !important;
+    border-bottom: 1px solid rgba(223,234,254,.18);
+}
+
+/* liens */
+.sylius-admin-menu a.item.item-content {
+    border-radius: 14px !important;
+    color: rgba(255,255,255,.95) !important;
+    margin: 4px 0 !important;
+    padding: 11px 12px !important;
+    transition: background .15s ease, transform .05s ease, color .15s ease, box-shadow .15s ease;
+}
+
+/* icônes : bleu clair */
+.sylius-admin-menu a.item.item-content i.icon {
+    color: var(--ms-blue-light) !important;
+    opacity: 1 !important;
+}
+
+/* hover : bleu clair doux */
+.sylius-admin-menu a.item.item-content:hover {
+    background: rgba(223,234,254,.16) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgba(223,234,254,.14);
+}
+
+/* ACTIF : carte blanche avec texte bleu foncé + accent orange */
+.sylius-admin-menu a.item.item-content.active,
+.sylius-admin-menu a.item.item-content.current,
+.sylius-admin-menu a.item.active {
+    background: linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%) !important;
+    color: var(--ms-blue-dark) !important;
+    font-weight: 800 !important;
+    box-shadow:
+        0 8px 18px rgba(0,0,0,.12),
+        inset 4px 0 0 var(--ms-orange);
+}
+
+.sylius-admin-menu a.item.item-content.active i.icon,
+.sylius-admin-menu a.item.item-content.current i.icon,
+.sylius-admin-menu a.item.active i.icon {
+    color: var(--ms-orange) !important;
+}
+
+/* badge plus */
+.navbar-plus-badge {
+    filter: brightness(1.08) saturate(1.05);
+}
+
+/* bouton fermer */
+.admin-layout__toggle {
+    margin: 12px 8px 0 8px !important;
+    border-radius: 14px;
+    background: rgba(22,60,131,.30);
+    border: 1px solid rgba(223,234,254,.16);
+    color: #fff;
+    transition: background .15s ease, transform .1s ease;
+}
+
+.admin-layout__toggle:hover {
+    background: rgba(223,234,254,.18);
+}
+
+/* top menu perso */
+.admin-top-tools-menu {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px 0;
+    background: transparent !important;
+}
+
+.admin-top-tools-menu .item {
+    border-radius: 14px !important;
+    margin-right: 4px !important;
+}
+
+.admin-top-tools-menu .item.active {
+    background: linear-gradient(135deg, var(--ms-orange) 0%, var(--ms-orange-light) 100%) !important;
+    color: white !important;
+}
+
+/* option : liens standards de sidebar un peu plus nets */
+.admin-layout__sidebar a {
+    text-shadow: 0 1px 0 rgba(0,0,0,.08);
+}
+
+@media (max-width: 900px) {
+    .sylius-admin-menu > .item {
+        margin-left: 4px !important;
+        margin-right: 4px !important;
+    }
+
+    .sylius-admin-menu a.item.item-content {
+        padding: 10px 10px !important;
+        font-size: 14px !important;
+    }
+}
+</style>
     {% endblock %}
 
     {% block head_javascripts %}

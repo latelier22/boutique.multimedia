@@ -16,11 +16,57 @@
     transition: opacity .15s ease;
   }
 
-  .intervention-actions {
+  .intervention-compact-table th,
+  .intervention-compact-table td {
+    padding: 6px 8px !important;
+    vertical-align: middle !important;
+    line-height: 1.15;
+  }
+
+  .intervention-compact-table td {
+    white-space: nowrap;
+  }
+
+  .intervention-compact-table .td-work {
+    white-space: pre-line !important;
+    min-width: 220px;
+    max-width: 360px;
+  }
+
+  .intervention-compact-table .td-client,
+  .intervention-compact-table .td-payment,
+  .intervention-compact-table .td-actions {
+    white-space: nowrap;
+  }
+
+  .cell-inline {
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .customer-name {
+    font-weight: 600;
+  }
+
+  .mini-icon-btn.ui.button {
+    padding: 6px 7px !important;
+  }
+
+  .intervention-actions-wrap {
+    display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .intervention-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
   }
 
   .intervention-actions form {
@@ -33,9 +79,42 @@
     margin: 0 !important;
   }
 
+  .payment-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .payment-amount {
+    font-weight: 600;
+  }
+
+  .inline-msg:empty {
+    display: none;
+  }
+
+  .inline-msg .ui.label {
+    margin: 0 !important;
+  }
+
+  .status-label.ui.label,
+  .payment-inline .ui.label {
+    margin: 0 !important;
+  }
+
   @media (max-width: 991px) {
-    .intervention-actions {
+    .intervention-actions-wrap {
       justify-content: flex-start;
+    }
+
+    .intervention-compact-table {
+      font-size: 12px;
+    }
+
+    .intervention-compact-table .td-work {
+      min-width: 160px;
+      max-width: 240px;
     }
   }
 </style>
@@ -45,16 +124,19 @@
 <div class="ui segment">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
     <h1 class="ui header" style="margin:0;">Interventions</h1>
-    <a class="ui primary button" href="{{ path('app_admin_intervention_new') }}">
-      Nouvelle intervention (client)
-    </a>
-    <form method="post" action="{{ path('app_admin_intervention_quick_create') }}" style="display:inline-block;">
-    <button class="ui primary button" type="submit">
-        <i class="flash icon"></i>
-        Intervention rapide (vide)
-    </button>
-</form>
 
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a class="ui primary button" href="{{ path('app_admin_intervention_new') }}">
+        Nouvelle intervention (client)
+      </a>
+
+      <form method="post" action="{{ path('app_admin_intervention_quick_create') }}" style="display:inline-block;">
+        <button class="ui primary button" type="submit">
+          <i class="flash icon"></i>
+          Intervention rapide (vide)
+        </button>
+      </form>
+    </div>
   </div>
 
   <form class="ui form" id="filterForm" onsubmit="return false;" style="margin-bottom:16px;">
@@ -91,19 +173,19 @@
   </form>
 
   <div id="interventionTableWrap">
-    <table class="ui celled table">
+    <table class="ui celled table intervention-compact-table">
       <thead>
         <tr>
           <th>N°</th>
-		  <th>Date</th>
+          <th>Date</th>
           <th>Client</th>
-          <th> Société</th>
+          <th>Société</th>
           <th>Téléphone</th>
           <th>Appareil</th>
           <th>Travail</th>
           <th>BOITE</th>
           <th>Statut</th>
-		  <th>Paiement</th>
+          <th>Paiement</th>
           <th>ACTIONS</th>
         </tr>
       </thead>
@@ -121,67 +203,73 @@
             {% endif %}
           ">
             <td>{{ item.interventionNumber }}</td>
-			<td>{{ item.createdAt|date('d/m/Y H:i') }}</td>
-           {% set hc = item.hiboutikCustomerId and hibCustomers[item.hiboutikCustomerId] is defined ? hibCustomers[item.hiboutikCustomerId] : null %}
+            <td>{{ item.createdAt|date('d/m/Y H:i') }}</td>
 
-<td>
-  {% if hc %}
-    <div>{{ hc.last_name ?? '' }} {{ hc.first_name ?? '' }}</div>
+            {% set hc = item.hiboutikCustomerId and hibCustomers[item.hiboutikCustomerId] is defined ? hibCustomers[item.hiboutikCustomerId] : null %}
 
-    {% if item.hiboutikCustomerId %}
-      <div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
-        <a
-          class="ui icon mini button"
-          href="{{ path('admin_hiboutik_customer_edit', {id: item.hiboutikCustomerId}) }}"
-          title="Éditer client"
-        >
-          <i class="pencil icon"></i>
-        </a>
+            <td class="td-client">
+              {% if hc %}
+                <div class="cell-inline">
+                  <span class="customer-name">{{ hc.last_name ?? '' }} {{ hc.first_name ?? '' }}</span>
 
-        <button
-          type="button"
-          class="ui icon mini button btn-tablet-edit-customer"
-          data-id="{{ item.hiboutikCustomerId }}"
-          data-device="TAB1"
-          data-msg-id="tabletClientMsg{{ item.id }}"
-          title="Éditer client sur tablette"
-        >
-          <i class="tablet alternate icon"></i>
-        </button>
-      </div>
+                  {% if item.hiboutikCustomerId %}
+                    <a
+                      class="ui icon mini button mini-icon-btn"
+                      href="{{ path('admin_hiboutik_customer_edit', {id: item.hiboutikCustomerId}) }}"
+                      title="Éditer client"
+                    >
+                      <i class="pencil icon"></i>
+                    </a>
 
-      <div id="tabletClientMsg{{ item.id }}" style="margin-top:6px;"></div>
-    {% endif %}
-  {% else %}
-    —
-  {% endif %}
-</td>
-<td>
-  {% if hc and hc.company is defined and hc.company %}
-    {{ hc.company }}
-  {% else %}
-    —
-  {% endif %}
-</td>
-<td>
-  {% if hc and hc.phone is defined and hc.phone %}
-    {{ hc.phone }}
-  {% else %}
-    —
-  {% endif %}
-</td>
+                    <button
+                      type="button"
+                      class="ui icon mini button mini-icon-btn btn-tablet-edit-customer"
+                      data-id="{{ item.hiboutikCustomerId }}"
+                      data-device="TAB1"
+                      data-msg-id="tabletClientMsg{{ item.id }}"
+                      title="Éditer client sur tablette"
+                    >
+                      <i class="tablet alternate icon"></i>
+                    </button>
+
+                    <span id="tabletClientMsg{{ item.id }}" class="inline-msg"></span>
+                  {% endif %}
+                </div>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>
+              {% if hc and hc.company is defined and hc.company %}
+                {{ hc.company }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+            <td>
+              {% if hc and hc.phone is defined and hc.phone %}
+                {{ hc.phone }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
             <td>{{ item.deviceLabel ?: '—' }}</td>
-            <td>{{ item.workToDo ?: '—' }}</td>
+
+            <td class="td-work">{{ item.workToDo ?: '—' }}</td>
+
             <td>
-    {% if item.boite %}
-        {{ item.boite.code }}
-    {% else %}
-        —
-    {% endif %}
-</td>
-            <!-- <td>{{ item.unlockSummary ?: '—' }}</td> -->
+              {% if item.boite %}
+                {{ item.boite.code }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
             <td>
-              <div class="ui label
+              <div class="ui mini label status-label
                 {% if item.status == 'Ouverte' %}blue
                 {% elseif item.status == 'En attente' %}yellow
                 {% elseif item.status == 'Terminée' %}green
@@ -191,83 +279,79 @@
                 {{ item.status }}
               </div>
             </td>
-		<td>
-  {% set total = item.amountTotal is defined and item.amountTotal is not null and item.amountTotal != '' ? (item.amountTotal + 0) : 0 %}
-  {% set paid = item.amountPaid is defined and item.amountPaid is not null and item.amountPaid != '' ? (item.amountPaid + 0) : 0 %}
 
-  {% if total > 0 %}
-    <div style="margin-bottom:4px;font-size:12px;">
-      Total : {{ total|number_format(2, ',', ' ') }} €
-    </div>
+            <td class="td-payment">
+              {% set total = item.amountTotal is defined and item.amountTotal is not null and item.amountTotal != '' ? (item.amountTotal + 0) : 0 %}
+              {% set paid = item.amountPaid is defined and item.amountPaid is not null and item.amountPaid != '' ? (item.amountPaid + 0) : 0 %}
 
-    {% if paid >= total and paid > 0 %}
-      <div class="ui green label">PAYÉ</div>
-      <div style="margin-top:4px;font-size:12px;">
-        Versé : {{ paid|number_format(2, ',', ' ') }} €
-      </div>
+              {% if total > 0 %}
+                <div class="payment-inline">
+                  <span class="payment-amount">{{ total|number_format(2, ',', ' ') }} €</span>
 
-    {% elseif paid > 0 and paid < total %}
-      <div class="ui yellow label">
-        Acompte versé : {{ paid|number_format(2, ',', ' ') }} €
-      </div>
-      <div style="margin-top:4px;font-size:12px;">
-        Reste : {{ (total - paid)|number_format(2, ',', ' ') }} €
-      </div>
+                  {% if paid >= total and paid > 0 %}
+                    <span class="ui mini green label">PAYÉ</span>
+                    <span>Versé {{ paid|number_format(2, ',', ' ') }} €</span>
 
-    {% else %}
-      <div class="ui grey label">Non payé</div>
-    {% endif %}
+                  {% elseif paid > 0 and paid < total %}
+                    <span class="ui mini yellow label">Acompte {{ paid|number_format(2, ',', ' ') }} €</span>
+                    <span>Reste {{ (total - paid)|number_format(2, ',', ' ') }} €</span>
 
-    <div style="margin-top:4px;">
-      {% if item.paymentMode %}
-        <div class="ui basic label">{{ item.paymentMode }}</div>
-      {% endif %}
-    </div>
-  {% else %}
-    —
-  {% endif %}
-</td>
-           <td class="right aligned">
-  <div class="intervention-actions">
-    <a
-      class="ui icon mini button"
-      href="{{ path('app_admin_intervention_edit', {id: item.id}) }}"
-      title="Éditer intervention"
-    >
-      <i class="pencil icon"></i>
-    </a>
+                  {% else %}
+                    <span class="ui mini grey label">Non payé</span>
+                  {% endif %}
 
-    <button
-      type="button"
-      class="ui icon mini blue button btn-tablet-unlock-push"
-      data-id="{{ item.id }}"
-      data-device="TAB1"
-      data-link-template="{{ path('app_admin_intervention_tablet_link', {id: item.id}) }}"
-      data-msg-id="tabletMsg{{ item.id }}"
-      title="Envoyer sur tablette"
-    >
-      <i class="tablet alternate icon"></i>
-    </button>
+                  {% if item.paymentMode %}
+                    <span class="ui mini basic label">{{ item.paymentMode }}</span>
+                  {% endif %}
+                </div>
+              {% else %}
+                —
+              {% endif %}
+            </td>
 
-    <form
-      method="post"
-      action="{{ path('app_admin_intervention_delete', {id: item.id}) }}"
-      onsubmit="return confirm('Supprimer l’intervention #{{ item.interventionNumber }} ?');"
-      style="display:inline-block;margin:0;"
-    >
-      <input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ item.id) }}">
-      <button class="ui icon mini red button" type="submit" title="Supprimer">
-        <i class="trash icon"></i>
-      </button>
-    </form>
-  </div>
+            <td class="right aligned td-actions">
+              <div class="intervention-actions-wrap">
+                <div class="intervention-actions">
+                  <a
+                    class="ui icon mini button mini-icon-btn"
+                    href="{{ path('app_admin_intervention_edit', {id: item.id}) }}"
+                    title="Éditer intervention"
+                  >
+                    <i class="pencil icon"></i>
+                  </a>
 
-  <div id="tabletMsg{{ item.id }}" style="margin-top:8px;"></div>
-</td>
+                  <button
+                    type="button"
+                    class="ui icon mini blue button mini-icon-btn btn-tablet-unlock-push"
+                    data-id="{{ item.id }}"
+                    data-device="TAB1"
+                    data-link-template="{{ path('app_admin_intervention_tablet_link', {id: item.id}) }}"
+                    data-msg-id="tabletMsg{{ item.id }}"
+                    title="Envoyer sur tablette"
+                  >
+                    <i class="tablet alternate icon"></i>
+                  </button>
+
+                  <form
+                    method="post"
+                    action="{{ path('app_admin_intervention_delete', {id: item.id}) }}"
+                    onsubmit="return confirm('Supprimer l’intervention #{{ item.interventionNumber }} ?');"
+                    style="display:inline-block;margin:0;"
+                  >
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete_intervention_' ~ item.id) }}">
+                    <button class="ui icon mini red button mini-icon-btn" type="submit" title="Supprimer">
+                      <i class="trash icon"></i>
+                    </button>
+                  </form>
+                </div>
+
+                <span id="tabletMsg{{ item.id }}" class="inline-msg"></span>
+              </div>
+            </td>
           </tr>
         {% else %}
           <tr>
-            <td colspan="12">Aucune intervention.</td>
+            <td colspan="11">Aucune intervention.</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -285,6 +369,18 @@
 
   let timeout = null;
   let currentAbort = null;
+
+  function showInlineMsg(el, type, text) {
+    if (!el) return;
+
+    const color = type === 'error' ? 'red' : 'green';
+    el.innerHTML = `<span class="ui mini basic ${color} label">${text}</span>`;
+
+    clearTimeout(el._msgTimer);
+    el._msgTimer = setTimeout(() => {
+      el.innerHTML = '';
+    }, 3500);
+  }
 
   function bindTabletButtons(scope = document) {
     const buttons = scope.querySelectorAll('.btn-tablet-unlock-push');
@@ -334,22 +430,60 @@
             throw new Error('Push KO: ' + (pj.error || ''));
           }
 
-          if (msg) {
-            msg.innerHTML = `
-              <div class="ui positive message" style="margin:0;">
-                Intervention #${j.intervention_number} envoyée sur la tablette.
-              </div>
-            `;
-          }
+          showInlineMsg(msg, 'ok', `Intervention #${j.intervention_number} envoyée`);
         } catch (e) {
           console.error(e);
-          if (msg) {
-            msg.innerHTML = `
-              <div class="ui negative message" style="margin:0;">
-                ${e.message || 'Erreur push tablette'}
-              </div>
-            `;
+          showInlineMsg(msg, 'error', e.message || 'Erreur push tablette');
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        }
+      });
+    });
+  }
+
+  function bindTabletCustomerButtons(scope = document) {
+    const buttons = scope.querySelectorAll('.btn-tablet-edit-customer');
+    if (!buttons.length) return;
+
+    buttons.forEach(btn => {
+      if (btn.dataset.boundCustomer === '1') return;
+      btn.dataset.boundCustomer = '1';
+
+      btn.addEventListener('click', async () => {
+        const msg = btn.dataset.msgId ? document.getElementById(btn.dataset.msgId) : null;
+        if (msg) msg.innerHTML = '';
+
+        btn.disabled = true;
+        btn.classList.add('loading');
+
+        try {
+          const id = btn.dataset.id;
+          const device = btn.dataset.device || 'TAB1';
+          const url = `/tablet/customers/${id}/edit?device=${device}`;
+
+          const push = await fetch('/ws-tablet-push', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+              device,
+              url,
+              token: '{{ tablet_socket_token|default('')|e('js') }}'
+            })
+          });
+
+          const pj = await push.json().catch(() => ({}));
+
+          if (!pj.ok) {
+            throw new Error(pj.error || 'push KO');
           }
+
+          showInlineMsg(msg, 'ok', 'Client envoyé tablette');
+        } catch (e) {
+          console.error(e);
+          showInlineMsg(msg, 'error', e.message || 'Erreur push tablette');
         } finally {
           btn.disabled = false;
           btn.classList.remove('loading');
@@ -383,7 +517,9 @@
       if (!newWrap) return;
 
       tableWrap.innerHTML = newWrap.innerHTML;
+
       bindTabletButtons(tableWrap);
+      bindTabletCustomerButtons(tableWrap);
 
       window.history.replaceState({}, '', url);
     } catch (e) {
@@ -415,79 +551,7 @@
   }
 
   bindTabletButtons(document);
-})();
-</script>
-
-
-<script>
-(function () {
-  function bindTabletCustomerButtons(scope = document) {
-    const buttons = scope.querySelectorAll('.btn-tablet-edit-customer');
-    if (!buttons.length) return;
-
-    buttons.forEach(btn => {
-      if (btn.dataset.boundCustomer === '1') return;
-      btn.dataset.boundCustomer = '1';
-
-      btn.addEventListener('click', async () => {
-        const msg = btn.dataset.msgId ? document.getElementById(btn.dataset.msgId) : null;
-        if (msg) msg.innerHTML = '';
-
-        btn.disabled = true;
-        btn.classList.add('loading');
-
-        try {
-          const id = btn.dataset.id;
-          const device = btn.dataset.device || 'TAB1';
-
-          const url = `/tablet/customers/${id}/edit?device=${device}`;
-
-          const push = await fetch(`/ws-tablet-push`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-              device,
-              url,
-              token: '{{ tablet_socket_token|e("js") }}'
-            })
-          });
-
-          const pj = await push.json().catch(() => ({}));
-
-          if (!pj.ok) {
-            throw new Error(pj.error || 'push KO');
-          }
-
-          if (msg) {
-            msg.innerHTML = `
-              <div class="ui positive message" style="margin:0;">
-                Client envoyé sur la tablette.
-              </div>
-            `;
-          }
-        } catch (e) {
-          console.error(e);
-          if (msg) {
-            msg.innerHTML = `
-              <div class="ui negative message" style="margin:0;">
-                ${e.message || 'Erreur push tablette'}
-              </div>
-            `;
-          }
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove('loading');
-        }
-      });
-    });
-  }
-
   bindTabletCustomerButtons(document);
-
-  // si ta page recharge le tableau en AJAX
-  // pense à rappeler bindTabletCustomerButtons(tableWrap)
 })();
 </script>
 
