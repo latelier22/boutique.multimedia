@@ -1363,12 +1363,12 @@ public function fillLabelsBuilderFromIndex(Request $request): Response
 
     if (!$ids) {
         $this->addFlash('error', 'Aucun produit sélectionné.');
-        return $this->redirectToRoute('admin_hiboutik_products_index');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
     }
 
     if (count($ids) > 4) {
         $this->addFlash('error', 'Vous ne pouvez sélectionner que 4 produits maximum.');
-        return $this->redirectToRoute('admin_hiboutik_products_index');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
     }
 
     $slots = [null, null, null, null];
@@ -1504,38 +1504,48 @@ foreach ($miscRows as $row) {
 ];
     }
 
-    $q = trim((string) $request->query->get('q', ''));
-    $results = [];
+$q = trim((string) $request->query->get('q', ''));
+$results = [];
 
-    if ($q !== '') {
-        $all = $this->hib->getProductsAll();
+if ($q !== '') {
+    $products = $this->cacheApi->getProducts([
+        'q' => $q,
+        'from' => 0,
+        'to' => 50,
+    ]);
 
-        foreach ($all as $p) {
-            $pid = (int) ($p['product_id'] ?? 0);
-            $model = (string) ($p['product_model'] ?? '');
-            $barcode = (string) ($p['product_barcode'] ?? '');
-            $brand = (string) ($p['product_brand_name'] ?? '');
+    foreach ($products as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
 
-            $haystack = mb_strtolower(trim($pid . ' ' . $model . ' ' . $barcode . ' ' . $brand));
-            $needle = mb_strtolower($q);
+        $pid = (int)($p['product_id'] ?? 0);
+        if ($pid <= 0) {
+            continue;
+        }
 
-            if (!str_contains($haystack, $needle)) {
-                continue;
-            }
+        $model = trim((string)($p['product_model'] ?? ''));
+        $barcode = trim((string)($p['product_barcode'] ?? ''));
+        $brand = trim((string)($p['product_brand_name'] ?? $p['brand_name'] ?? ''));
 
-            $results[] = [
-                'product_id'         => $pid,
-                'product_model'      => $model,
-                'product_barcode'    => $barcode,
-                'product_price'      => $p['product_price'] ?? '',
-                'product_brand_name' => $brand,
-            ];
+        $price = (float)($p['product_discount_price'] ?? 0);
+        if ($price <= 0) {
+            $price = (float)($p['product_price'] ?? 0);
+        }
 
-            if (count($results) >= 20) {
-                break;
-            }
+        $results[] = [
+            'product_id'         => $pid,
+            'product_model'      => $model,
+            'product_barcode'    => $barcode,
+            'product_price'      => number_format($price, 2, ',', ' '),
+            'product_brand_name' => $brand,
+        ];
+
+        if (count($results) >= 20) {
+            break;
         }
     }
+}
 
     if ($request->query->get('ajax') === '1') {
         return $this->render('@SyliusAdmin/Hiboutik/Products/_labels_builder_results.html.twig', [

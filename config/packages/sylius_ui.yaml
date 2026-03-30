@@ -191,7 +191,7 @@ sylius_ui:
                     context:
                         event: sylius.admin.customer.show.after_statistics
                 menu:
-                    template: "@SyliusAdmin/Dashboard/_menu.html.twig"
+                    template: "@SyliusAdmin/Dashboard/_hiboutik_dashboard_cards.html.twig"
                     priority: 100
                 # after_menu_legacy:
                 #     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"

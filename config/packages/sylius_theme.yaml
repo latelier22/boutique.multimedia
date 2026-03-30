@@ -3,3 +3,95 @@ sylius_theme:
         filesystem:
             directories:
                  - "%kernel.project_dir%/themes"
+
+
+
+sylius_ui:
+    events:
+        app.admin.hiboutik.dashboard.cards:
+            blocks:
+                hiboutik_cards:
+                    template: "@SyliusAdmin/Dashboard/_hiboutik_cards_event.html.twig"
+                    priority: 100
+                    context:
+                        cards:
+                            -
+                                title: "Rachats"
+                                text: "Gestion des rachats, suivi et consultation."
+                                icon: "shop icon"
+                                color: "dashboard-card--orange"
+                                route: "admin_rachats_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un rachat"
+                            -
+                                title: "Vendeurs"
+                                text: "Fiches vendeurs et suivi administratif."
+                                icon: "users icon"
+                                color: "dashboard-card--blue"
+                                route: "admin_vendors_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un vendeur"
+                            -
+                                title: "Caisse"
+                                text: "Accès aux mouvements et à la caisse."
+                                icon: "ticket icon"
+                                color: "dashboard-card--green"
+                                route: "admin_till_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Nouveau mouvement"
+                            -
+                                title: "Arrivages"
+                                text: "Réception, suivi et organisation des arrivages."
+                                icon: "box icon"
+                                color: "dashboard-card--purple"
+                                route: "admin_arrivages_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un arrivage"
+                            -
+                                title: "Produits Hiboutik"
+                                text: "Catalogue, édition et synchronisation produits."
+                                icon_text: "📱"
+                                color: "dashboard-card--red"
+                                route: "admin_hiboutik_product_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un produit"
+                            -
+                                title: "Composeur étiquettes A5"
+                                text: "Composer et imprimer les planches d’étiquettes."
+                                icon_text: "🏷️"
+                                color: "dashboard-card--teal"
+                                route: "admin_hiboutik_product_labels_builder"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Nouvelle planche"
+                            -
+                                title: "Clients Hiboutik"
+                                text: "Recherche et consultation des clients Hiboutik."
+                                icon_text: "👤"
+                                color: "dashboard-card--gold"
+                                route: "admin_hiboutik_customer_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un client"
+                            -
+                                title: "Interventions"
+                                text: "Réparations, suivi atelier et états d’avancement."
+                                icon_text: "🔧"
+                                color: "dashboard-card--pink"
+                                route: "app_admin_intervention_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer une intervention"
+                            -
+                                title: "Boîtes"
+                                text: "Gestion des boîtes et affectations atelier."
+                                icon_text: "📦"
+                                color: "dashboard-card--slate"
+                                route: "admin_boite_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer une boîte"
+                            -
+                                title: "Ventes interventions"
+                                text: "Consultation des ventes liées aux interventions."
+                                icon_text: "💶"
+                                color: "dashboard-card--indigo"
+                                route: "app_admin_intervention_sales_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer une vente"

@@ -294,6 +294,10 @@ headers: {
 signal: controller.signal
 });
 
+if (!response.ok) {
+    throw new Error('HTTP ' + response.status);
+}
+
 const html = await response.text();
 resultsBox.innerHTML = html;
 } catch (e) {

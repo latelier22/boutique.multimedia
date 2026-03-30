@@ -1,0 +1,21 @@
+{% extends '@SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Statistiques Rachats{% endblock %}
+
+{% block content %}
+    {% include '@SyliusAdmin/Dashboard/_rachat_statistics_block.html.twig' with {
+        statistics: statistics,
+        sales_summary: sales_summary,
+        defaultInterval: defaultInterval,
+        currentYear: currentYear,
+        selectedExportPeriod: selectedExportPeriod,
+        selectedExportYear: selectedExportYear,
+        selectedExportMonth: selectedExportMonth,
+        exportPreviewRows: exportPreviewRows,
+        exportPreviewCount: exportPreviewCount,
+        exportPreviewTotal: exportPreviewTotal,
+        exportFilename: exportFilename,
+        exportStart: exportStart,
+        exportEnd: exportEnd
+    } %}
+{% endblock %}

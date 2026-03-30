@@ -1,0 +1,26 @@
+<div class="dashboard-card {{ card.color|default('dashboard-card--blue') }}">
+    <div class="dashboard-card__top">
+        <div class="dashboard-card__icon">
+            {% if card.icon is defined and card.icon %}
+                <i class="{{ card.icon }}"></i>
+            {% else %}
+                {{ card.icon_text|default('•') }}
+            {% endif %}
+        </div>
+
+        <div class="dashboard-card__title">{{ card.title }}</div>
+        <div class="dashboard-card__text">{{ card.text }}</div>
+    </div>
+
+    <div class="dashboard-card__bottom">
+        <div class="dashboard-card__actions">
+            <a href="{{ path(card.route) }}" class="ui large button primary-link">
+                {{ card.button_label|default('Ouvrir') }}
+            </a>
+
+            <button type="button" class="ui large button create-btn">
+                {{ card.secondary_label|default('+ Créer') }}
+            </button>
+        </div>
+    </div>
+</div>

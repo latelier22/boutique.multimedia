@@ -13,41 +13,18 @@ final class RachatStatisticsController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em) {}
 
+  #[Route('/block', name: 'block', methods: ['GET'])]
+public function block(Request $request): Response
+{
+    return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics_block.html.twig', $this->buildBlockViewData($request));
+}
+
+
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(Request $request): Response
-    {
-        $now = new \DateTimeImmutable('now');
-        $defaultExportDate = $now->modify('first day of last month');
-
-        $selectedExportPeriod = $request->query->get('period', 'month');
-        $selectedExportYear   = (int) $request->query->get('year', $defaultExportDate->format('Y'));
-        $selectedExportMonth  = (int) $request->query->get('month', $defaultExportDate->format('m'));
-
-        $exportData = $this->getExportData(
-            $selectedExportPeriod,
-            $selectedExportYear,
-            $selectedExportMonth
-        );
-
-        $data = $this->getStats('month');
-
-        return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics.html.twig', [
-            'statistics'            => $data['summary'],
-            'sales_summary'         => $data['series'],
-            'defaultInterval'       => 'month',
-            'currentYear'           => (int) $now->format('Y'),
-
-            'selectedExportPeriod'  => $selectedExportPeriod,
-            'selectedExportYear'    => $selectedExportYear,
-            'selectedExportMonth'   => $selectedExportMonth,
-            'exportPreviewRows'     => $exportData['rows'],
-            'exportPreviewCount'    => $exportData['count'],
-            'exportPreviewTotal'    => $exportData['total_formatted'],
-            'exportFilename'        => $exportData['filename'],
-            'exportStart'           => $exportData['start'],
-            'exportEnd'             => $exportData['end'],
-        ]);
-    }
+public function index(Request $request): Response
+{
+    return $this->render('@SyliusAdmin/Dashboard/rachat_statistics.html.twig', $this->buildBlockViewData($request));
+}
 
     #[Route('/stats', name: 'stats', methods: ['GET'])]
     public function stats(Request $request): JsonResponse
@@ -393,4 +370,39 @@ final class RachatStatisticsController extends AbstractController
             ],
         ];
     }
+
+    private function buildBlockViewData(Request $request): array
+{
+    $now = new \DateTimeImmutable('now');
+    $defaultExportDate = $now->modify('first day of last month');
+
+    $selectedExportPeriod = $request->query->get('period', 'month');
+    $selectedExportYear   = (int) $request->query->get('year', $defaultExportDate->format('Y'));
+    $selectedExportMonth  = (int) $request->query->get('month', $defaultExportDate->format('m'));
+    $defaultInterval      = $request->query->get('interval', 'week');
+
+    $exportData = $this->getExportData(
+        $selectedExportPeriod,
+        $selectedExportYear,
+        $selectedExportMonth
+    );
+
+    $data = $this->getStats($defaultInterval);
+
+    return [
+        'statistics'            => $data['summary'],
+        'sales_summary'         => $data['series'],
+        'defaultInterval'       => $defaultInterval,
+        'currentYear'           => (int) $now->format('Y'),
+        'selectedExportPeriod'  => $selectedExportPeriod,
+        'selectedExportYear'    => $selectedExportYear,
+        'selectedExportMonth'   => $selectedExportMonth,
+        'exportPreviewRows'     => $exportData['rows'],
+        'exportPreviewCount'    => $exportData['count'],
+        'exportPreviewTotal'    => $exportData['total_formatted'],
+        'exportFilename'        => $exportData['filename'],
+        'exportStart'           => $exportData['start'],
+        'exportEnd'             => $exportData['end'],
+    ];
+}
 }
