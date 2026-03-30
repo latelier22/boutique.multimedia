@@ -1,0 +1,16 @@
+{% form_theme form '@SyliusUi/Form/theme.html.twig' %}
+
+<div class="ui middle aligned center aligned grid">
+    <div class="column">
+    
+        {{ sylius_template_event('sylius.admin.login.before_form', _context) }}
+         <img src="{{ asset('logo-multimedia.png') }}" class="ui fluid image">               
+        {{ form_start(form, {'action': action|default('/'), 'attr': {'class': 'ui large loadable form', 'novalidate': 'novalidate'}}) }}
+            <div class="ui left aligned very padded segment">
+                {{ sylius_template_event('sylius.admin.login.form.content', _context) }}
+            </div>
+
+            {{ sylius_template_event('sylius.admin.login.form', _context) }}
+        {{ form_end(form, {'render_rest': false}) }}
+    </div>
+</div>

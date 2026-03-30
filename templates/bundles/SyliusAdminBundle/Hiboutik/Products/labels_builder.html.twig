@@ -91,12 +91,12 @@
 	</h1>
 
 	<div class="builder-actions">
-		<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_pdf') }}">
-			<button class="ui primary button" type="submit">
-				<i class="file pdf icon"></i>
-				Générer le PDF
-			</button>
-		</form>
+		<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_pdf') }}" target="_blank">
+    <button class="ui primary button" type="submit">
+        <i class="file pdf icon"></i>
+        Générer le PDF
+    </button>
+</form>
 
 		<form method="post" action="{{ path('admin_hiboutik_product_labels_builder_clear') }}">
 			<button class="ui button" type="submit">

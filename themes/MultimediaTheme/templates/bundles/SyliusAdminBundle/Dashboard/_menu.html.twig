@@ -1,0 +1,333 @@
+<style>
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 12px;
+}
+
+.dashboard-card {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    min-height: 220px;
+    border-radius: 24px;
+    padding: 18px;
+    color: #fff;
+    box-shadow: 0 18px 34px rgba(0,0,0,.14);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.dashboard-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(255,255,255,.22) 0%, transparent 28%),
+        radial-gradient(circle at bottom left, rgba(255,255,255,.12) 0%, transparent 30%);
+    pointer-events: none;
+}
+
+.dashboard-card__top,
+.dashboard-card__bottom {
+    position: relative;
+    z-index: 1;
+}
+
+.dashboard-card__icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.16);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+    margin-bottom: 14px;
+    font-size: 22px;
+}
+
+.dashboard-card__title {
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 8px;
+}
+
+.dashboard-card__text {
+    font-size: .95rem;
+    line-height: 1.3;
+    color: rgba(255,255,255,.92);
+    max-width: 90%;
+}
+
+.dashboard-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dashboard-card__actions .ui.button {
+    margin: 0 !important;
+    border-radius: 16px !important;
+    font-weight: 800 !important;
+    min-height: 46px;
+}
+
+.dashboard-card__actions .ui.button.primary-link {
+    background: rgba(255,255,255,.96) !important;
+    color: #163c83 !important;
+    box-shadow: 0 10px 20px rgba(0,0,0,.10);
+}
+
+.dashboard-card__actions .ui.button.primary-link:hover {
+    background: #fff !important;
+    transform: translateY(-1px);
+}
+
+.dashboard-card__actions .ui.button.create-btn {
+    background: rgba(255,255,255,.12) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,.24) !important;
+    box-shadow: none !important;
+    cursor: default !important;
+    opacity: .95;
+}
+
+.dashboard-card--orange {
+    background: linear-gradient(135deg, #ff941f 0%, #ef6c00 100%);
+}
+
+.dashboard-card--blue {
+    background: linear-gradient(135deg, #2b67d1 0%, #163c83 100%);
+}
+
+.dashboard-card--green {
+    background: linear-gradient(135deg, #20b26b 0%, #11834b 100%);
+}
+
+.dashboard-card--purple {
+    background: linear-gradient(135deg, #8b5cf6 0%, #5b35c9 100%);
+}
+
+.dashboard-card--red {
+    background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
+}
+
+.dashboard-card--teal {
+    background: linear-gradient(135deg, #1fb6aa 0%, #0f766e 100%);
+}
+
+.dashboard-card--gold {
+    background: linear-gradient(135deg, #f7b733 0%, #fc7f2a 100%);
+}
+
+.dashboard-card--pink {
+    background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+}
+
+.dashboard-card--slate {
+    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+}
+
+.dashboard-card--indigo {
+    background: linear-gradient(135deg, #6366f1 0%, #3730a3 100%);
+}
+
+@media (max-width: 640px) {
+    .dashboard-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-card {
+        aspect-ratio: auto;
+        min-height: 210px;
+    }
+}
+</style>
+
+<div class="dashboard-cards">
+
+    <div class="dashboard-card dashboard-card--orange">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon"><i class="shop icon"></i></div>
+            <div class="dashboard-card__title">Rachats</div>
+            <div class="dashboard-card__text">Gestion des rachats, suivi et consultation.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_rachats_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer un rachat
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--blue">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon"><i class="users icon"></i></div>
+            <div class="dashboard-card__title">Vendeurs</div>
+            <div class="dashboard-card__text">Fiches vendeurs et suivi administratif.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_vendors_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer un vendeur
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--green">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon"><i class="ticket icon"></i></div>
+            <div class="dashboard-card__title">Caisse</div>
+            <div class="dashboard-card__text">Accès aux mouvements et à la caisse.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_till_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Nouveau mouvement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--purple">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon"><i class="box icon"></i></div>
+            <div class="dashboard-card__title">Arrivages</div>
+            <div class="dashboard-card__text">Réception, suivi et organisation des arrivages.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_arrivages_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer un arrivage
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--red">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">📱</div>
+            <div class="dashboard-card__title">Produits Hiboutik</div>
+            <div class="dashboard-card__text">Catalogue, édition et synchronisation produits.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_hiboutik_product_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer un produit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--teal">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">🏷️</div>
+            <div class="dashboard-card__title">Composeur étiquettes</div>
+            <div class="dashboard-card__text">Composer et imprimer les planches d’étiquettes.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Nouvelle planche
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--gold">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">👤</div>
+            <div class="dashboard-card__title">Clients Hiboutik</div>
+            <div class="dashboard-card__text">Recherche et consultation des clients Hiboutik.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_hiboutik_customer_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer un client
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--pink">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">🔧</div>
+            <div class="dashboard-card__title">Interventions</div>
+            <div class="dashboard-card__text">Réparations, suivi atelier et états d’avancement.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('app_admin_intervention_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer une intervention
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--slate">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">📦</div>
+            <div class="dashboard-card__title">Boîtes</div>
+            <div class="dashboard-card__text">Gestion des boîtes et affectations atelier.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('admin_boite_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer une boîte
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card dashboard-card--indigo">
+        <div class="dashboard-card__top">
+            <div class="dashboard-card__icon">💶</div>
+            <div class="dashboard-card__title">Ventes interventions</div>
+            <div class="dashboard-card__text">Consultation des ventes liées aux interventions.</div>
+        </div>
+        <div class="dashboard-card__bottom">
+            <div class="dashboard-card__actions">
+                <a href="{{ path('app_admin_intervention_sales_index') }}" class="ui large button primary-link">
+                    Ouvrir
+                </a>
+                <button type="button" class="ui large button create-btn">
+                    + Créer une vente
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>

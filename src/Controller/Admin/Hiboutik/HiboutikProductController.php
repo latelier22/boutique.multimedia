@@ -1661,85 +1661,13 @@ foreach ($miscRows as $row) {
 
     $filename = sprintf('labels-a5-builder-%s.pdf', date('Ymd-His'));
 
+    // dump($filename);
+
     $file = $this->labelTcpdfGenerator->generateA5Slots60x105($pdfSlots, $filename);
 
-    return $this->redirect($file['url']);
+    return $this->redirect($file['url'], 303);
 }
 
-// #[Route('/{id}/labels-a5-x4', name: 'labels_a5_x4', requirements: ['id' => '\d+'], methods: ['GET'])]
-// public function labelsA5x4(int $id): Response
-// {
-//     $product = $this->hib->getProduct($id);
-
-//     if (!$product) {
-//         throw $this->createNotFoundException("Produit introuvable");
-//     }
-
-//     $miscRows = $this->parseMiscTextRows((string)($product['misc_text'] ?? ''));
-
-//     $brandName = trim((string)($product['product_brand_name'] ?? ''));
-//     if ($brandName === '' && !empty($product['product_brand'])) {
-//         $brandsRes = $this->hib->listBrands();
-//         foreach (($brandsRes['data'] ?? []) as $b) {
-//             if ((int)($b['brand_id'] ?? 0) === (int)$product['product_brand']) {
-//                 $brandName = (string)($b['brand_name'] ?? '');
-//                 break;
-//             }
-//         }
-//     }
-
-//     $stateMeta = $this->resolveStateMetaFromTags($product['tags'] ?? []);
-
-//     $price = (float)($product['product_discount_price'] ?? 0);
-//     if ($price <= 0) {
-//         $price = (float)($product['product_price'] ?? 0);
-//     }
-
-//     $priceLabel = number_format($price, 2, ',', '');
-
-//     $productUrl = 'https://shop.multimedia-services.fr/produits/' . ($product['product_id'] ?? $id);
-//     $qrCodeDataUri = $this->qrCodeToDataUri($productUrl);
-
-//     // on peut essayer de repérer le stockage pour le haut de l'étiquette
-//     $storage = '';
-//     foreach ($miscRows as $row) {
-//         if (mb_strtolower($row['label']) === 'stockage') {
-//             $storage = $row['value'];
-//             break;
-//         }
-//     }
-
-//     $productView = [
-//         'product_id'      => $product['product_id'] ?? null,
-//         'product_model'   => (string)($product['product_model'] ?? ''),
-//         'product_barcode' => (string)($product['product_barcode'] ?? ''),
-//         'brand_name'      => $brandName,
-//         'storage'         => $storage,
-
-//         'state_label'     => $stateMeta['label'],
-//         'state_class'     => $stateMeta['class'],
-
-//         'price_label'     => $priceLabel,
-
-//         // TOUTES les lignes lues depuis misc_text
-//         'misc_rows'       => $miscRows,
-
-//         'footer_label'    => 'GARANTIE 2 ANS',
-//     ];
-
-//     $filename = sprintf(
-//     'labels-a5-x4-product-%d-%s.pdf',
-//     $id,
-//     date('Ymd-His')
-// );
-
-// $file = $this->labelPdfGenerator->generateA5FourSameLabels([
-//     'product' => $productView,
-//     'qr_code_data_uri' => $qrCodeDataUri,
-// ], $filename);
-
-// return $this->redirect($file['url']);
-// }
 
 
 private function parseMiscTextRows(string $miscText): array

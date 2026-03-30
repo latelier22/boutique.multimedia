@@ -140,7 +140,10 @@ services:
     #     tags:
     #         - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
 
-    
+ 
+    App\Menu\Admin\AdminMenuListener:
+        tags:
+            - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
   
 
     # ⚠️ Toute sous-classe hérite automatiquement des args du parent

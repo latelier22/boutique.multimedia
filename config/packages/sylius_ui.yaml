@@ -192,20 +192,20 @@ sylius_ui:
                         event: sylius.admin.customer.show.after_statistics
                 menu:
                     template: "@SyliusAdmin/Dashboard/_menu.html.twig"
-                    priority: 20
-                after_menu_legacy:
-                    template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
-                    priority: 15
-                    context:
-                        event: sylius.admin.dashboard.after_menu
-                latest:
-                    template: "@SyliusAdmin/Dashboard/_latest.html.twig"
-                    priority: 10
-                after_content_legacy:
-                    template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
-                    priority: 5
-                    context:
-                        event: sylius.admin.dashboard.after_content
+                    priority: 100
+                # after_menu_legacy:
+                #     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
+                #     priority: 15
+                #     context:
+                #         event: sylius.admin.dashboard.after_menu
+                # latest:
+                #     template: "@SyliusAdmin/Dashboard/_latest.html.twig"
+                #     priority: 10
+                # after_content_legacy:
+                #     template: "@SyliusUi/Block/_legacySonataEvent.html.twig"
+                #     priority: 5
+                #     context:
+                #         event: sylius.admin.dashboard.after_content
         sylius.admin.layout.sidebar:
             blocks:
                 # top_legacy:

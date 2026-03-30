@@ -14,117 +14,105 @@ final class RachatStatisticsController extends AbstractController
     public function __construct(private EntityManagerInterface $em) {}
 
     #[Route('', name: 'index', methods: ['GET'])]
-public function index(Request $request): Response
-{
-    // ✅ Par défaut : année en cours et mois précédent
-    $now = new \DateTimeImmutable('now');
-    $currentYear = $now->format('Y');
-    $currentMonth = (int) $now->format('m');
-    $lastMonth = $currentMonth === 1 ? 12 : $currentMonth - 1; // Mois précédent
+    public function index(Request $request): Response
+    {
+        $now = new \DateTimeImmutable('now');
+        $defaultExportDate = $now->modify('first day of last month');
 
-    // Si aucun paramètre "year" ou "month" n'est passé, on utilise ceux par défaut
-    $year = $request->query->get('year', $currentYear); // année par défaut : année actuelle
-    $month = $request->query->get('month', $lastMonth); // mois par défaut : mois précédent
+        $selectedExportPeriod = $request->query->get('period', 'month');
+        $selectedExportYear   = (int) $request->query->get('year', $defaultExportDate->format('Y'));
+        $selectedExportMonth  = (int) $request->query->get('month', $defaultExportDate->format('m'));
 
-    // Récupère les stats pour la période demandée
-    $data = $this->getStats('month'); // Tu peux ici choisir la période par défaut ou en fonction du paramètre
+        $exportData = $this->getExportData(
+            $selectedExportPeriod,
+            $selectedExportYear,
+            $selectedExportMonth
+        );
 
-    return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics.html.twig', [
-        'statistics'       => $data['summary'],
-        'sales_summary'    => $data['series'],
-        'defaultInterval'  => 'month',  // ou 'week', 'year' en fonction de ton paramètre
-        'currentYear'      => $year,
-        'currentMonth'     => $month,
-    ]);
-}
+        $data = $this->getStats('month');
+
+        return $this->render('@SyliusAdmin/Dashboard/_rachat_statistics.html.twig', [
+            'statistics'            => $data['summary'],
+            'sales_summary'         => $data['series'],
+            'defaultInterval'       => 'month',
+            'currentYear'           => (int) $now->format('Y'),
+
+            'selectedExportPeriod'  => $selectedExportPeriod,
+            'selectedExportYear'    => $selectedExportYear,
+            'selectedExportMonth'   => $selectedExportMonth,
+            'exportPreviewRows'     => $exportData['rows'],
+            'exportPreviewCount'    => $exportData['count'],
+            'exportPreviewTotal'    => $exportData['total_formatted'],
+            'exportFilename'        => $exportData['filename'],
+            'exportStart'           => $exportData['start'],
+            'exportEnd'             => $exportData['end'],
+        ]);
+    }
 
     #[Route('/stats', name: 'stats', methods: ['GET'])]
     public function stats(Request $request): JsonResponse
     {
         $interval = $request->query->get('interval', 'week');
         $data = $this->getStats($interval);
+
         return $this->json($data);
     }
 
-    /**
-     * EXPORT COMPTABLE (CSV) – SANS AUCUNE DONNÉE PERSONNELLE VENDEUR
-     *
-     * GET /admin/dashboard/rachats/export?period=month|year&year=2025&month=11
-     */
+    #[Route('/preview', name: 'preview', methods: ['GET'])]
+    public function preview(Request $request): Response
+    {
+        $now = new \DateTimeImmutable('now');
+        $defaultExportDate = $now->modify('first day of last month');
+
+        $period = $request->query->get('period', 'month');
+        $year   = (int) $request->query->get('year', $defaultExportDate->format('Y'));
+        $month  = (int) $request->query->get('month', $defaultExportDate->format('m'));
+
+        $exportData = $this->getExportData($period, $year, $month);
+
+        return $this->render('@SyliusAdmin/Dashboard/_rachat_export_preview.html.twig', [
+            'rows'          => $exportData['rows'],
+            'previewCount'  => $exportData['count'],
+            'previewTotal'  => $exportData['total_formatted'],
+            'filename'      => $exportData['filename'],
+            'start'         => $exportData['start'],
+            'end'           => $exportData['end'],
+            'period'        => $exportData['period'],
+            'year'          => $exportData['year'],
+            'month'         => $exportData['month'],
+        ]);
+    }
+
     #[Route('/export', name: 'export', methods: ['GET'])]
     public function export(Request $request): StreamedResponse
     {
-        $period = $request->query->get('period', 'month'); // month | year
+        $now = new \DateTimeImmutable('now');
+        $defaultExportDate = $now->modify('first day of last month');
 
-        $now   = new \DateTimeImmutable('now');
-        $year  = (int) $request->query->get('year', $now->format('Y'));
-        $month = (int) $request->query->get('month', $now->format('m'));
+        $period = $request->query->get('period', 'month');
+        $year   = (int) $request->query->get('year', $defaultExportDate->format('Y'));
+        $month  = (int) $request->query->get('month', $defaultExportDate->format('m'));
 
-        if ($period === 'year') {
-            $start = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year));
-            $end   = $start->modify('+1 year');
-            $filename = sprintf('rachats_%d.csv', $year);
-        } else {
-            // Mensuel par défaut
-            $start = new \DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
-            $end   = $start->modify('+1 month');
-            $filename = sprintf('rachats_%d-%02d.csv', $year, $month);
-        }
+        $exportData = $this->getExportData($period, $year, $month);
+        $rows = $exportData['rows'];
+        $filename = $exportData['filename'];
 
-        $repo = $this->em->getRepository(Rachat::class);
-
-        // ⚠️ PAS de COALESCE ici, Doctrine râle dans WHERE
-        // On fait à la main :
-        // - soit date_cession dans l’intervalle
-        // - soit pas de date_cession et created_at dans l’intervalle
-        $qb = $repo->createQueryBuilder('r')
-            ->where('r.dateCession IS NOT NULL AND r.dateCession >= :start AND r.dateCession < :end')
-            ->orWhere('r.dateCession IS NULL AND r.createdAt >= :start AND r.createdAt < :end')
-            ->setParameters([
-                'start' => $start,
-                'end'   => $end,
-            ])
-            ->orderBy('r.dateCession', 'ASC')
-            ->addOrderBy('r.createdAt', 'ASC');
-
-        /** @var Rachat[] $rachats */
-        $rachats = $qb->getQuery()->getResult();
-
-        // ⚠️ AUCUNE info perso du vendeur : uniquement colonnes comptables.
-        $response = new StreamedResponse(function () use ($rachats) {
+        $response = new StreamedResponse(function () use ($rows) {
             $handle = fopen('php://output', 'w+');
 
-            // BOM UTF-8 pour Excel
             fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // En-têtes du fichier – tu pourras en rajouter
             fputcsv($handle, [
                 'ID rachat',
                 'Date rachat',
-                'Montant achat',  // prix_achat
+                'Montant achat',
             ], ';');
 
-            foreach ($rachats as $rachat) {
-                /** @var Rachat $rachat */
-
-                // Date = date_cession si présente, sinon created_at
-                $dateRachat = null;
-                if (method_exists($rachat, 'getDateCession') && $rachat->getDateCession() instanceof \DateTimeInterface) {
-                    $dateRachat = $rachat->getDateCession();
-                } elseif (method_exists($rachat, 'getCreatedAt') && $rachat->getCreatedAt() instanceof \DateTimeInterface) {
-                    $dateRachat = $rachat->getCreatedAt();
-                }
-
-                // Montant = prix_achat (champ déjà utilisé dans tes stats)
-                $prixAchat = '';
-                if (method_exists($rachat, 'getPrixAchat')) {
-                    $prixAchat = $rachat->getPrixAchat();
-                }
-
+            foreach ($rows as $row) {
                 fputcsv($handle, [
-                    $rachat->getId(),
-                    $dateRachat ? $dateRachat->format('Y-m-d') : '',
-                    $prixAchat,
+                    $row['id'],
+                    $row['date'],
+                    $row['amount_csv'],
                 ], ';');
             }
 
@@ -132,23 +120,130 @@ public function index(Request $request): Response
         });
 
         $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set(
-            'Content-Disposition',
-            'attachment; filename="'.$filename.'"'
-        );
+        $response->headers->set('Content-Disposition', 'attachment; filename="'.$filename.'"');
 
         return $response;
     }
 
-    // === Convertit proprement une valeur en DateTimeImmutable ===
-    private function toDate($value): ?\DateTimeImmutable
+    private function getExportData(string $period, int $year, int $month): array
     {
-        if ($value instanceof \DateTimeInterface) return \DateTimeImmutable::createFromInterface($value);
-        if (is_string($value) && $value !== '') return new \DateTimeImmutable($value);
+        [$period, $year, $month, $start, $end, $filename] = $this->buildExportRange($period, $year, $month);
+
+        $rachats = $this->findRachatsForExport($start, $end);
+
+        $rows = [];
+        $total = 0.0;
+
+        foreach ($rachats as $rachat) {
+            $dateRachat = $this->resolveRachatDate($rachat);
+            $amount = $this->normalizeAmount(
+                method_exists($rachat, 'getPrixAchat') ? $rachat->getPrixAchat() : null
+            );
+
+            $rows[] = [
+                'id' => $rachat->getId(),
+                'date' => $dateRachat ? $dateRachat->format('Y-m-d') : '',
+                'amount' => number_format($amount, 2, ',', ' '),
+                'amount_csv' => number_format($amount, 2, '.', ''),
+            ];
+
+            $total += $amount;
+        }
+
+        return [
+            'period' => $period,
+            'year' => $year,
+            'month' => $month,
+            'start' => $start,
+            'end' => $end,
+            'filename' => $filename,
+            'rows' => $rows,
+            'count' => count($rows),
+            'total' => $total,
+            'total_formatted' => number_format($total, 2, ',', ' '),
+        ];
+    }
+
+    private function buildExportRange(string $period, int $year, int $month): array
+    {
+        $period = $period === 'year' ? 'year' : 'month';
+        $month = max(1, min(12, $month));
+
+        if ($period === 'year') {
+            $start = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year));
+            $end   = $start->modify('+1 year');
+            $filename = sprintf('rachats_%d.csv', $year);
+        } else {
+            $start = new \DateTimeImmutable(sprintf('%d-%02d-01 00:00:00', $year, $month));
+            $end   = $start->modify('+1 month');
+            $filename = sprintf('rachats_%d-%02d.csv', $year, $month);
+        }
+
+        return [$period, $year, $month, $start, $end, $filename];
+    }
+
+    /**
+     * @return Rachat[]
+     */
+    private function findRachatsForExport(\DateTimeImmutable $start, \DateTimeImmutable $end): array
+    {
+        $repo = $this->em->getRepository(Rachat::class);
+
+        return $repo->createQueryBuilder('r')
+            ->where('r.dateCession IS NOT NULL AND r.dateCession >= :start AND r.dateCession < :end')
+            ->orWhere('r.dateCession IS NULL AND r.createdAt >= :start AND r.createdAt < :end')
+            ->setParameters([
+                'start' => $start,
+                'end'   => $end,
+            ])
+            ->orderBy('r.dateCession', 'ASC')
+            ->addOrderBy('r.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    private function resolveRachatDate(Rachat $rachat): ?\DateTimeImmutable
+    {
+        if (method_exists($rachat, 'getDateCession') && $rachat->getDateCession() instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($rachat->getDateCession());
+        }
+
+        if (method_exists($rachat, 'getCreatedAt') && $rachat->getCreatedAt() instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($rachat->getCreatedAt());
+        }
+
         return null;
     }
 
-    // === Fonction centrale ===
+    private function normalizeAmount(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        $normalized = str_replace("\xc2\xa0", ' ', (string) $value);
+        $normalized = str_replace(' ', '', $normalized);
+        $normalized = str_replace(',', '.', $normalized);
+
+        return is_numeric($normalized) ? (float) $normalized : 0.0;
+    }
+
+    private function toDate($value): ?\DateTimeImmutable
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return \DateTimeImmutable::createFromInterface($value);
+        }
+        if (is_string($value) && $value !== '') {
+            return new \DateTimeImmutable($value);
+        }
+
+        return null;
+    }
+
     private function getStats(string $interval = 'week'): array
     {
         $repo = $this->em->getRepository(Rachat::class);
@@ -156,7 +251,6 @@ public function index(Request $request): Response
         $series = [];
         $labels = [];
 
-        // === 15 DERNIERS JOURS ===
         if ($interval === 'week') {
             $start = (clone $now)->modify('-14 days')->setTime(0, 0, 0);
             $end   = (clone $now)->setTime(23, 59, 59);
@@ -177,29 +271,21 @@ public function index(Request $request): Response
                 ->getQuery()
                 ->getArrayResult();
 
-            error_log('==== [RACHATS WEEK] ====');
-            error_log('start=' . $start->format('Y-m-d H:i:s') . ' end=' . $end->format('Y-m-d H:i:s'));
-            error_log('rows=' . count($results));
-
             foreach ($results as $row) {
                 $date = $this->toDate($row['date']);
-                if (!$date) continue;
+                if (!$date) {
+                    continue;
+                }
                 $key = $date->format('d/m');
                 if (isset($series[$key])) {
-                    $series[$key] += (float) str_replace(',', '.', (string) $row['prix_achat']);
+                    $series[$key] += (float) str_replace(',', '.', (string) $row['prixAchat']);
                 }
             }
 
             $values = array_values($series);
-        }
-
-        // === MOIS COURANT ===
-        elseif ($interval === 'month') {
+        } elseif ($interval === 'month') {
             $start = (clone $now)->modify('first day of this month')->setTime(0, 0, 0);
             $end   = (clone $now)->modify('last day of this month')->setTime(23, 59, 59);
-
-            error_log('==== [RACHATS MONTH] ====');
-            error_log('start=' . $start->format('Y-m-d H:i:s') . ' end=' . $end->format('Y-m-d H:i:s'));
 
             $days = (int) $end->format('t');
             for ($i = 1; $i <= $days; $i++) {
@@ -216,22 +302,19 @@ public function index(Request $request): Response
                 ->getQuery()
                 ->getArrayResult();
 
-            error_log('rows=' . count($results));
-
             foreach ($results as $row) {
                 $date = $this->toDate($row['date']);
-                if (!$date) continue;
+                if (!$date) {
+                    continue;
+                }
                 $day = $date->format('d');
                 if (isset($series[$day])) {
-                    $series[$day] += (float) str_replace(',', '.', (string) $row['prix_achat']);
+                    $series[$day] += (float) str_replace(',', '.', (string) $row['prixAchat']);
                 }
             }
 
             $values = array_values($series);
-        }
-
-        // === ANNÉE COURANTE ===
-        elseif ($interval === 'year') {
+        } elseif ($interval === 'year') {
             $year  = (int) $now->format('Y');
             $start = new \DateTimeImmutable("$year-01-01 00:00:00");
             $end   = new \DateTimeImmutable("$year-12-31 23:59:59");
@@ -247,23 +330,20 @@ public function index(Request $request): Response
                 ->getQuery()
                 ->getArrayResult();
 
-            error_log('==== [RACHATS YEAR] rows=' . count($results));
-
             foreach ($results as $row) {
                 $date = $this->toDate($row['date']);
-                if (!$date) continue;
+                if (!$date) {
+                    continue;
+                }
                 $monthIdx = ((int) $date->format('n')) - 1;
                 $label = $labels[$monthIdx] ?? null;
                 if ($label) {
-                    $series[$label] += (float) str_replace(',', '.', (string) $row['prix_achat']);
+                    $series[$label] += (float) str_replace(',', '.', (string) $row['prixAchat']);
                 }
             }
 
             $values = array_values($series);
-        }
-
-        // === 12 DERNIERS MOIS ===
-        else {
+        } else {
             $start  = (clone $now)->modify('-11 months')->modify('first day of this month')->setTime(0, 0, 0);
             $end    = (clone $now)->setTime(23, 59, 59);
             $cursor = clone $start;
@@ -283,21 +363,20 @@ public function index(Request $request): Response
                 ->getQuery()
                 ->getArrayResult();
 
-            error_log('==== [RACHATS LAST12] rows=' . count($results));
-
             foreach ($results as $row) {
                 $date = $this->toDate($row['date']);
-                if (!$date) continue;
+                if (!$date) {
+                    continue;
+                }
                 $key = $date->format('Y-m');
                 if (isset($series[$key])) {
-                    $series[$key] += (float) str_replace(',', '.', (string) $row['prix_achat']);
+                    $series[$key] += (float) str_replace(',', '.', (string) $row['prixAchat']);
                 }
             }
 
             $values = array_values($series);
         }
 
-        // === RÉSUMÉ GLOBAL ===
         $sum = array_sum($values);
         $count = array_sum(array_map(fn($v) => $v > 0 ? 1 : 0, $values));
         $avg = $count ? $sum / $count : 0;

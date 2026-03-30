@@ -1,0 +1,450 @@
+{% import "@SyliusAdmin/Common/Macro/money.html.twig" as money %}
+{% set labels = sales_summary.intervals %}
+{% set values = sales_summary.sales %}
+
+{% block content %}
+<style>
+  .rachat-export-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    margin-bottom: 1.5rem;
+  }
+
+  .rachat-export-card,
+  .rachat-preview-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+  }
+
+  .rachat-export-card .content,
+  .rachat-preview-card .content {
+    padding: 1.25rem;
+  }
+
+  .rachat-export-title {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .35rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .rachat-export-subtitle {
+    color: #6b7280;
+    margin-bottom: 1rem;
+  }
+
+  .rachat-export-actions {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  .rachat-preview-scroll {
+    max-height: 520px;
+    overflow: auto;
+  }
+
+  .rachat-preview-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .75rem;
+    margin-bottom: 1rem;
+  }
+
+  .rachat-preview-box {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: .85rem 1rem;
+    background: #f9fafb;
+  }
+
+  .rachat-preview-box .label {
+    font-size: .8rem;
+    color: #6b7280;
+    margin-bottom: .3rem;
+  }
+
+  .rachat-preview-box .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .rachat-preview-period {
+    color: #6b7280;
+    margin-bottom: 1rem;
+  }
+
+  .rachat-export-loader {
+    min-height: 180px;
+    position: relative;
+  }
+
+  .rachat-export-loader .ui.dimmer {
+    border-radius: 12px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem 0;
+  }
+
+  .stats-column {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .stats .ui.top.attached.action.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 960px) {
+    .rachat-export-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .rachat-preview-meta {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="rachat-export-grid">
+  <div class="rachat-export-card">
+    <div class="content">
+      <div class="rachat-export-title">
+        <i class="file excel outline icon"></i>
+        Export comptable des rachats
+      </div>
+      <div class="rachat-export-subtitle">
+        Choisis la période. L’aperçu à droite montre exactement les lignes qui seront exportées.
+      </div>
+
+      <form id="rachat-export-form" class="ui form">
+        <div class="field">
+          <label>Période</label>
+          <select name="period" id="export-period" class="ui dropdown">
+            <option value="month" {% if selectedExportPeriod == 'month' %}selected{% endif %}>Mensuelle</option>
+            <option value="year" {% if selectedExportPeriod == 'year' %}selected{% endif %}>Annuelle</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Année</label>
+          <select name="year" id="export-year" class="ui dropdown">
+            {% for y in (currentYear - 3)..(currentYear + 1) %}
+              <option value="{{ y }}" {% if y == selectedExportYear %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field" id="month-field">
+          <label>Mois</label>
+          <select name="month" id="export-month" class="ui dropdown">
+            {% for m in 1..12 %}
+              <option value="{{ m }}" {% if m == selectedExportMonth %}selected{% endif %}>
+                {{ '%02d'|format(m) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="rachat-export-actions">
+          <a
+            id="rachat-export-link"
+            class="ui primary fluid button"
+            href="{{ path('admin_dashboard_rachats_export', {
+              period: selectedExportPeriod,
+              year: selectedExportYear,
+              month: selectedExportMonth
+            }) }}"
+          >
+            <i class="download icon"></i>
+            Télécharger le CSV
+          </a>
+
+          <div class="ui info message" style="margin:0;">
+            <div class="header">Confidentialité</div>
+            <p style="margin:.4rem 0 0 0;">
+              Le CSV ne contient aucune donnée personnelle vendeur.
+            </p>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="rachat-preview-card">
+    <div class="content">
+      <div class="rachat-export-title">
+        <i class="eye icon"></i>
+        Aperçu du fichier exporté
+      </div>
+      <div class="rachat-export-subtitle">
+        Mise à jour automatique dès qu’un filtre change.
+      </div>
+
+      <div class="rachat-export-loader">
+        <div class="ui inverted dimmer" id="rachat-preview-loader">
+          <div class="ui text loader">Actualisation de l’aperçu…</div>
+        </div>
+
+        <div id="rachat-export-preview">
+          {% include '@SyliusAdmin/Dashboard/_rachat_export_preview.html.twig' with {
+            rows: exportPreviewRows,
+            previewCount: exportPreviewCount,
+            previewTotal: exportPreviewTotal,
+            filename: exportFilename,
+            start: exportStart,
+            end: exportEnd,
+            period: selectedExportPeriod,
+            year: selectedExportYear,
+            month: selectedExportMonth
+          } %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ui grid">
+  <div class="column">
+    <div class="stats">
+      <div class="ui top attached action header">
+        <div style="display:flex;align-items:center;gap:.7rem;">
+          <i class="chart bar icon"></i>
+          <span>Rachats</span>
+        </div>
+
+        <div class="ui buttons" style="margin-left: auto;">
+          <button class="ui basic button active green" data-rachat-stats="week" data-url="{{ path('admin_dashboard_rachats_stats') }}">15 derniers jours</button>
+          <button class="ui basic button" data-rachat-stats="month" data-url="{{ path('admin_dashboard_rachats_stats') }}">Mois courant</button>
+          <button class="ui basic button" data-rachat-stats="year" data-url="{{ path('admin_dashboard_rachats_stats') }}">Année {{ currentYear }}</button>
+          <button class="ui basic button" data-rachat-stats="last12" data-url="{{ path('admin_dashboard_rachats_stats') }}">12 derniers mois</button>
+        </div>
+      </div>
+
+      <div class="ui attached segment spaceless">
+        <div class="stats-grid">
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-total" class="value" style="padding-bottom:10px;">
+                {{ statistics.total_sales }} €
+              </div>
+              <div class="label">Total</div>
+            </div>
+          </div>
+
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-count" class="value" style="padding-bottom:10px;">
+                {{ statistics.number_of_new_orders }}
+              </div>
+              <div class="label">Opérations</div>
+            </div>
+          </div>
+
+          <div class="stats-column">
+            <div class="ui tiny statistic">
+              <div id="rachat-avg" class="value" style="padding-bottom:10px;">
+                {{ statistics.average_order_value }} €
+              </div>
+              <div class="label">Prix moyen</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui bottom attached segment stats-graph" style="padding:0 1rem 1rem 1rem;height:260px;position:relative;">
+        <div class="ui inverted dimmer stats-loader">
+          <div class="ui loader"></div>
+        </div>
+        <canvas
+          id="rachat-stats-graph"
+          style="width:100%;height:100%;display:block;"
+          data-labels="{{ labels|json_encode() }}"
+          data-values="{{ values|json_encode() }}">
+        </canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('rachat-export-form');
+  const previewBox = document.getElementById('rachat-export-preview');
+  const previewLoader = document.getElementById('rachat-preview-loader');
+  const exportLink = document.getElementById('rachat-export-link');
+  const monthField = document.getElementById('month-field');
+  const periodField = document.getElementById('export-period');
+
+  if (form && previewBox && previewLoader && exportLink && periodField) {
+    const previewUrl = "{{ path('admin_dashboard_rachats_preview') }}";
+    const exportUrl = "{{ path('admin_dashboard_rachats_export') }}";
+
+    function buildQueryString() {
+      const formData = new FormData(form);
+      const params = new URLSearchParams();
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'month' && formData.get('period') === 'year') {
+          continue;
+        }
+        params.append(key, value);
+      }
+
+      return params.toString();
+    }
+
+    function refreshExportLink() {
+      exportLink.href = exportUrl + '?' + buildQueryString();
+    }
+
+    function syncMonthField() {
+      const isYear = periodField.value === 'year';
+      monthField.style.display = isYear ? 'none' : '';
+    }
+
+    let timeout = null;
+
+    async function refreshPreview() {
+      previewLoader.classList.add('active');
+
+      try {
+        const res = await fetch(previewUrl + '?' + buildQueryString(), {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error('Erreur HTTP ' + res.status);
+        }
+
+        const html = await res.text();
+        previewBox.innerHTML = html;
+        refreshExportLink();
+      } catch (e) {
+        console.error(e);
+        previewBox.innerHTML = `
+          <div class="ui negative message">
+            <div class="header">Impossible de charger l’aperçu</div>
+            <p>Vérifie la route AJAX et les paramètres envoyés.</p>
+          </div>
+        `;
+      } finally {
+        setTimeout(() => previewLoader.classList.remove('active'), 200);
+      }
+    }
+
+    function scheduleRefresh() {
+      clearTimeout(timeout);
+      timeout = setTimeout(refreshPreview, 200);
+    }
+
+    syncMonthField();
+    refreshExportLink();
+
+    form.querySelectorAll('select').forEach(el => {
+      el.addEventListener('change', () => {
+        syncMonthField();
+        scheduleRefresh();
+      });
+    });
+  }
+
+  const canvas = document.getElementById('rachat-stats-graph');
+  const loader = document.querySelector('.stats-loader');
+  if (!canvas) return;
+
+  let chart;
+
+  function drawChart(labels, values) {
+    const ctx = canvas.getContext('2d');
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Montant des rachats (€)',
+          data: values,
+          backgroundColor: '#21ba45',
+          borderColor: '#16ab39',
+          borderWidth: 1,
+          barThickness: 22,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: {
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  drawChart(JSON.parse(canvas.dataset.labels), JSON.parse(canvas.dataset.values));
+
+  document.querySelectorAll('[data-rachat-stats]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const interval = btn.dataset.rachatStats;
+      const url = btn.dataset.url + '?interval=' + interval;
+
+      document.querySelectorAll('[data-rachat-stats]').forEach(b => b.classList.remove('green', 'active'));
+      btn.classList.add('green', 'active');
+
+      loader.classList.add('active');
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        document.getElementById('rachat-total').textContent = data.summary.total_sales + ' €';
+        document.getElementById('rachat-count').textContent = data.summary.number_of_new_orders;
+        document.getElementById('rachat-avg').textContent = data.summary.average_order_value + ' €';
+
+        drawChart(data.series.intervals, data.series.sales);
+      } catch (e) {
+        console.error('Erreur stats:', e);
+      } finally {
+        setTimeout(() => loader.classList.remove('active'), 300);
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,55 +1,146 @@
-<div class="ui secondary pointing menu admin-top-tools-menu" style="margin-bottom:1rem">
+<style>
+.admin-top-tools-menu.ui.menu {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 10px;
+    margin-bottom: 1rem !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+.admin-top-tools-menu.ui.menu::before,
+.admin-top-tools-menu.ui.menu::after {
+    display: none !important;
+}
+
+.admin-top-tools-menu.ui.menu > .item {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 54px;
+    padding: 12px 16px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 18px !important;
+    background: linear-gradient(135deg, #1f4ea8 0%, #163c83 100%) !important;
+    color: #fff !important;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    white-space: normal !important;
+    word-break: break-word;
+    box-shadow: 0 10px 22px rgba(22, 60, 131, .20);
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    flex: 0 1 auto;
+}
+
+.admin-top-tools-menu.ui.menu > .item:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #255dc7 0%, #1b4699 100%) !important;
+    box-shadow: 0 14px 28px rgba(22, 60, 131, .26);
+    color: #fff !important;
+}
+
+.admin-top-tools-menu.ui.menu > .item.active {
+    background: linear-gradient(135deg, #ff8a1f 0%, #ef6c00 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 14px 30px rgba(239, 108, 0, .28);
+}
+
+.admin-top-tools-menu.ui.menu > .item.active::after,
+.admin-top-tools-menu.ui.menu > .item::after {
+    display: none !important;
+}
+
+.admin-top-tools-menu.ui.menu > .item span {
+    display: block;
+    white-space: normal;
+}
+
+@media (max-width: 1100px) {
+    .admin-top-tools-menu.ui.menu > .item {
+        flex: 1 1 calc(33.333% - 10px);
+    }
+}
+
+@media (max-width: 700px) {
+    .admin-top-tools-menu.ui.menu > .item {
+        flex: 1 1 calc(50% - 10px);
+        min-height: 52px;
+        padding: 10px 12px !important;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 460px) {
+    .admin-top-tools-menu.ui.menu > .item {
+        flex: 1 1 100%;
+    }
+}
+</style>
+
+<div class="ui secondary menu admin-top-tools-menu">
+
+    <a href="{{ path('sylius_admin_dashboard') }}" 
+       class="item {{ app.request.attributes.get('_route') starts with 'sylius_admin_dashboard' ? 'active' : '' }}">
+        <span>🏠 ACCUEIL</span>
+    </a>
+
     <a href="{{ path('admin_rachats_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_' ? 'active' : '' }}">
-        📱 Rachats
+        <span>📱 Rachats</span>
     </a>
 
     <a href="{{ path('admin_till_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_till_' ? 'active' : '' }}">
-        💶 Caisse
+        <span>💶 Caisse</span>
     </a>
 
     <a href="{{ path('admin_dashboard_rachats_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_dashboard_rachats_' ? 'active' : '' }}">
-       ➜] Export comptable
-    </a>    
+        <span>📤 Export comptable</span>
+    </a>
 
     <a href="{{ path('admin_arrivages_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_arrivages_' ? 'active' : '' }}">
-        📦 Arrivages
+        <span>📦 Arrivages</span>
     </a>
 
     <a href="{{ path('admin_vendors_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_vendors_' ? 'active' : '' }}">
-        👤 Vendeurs
+        <span>👤 Vendeurs</span>
     </a>
 
-     <a href="{{ path('admin_hiboutik_product_index') }}"
+    <a href="{{ path('admin_hiboutik_product_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_' ? 'active' : '' }}">
-        📱 Produits Hiboutik
+        <span>📱 Produits Hiboutik</span>
     </a>
 
-       <a href="{{ path('admin_hiboutik_product_labels_builder') }}"
-          class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_labels_builder' ? 'active' : '' }}">
-         🏷️ Composeur étiquettes
+    <a href="{{ path('admin_hiboutik_product_labels_builder') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_labels_builder' ? 'active' : '' }}">
+        <span>🏷️ Composeur étiquettes</span>
+    </a>
 
     <a href="{{ path('admin_hiboutik_customer_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_customer_' ? 'active' : '' }}">
-       👤 Clients Hiboutik
+        <span>👤 Clients Hiboutik</span>
     </a>
 
     <a href="{{ path('app_admin_intervention_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_' ? 'active' : '' }}">
-       🔧 Interventions
+        <span>🔧 Interventions</span>
     </a>
 
-     <a href="{{ path('admin_boite_index') }}"
+    <a href="{{ path('admin_boite_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_intervention_boite' ? 'active' : '' }}">
-       📦 Boites
+        <span>📦 Boîtes</span>
     </a>
 
     <a href="{{ path('app_admin_intervention_sales_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_sales' ? 'active' : '' }}">
-       💶 Ventes (interventions)
+        <span>💶 Ventes<br>(interventions)</span>
     </a>
 </div>

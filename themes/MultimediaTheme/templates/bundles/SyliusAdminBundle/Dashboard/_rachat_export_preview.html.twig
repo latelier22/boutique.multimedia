@@ -1,0 +1,52 @@
+<div class="rachat-preview-meta">
+  <div class="rachat-preview-box">
+    <div class="label">Fichier</div>
+    <div class="value">{{ filename }}</div>
+  </div>
+
+  <div class="rachat-preview-box">
+    <div class="label">Nombre de lignes</div>
+    <div class="value">{{ previewCount }}</div>
+  </div>
+
+  <div class="rachat-preview-box">
+    <div class="label">Montant total</div>
+    <div class="value">{{ previewTotal }} €</div>
+  </div>
+</div>
+
+<div class="rachat-preview-period">
+  Période couverte :
+  <strong>{{ start|date('d/m/Y') }}</strong>
+  au
+  <strong>{{ end|date('d/m/Y') }}</strong>
+</div>
+
+<div class="rachat-preview-scroll">
+  <table class="ui very compact celled striped table">
+    <thead>
+      <tr>
+        <th style="width: 120px;">ID rachat</th>
+        <th style="width: 160px;">Date rachat</th>
+        <th class="right aligned">Montant achat</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>#{{ row.id }}</td>
+          <td>{{ row.date }}</td>
+          <td class="right aligned">{{ row.amount }} €</td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="3">
+            <div class="ui warning message" style="margin:0;">
+              Aucun rachat sur cette période.
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
