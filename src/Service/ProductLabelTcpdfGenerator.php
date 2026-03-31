@@ -399,8 +399,75 @@ public function generateA5Slots60x105(array $slotsData, string $filename): array
     ];
 }
 
+public function generateA4EightLabels60x105(array $slotsData, string $filename): array
+{
+    $dir = $this->projectDir . '/public/uploads/labels';
+    (new Filesystem())->mkdir($dir, 0775);
 
+    $path = $dir . '/' . $filename;
+    $url  = '/uploads/labels/' . $filename;
 
+    if (file_exists($path)) {
+        @unlink($path);
+    }
 
+    $pdf = new \TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('Multimédia Services');
+    $pdf->SetAuthor('Multimédia Services');
+    $pdf->SetTitle('Étiquettes A4 x8');
+    $pdf->setPrintHeader(false);
+    $pdf->setPrintFooter(false);
+    $pdf->SetMargins(0, 0, 0, true);
+    $pdf->SetAutoPageBreak(false, 0);
+    $pdf->SetCellPadding(0);
+    $pdf->AddPage();
+
+    $positions = [
+        ['x' => 28.5,  'y' => 0.0,   'w' => 60.0, 'h' => 105.0],
+        ['x' => 88.5,  'y' => 0.0,   'w' => 60.0, 'h' => 105.0],
+        ['x' => 148.5, 'y' => 0.0,   'w' => 60.0, 'h' => 105.0],
+        ['x' => 208.5, 'y' => 0.0,   'w' => 60.0, 'h' => 105.0],
+        ['x' => 28.5,  'y' => 105.0, 'w' => 60.0, 'h' => 105.0],
+        ['x' => 88.5,  'y' => 105.0, 'w' => 60.0, 'h' => 105.0],
+        ['x' => 148.5, 'y' => 105.0, 'w' => 60.0, 'h' => 105.0],
+        ['x' => 208.5, 'y' => 105.0, 'w' => 60.0, 'h' => 105.0],
+    ];
+
+    foreach ($positions as $i => $pos) {
+        $slotData = $slotsData[$i] ?? null;
+
+        if ($slotData !== null) {
+            $this->drawLabel($pdf, $pos['x'], $pos['y'], $pos['w'], $pos['h'], $slotData);
+        } else {
+            $pdf->SetDrawColor(180, 180, 180);
+            $pdf->SetLineWidth(0.2);
+            $pdf->Rect($pos['x'], $pos['y'], $pos['w'], $pos['h']);
+        }
+    }
+
+    $this->drawCropMarksA4x8($pdf);
+
+    $pdf->Output($path, 'F');
+
+    return [
+        'path' => $path,
+        'url'  => $url,
+    ];
+}
+
+private function drawCropMarksA4x8(TCPDF $pdf): void
+{
+    $pdf->SetDrawColor(0, 0, 0);
+    $pdf->SetLineWidth(0.2);
+
+    foreach ([28.5, 88.5, 148.5, 208.5, 268.5] as $x) {
+        $pdf->Line($x, 0, $x, 4);
+        $pdf->Line($x, 103, $x, 107);
+        $pdf->Line($x, 206, $x, 210);
+    }
+
+    $pdf->Line(24.5, 105, 28.5, 105);
+    $pdf->Line(268.5, 105, 272.5, 105);
+}
 
 }

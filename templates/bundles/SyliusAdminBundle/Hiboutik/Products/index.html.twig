@@ -6,7 +6,7 @@
 <style>
   :root{
     --hib-topbar-h: 56px;
-    --hib-sticky-h: 170px;
+    --hib-sticky-h: 260px;
     --hib-sticky-top: calc(var(--hib-topbar-h) + var(--hib-sticky-h));
   }
 
@@ -17,92 +17,127 @@
     top: var(--hib-topbar-h);
     z-index: 1500;
     background:#fff;
-    padding: 10px 0;
+    padding: 10px 0 12px 0;
     border-bottom: 1px solid rgba(0,0,0,.08);
     box-shadow: 0 6px 12px rgba(0,0,0,.06);
   }
 
+  .sticky-inner{
+    background:#fff;
+  }
+
+  .top-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-bottom:12px;
+  }
+
   #filtersRow{
-    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
     margin:0 0 8px 0;
   }
-  #bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;}
+
+  #bar{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin:0;
+  }
 
   .btn{
-    padding:6px 10px;border-radius:8px;border:1px solid #0d6efd;background:#0d6efd;color:#fff;
-    cursor:pointer;text-decoration:none;font-size:0.9rem;display:inline-flex;align-items:center;gap:6px;
+    padding:6px 10px;
+    border-radius:8px;
+    border:1px solid #0d6efd;
+    background:#0d6efd;
+    color:#fff;
+    cursor:pointer;
+    text-decoration:none;
+    font-size:0.9rem;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
   }
+
   .btn-secondary{background:#475569;border-color:#475569}
   .muted{opacity:.7}
 
   .iconbtn{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:36px;height:36px;border-radius:10px;border:1px solid rgba(0,0,0,.12);
-    background:#fff;cursor:pointer;text-decoration:none;padding:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:36px;
+    height:36px;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    cursor:pointer;
+    text-decoration:none;
+    padding:0;
   }
+
   .iconbtn:hover{ background:#f8fafc; }
   .iconbtn:active{ transform:translateY(1px); }
   .iconbtn-amber{ border-color:#fde68a; background:#fffbeb; }
 
   .pill{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:2px 8px;border-radius:999px;font-size:.85em;white-space:nowrap;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:2px 8px;
+    border-radius:999px;
+    font-size:.85em;
+    white-space:nowrap;
   }
+
   .pill-ok{background:#dcfce7;color:#166534}
   .pill-off{background:#fee2e2;color:#991b1b}
   .pill-info{background:#e0f2fe;color:#075985}
 
-  table#hibTable{width:100%;border-collapse:collapse;background:#fff}
-  table#hibTable th, table#hibTable td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:middle}
+  table#hibTable{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+  }
+
+  table#hibTable th,
+  table#hibTable td{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    text-align:left;
+    vertical-align:middle;
+  }
 
   table#hibTable thead th{
     position: sticky;
     top: var(--hib-sticky-top);
-    background:#0d6efd;color:#fff;
-    z-index: 1200;
+    background:#0d6efd;
+    color:#fff;
+    z-index:1200;
   }
 
-  th.select-col, td.select-col{width:44px;text-align:center}
+  th.select-col,
+  td.select-col{
+    width:44px;
+    text-align:center;
+  }
+
   .nowrap{white-space:nowrap}
   .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
   .trunc{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .thumb{
-    width:38px;height:38px;border-radius:10px;object-fit:cover;border:1px solid rgba(0,0,0,.12);
-    background:#f8fafc;display:block;
+  tr[id^="p-"]{
+    scroll-margin-top: calc(var(--hib-sticky-top) + 18px);
   }
 
-  tr[id^="p-"]{ scroll-margin-top: calc(var(--hib-sticky-top) + 18px); }
-
-  /* cards */
   .cardsWrap{display:none;}
-  .cardRow{
-    display:flex;align-items:flex-start;gap:10px;
-    border:1px solid #e5e7eb;border-radius:14px;background:#fff;
-    padding:10px;margin:10px 0;
-    box-shadow:0 1px 2px rgba(0,0,0,.04);
-  }
-  .cardCheck{flex:0 0 auto;padding-top:6px}
-  .cardThumb{flex:0 0 auto}
-  .cardThumb img{width:52px;height:52px;border-radius:12px;object-fit:cover;border:1px solid rgba(0,0,0,.12);background:#f8fafc}
-  .cardMain{flex:1 1 auto;min-width:0}
-  .cardTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-  .cardModel{font-weight:800;font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .cardMeta{margin-top:6px;display:flex;flex-wrap:wrap;gap:8px;color:#475569;font-size:.9rem;}
-  .badge{
-    display:inline-flex;align-items:center;gap:6px;
-    background:#f1f5f9;border:1px solid #e2e8f0;color:#0f172a;
-    padding:3px 8px;border-radius:999px;font-size:.85rem;
-  }
-  .cardActions{flex:0 0 auto;display:flex;align-items:center;gap:8px}
-
-  @media (max-width: 1100px){
-    :root{ --hib-sticky-h: 210px; }
-  }
 
   @media (max-width: 768px){
-    :root{ --hib-sticky-h: 310px; }
-
     table#hibTable{display:none;}
     .cardsWrap{display:block;}
 
@@ -112,171 +147,159 @@
   }
 </style>
 
-{# Top menu dans le pre_content du Layout Admin #}
-
-<h1 class="ui header">📦 Produits Hiboutik</h1>
-<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-
-{% include '@SyliusAdmin/Hiboutik/Products/_new_button.html.twig' %}
-  <button type="button" class="ui primary button" id="btnAddToLabelsBoard">
-    <i class="plus icon"></i>
-    Ajouter à la planche
-  </button>
-
-  <a href="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui button">
-    <i class="clone outline icon"></i>
-    Ouvrir la planche
-  </a>
-
-  <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_clear') }}" style="display:inline-block;">
-    <button type="submit" class="ui button">
-      <i class="trash icon"></i>
-      Vider la planche
-    </button>
-  </form>
-</div>
-
-<form id="labels_builder_hidden_form"
-      method="post"
-      action="{{ path('admin_hiboutik_product_labels_builder_add_batch') }}"
-      style="display:none;">
-</form>
 <div id="stickyTop">
-  {# ======= FILTRES GET ======= #}
-  <form id="filtersForm" method="get" action="{{ path('admin_hiboutik_product_index') }}"
-        class="ui form" style="margin:0">
+  <div class="sticky-inner">
 
-    <div id="filtersRow">
+    <h1 class="ui header">📦 Produits Hiboutik</h1>
 
-      <div class="field">
-        <div class="ui icon input">
-          <input type="text" name="q" placeholder="Recherche (nom / barcode / id / tag)…"
-                 value="{{ filters.q ?? '' }}" style="min-width:260px">
-          <i class="search icon"></i>
+    <div class="top-actions">
+      {% include '@SyliusAdmin/Hiboutik/Products/_new_button.html.twig' %}
+
+      <button type="button" class="ui primary button" id="btnAddToLabelsBoard">
+        <i class="plus icon"></i>
+        Ajouter à la planche
+      </button>
+
+      <a href="{{ path('admin_hiboutik_product_labels_builder') }}" class="ui button">
+        <i class="clone outline icon"></i>
+        Ouvrir la planche
+      </a>
+
+      <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_clear') }}" style="display:inline-block;">
+        <button type="submit" class="ui button">
+          <i class="trash icon"></i>
+          Vider la planche
+        </button>
+      </form>
+
+      <div class="ui teal label">
+        Planche {{ builderFormat|upper }} : {{ builderCount }}/{{ builderSlotMax }}
+      </div>
+    </div>
+
+    <form id="filtersForm" method="get" action="{{ path('admin_hiboutik_product_index') }}" class="ui form" style="margin:0 0 8px 0;">
+      <div id="filtersRow">
+
+        <div class="field">
+          <div class="ui icon input">
+            <input type="text" name="q" placeholder="Recherche (nom / barcode / id / tag)…"
+                   value="{{ filters.q ?? '' }}" style="min-width:260px">
+            <i class="search icon"></i>
+          </div>
+        </div>
+
+        <div class="field">
+          <select name="www" class="ui dropdown">
+            <option value=""  {{ (filters.www ?? '') == '' ? 'selected' : '' }}>🌐 WWW : Tous</option>
+            <option value="1" {{ (filters.www ?? '') == '1' ? 'selected' : '' }}>✅ WWW : Oui</option>
+            <option value="0" {{ (filters.www ?? '') == '0' ? 'selected' : '' }}>⛔ WWW : Non</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <select name="brand" class="ui dropdown">
+            <option value="" {{ (filters.brand ?? '') == '' ? 'selected' : '' }}>🏷️ Marque : Toutes</option>
+            {% for name,id in brandChoices %}
+              <option value="{{ id }}" {{ (filters.brand ?? '') == (id ~ '') ? 'selected' : '' }}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <select name="cat" class="ui dropdown">
+            <option value="" {{ (filters.cat ?? '') == '' ? 'selected' : '' }}>📁 Catégorie : Toutes</option>
+            {% for name,id in catChoices %}
+              <option value="{{ id }}" {{ (filters.cat ?? '') == (id ~ '') ? 'selected' : '' }}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <select name="sup" class="ui dropdown">
+            <option value="" {{ (filters.sup ?? '') == '' ? 'selected' : '' }}>🧑‍💼 Fournisseur : Tous</option>
+            {% for name,id in supplierChoices %}
+              <option value="{{ id }}" {{ (filters.sup ?? '') == (id ~ '') ? 'selected' : '' }}>
+                {{ name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <select name="tag" class="ui dropdown">
+            <option value="" {{ (filters.tag ?? '') == '' ? 'selected' : '' }}>🏷️ Tag : Tous</option>
+            {% for label,id in tagChoices %}
+              <option value="{{ id }}" {{ (filters.tag ?? '') == (id ~ '') ? 'selected' : '' }}>
+                {{ label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="ui primary button" type="submit"><i class="filter icon"></i> Filtrer</button>
+        <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}"><i class="undo icon"></i> Reset</a>
+
+        <div class="ui label">
+          count = {{ products is iterable ? products|length : 'NOT ITERABLE' }}
         </div>
       </div>
+    </form>
 
-      <div class="field">
-        <select name="www" class="ui dropdown">
-          <option value=""  {{ (filters.www ?? '') == '' ? 'selected' : '' }}>🌐 WWW : Tous</option>
-          <option value="1" {{ (filters.www ?? '') == '1' ? 'selected' : '' }}>✅ WWW : Oui</option>
-          <option value="0" {{ (filters.www ?? '') == '0' ? 'selected' : '' }}>⛔ WWW : Non</option>
+    <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_batch') }}" style="margin:0">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_batch') }}"/>
+
+      <div id="bar">
+        <button type="submit" name="val" value="1" class="btn">
+          <i class="check icon"></i> WWW=Oui
+        </button>
+
+        <button type="submit" name="val" value="0" class="btn btn-secondary">
+          <i class="ban icon"></i> WWW=Non
+        </button>
+
+        <select name="discount_percent" class="ui dropdown">
+          <option value="">💸 Promo</option>
+          <option value="10">-10%</option>
+          <option value="20">-20%</option>
+          <option value="30">-30%</option>
         </select>
-      </div>
 
-      {# ✅ FILTRE MARQUE #}
-      <div class="field">
-        <select name="brand" class="ui dropdown">
-          <option value="" {{ (filters.brand ?? '') == '' ? 'selected' : '' }}>🏷️ Marque : Toutes</option>
-          {% for name,id in brandChoices %}
-            <option value="{{ id }}" {{ (filters.brand ?? '') == (id ~ '') ? 'selected' : '' }}>
-              {{ name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
+        <button type="submit" name="action" value="apply_discount" class="btn">
+          💸 Appliquer promo
+        </button>
 
-      <div class="field">
-        <select name="cat" class="ui dropdown">
-          <option value="" {{ (filters.cat ?? '') == '' ? 'selected' : '' }}>📁 Catégorie : Toutes</option>
-          {% for name,id in catChoices %}
-            <option value="{{ id }}" {{ (filters.cat ?? '') == (id ~ '') ? 'selected' : '' }}>
-              {{ name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
+        <button type="submit" name="action" value="reset_discount" class="btn btn-secondary">
+          ♻️ Reset promo
+        </button>
 
-      <div class="field">
-        <select name="sup" class="ui dropdown">
-          <option value="" {{ (filters.sup ?? '') == '' ? 'selected' : '' }}>🧑‍💼 Fournisseur : Tous</option>
-          {% for name,id in supplierChoices %}
-            <option value="{{ id }}" {{ (filters.sup ?? '') == (id ~ '') ? 'selected' : '' }}>
-              {{ name }}
-            </option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="field">
-        <select name="tag" class="ui dropdown">
-          <option value="" {{ (filters.tag ?? '') == '' ? 'selected' : '' }}>🏷️ Tag : Tous</option>
+        <select name="tag_id" class="ui dropdown">
+          <option value="">🏷️ Tag</option>
           {% for label,id in tagChoices %}
-            <option value="{{ id }}" {{ (filters.tag ?? '') == (id ~ '') ? 'selected' : '' }}>
-              {{ label }}
-            </option>
+            <option value="{{ id }}">{{ label }}</option>
           {% endfor %}
         </select>
+
+        <button type="submit" name="action" value="add_tag" class="btn">
+          ➕ Ajouter tag
+        </button>
+
+        <button type="submit" name="action" value="remove_tag" class="btn btn-secondary">
+          ➖ Retirer tag
+        </button>
+
+        <span class="muted">
+          <i class="info circle icon"></i>
+          Sélectionne des lignes puis clique
+        </span>
       </div>
-
-      <button class="ui primary button" type="submit"><i class="filter icon"></i> Filtrer</button>
-      <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}"><i class="undo icon"></i> Reset</a>
-
-      <div class="ui label">
-        count = {{ products is iterable ? products|length : 'NOT ITERABLE' }}
-      </div>
-
-    </div>
-  </form>
-
-  {# ======= ACTIONS POST ======= #}
-  <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_batch') }}" style="margin:0">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_batch') }}"/>
-
-  <div id="bar">
-
-    {# ===== WWW ===== #}
-
-
-
-
-    <button type="submit" name="val" value="1" class="btn">
-      <i class="check icon"></i> WWW=Oui
-    </button>
-
-    <button type="submit" name="val" value="0" class="btn btn-secondary">
-      <i class="ban icon"></i> WWW=Non
-    </button>
-
-  
-    <select name="discount_percent" class="ui dropdown">
-  <option value="">💸 Promo</option>
-  <option value="10">-10%</option>
-  <option value="20">-20%</option>
-  <option value="30">-30%</option>
-</select>
-
-<button type="submit" name="action" value="apply_discount" class="btn">
-  💸 Appliquer promo
-</button>
-
-<button type="submit" name="action" value="reset_discount" class="btn btn-secondary">
-  ♻️ Reset promo
-</button>
-
-    {# ===== TAGS ===== #}
-    <select name="tag_id" class="ui dropdown">
-      <option value="">🏷️ Tag</option>
-      {% for label,id in tagChoices %}
-        <option value="{{ id }}">{{ label }}</option>
-      {% endfor %}
-    </select>
-
-    <button type="submit" name="action" value="add_tag" class="btn">
-      ➕ Ajouter tag
-    </button>
-
-    <button type="submit" name="action" value="remove_tag" class="btn btn-secondary">
-      ➖ Retirer tag
-    </button>
-
-    <span class="muted">
-      <i class="info circle icon"></i>
-      Sélectionne des lignes puis clique
-    </span>
+    </form>
 
   </div>
-</form>
+</div>
 
 {# ===================== TABLE DESKTOP ===================== #}
 <table id="hibTable">
@@ -469,5 +492,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function syncStickyOffsets() {
+    const root = document.documentElement;
+    const topbar = document.querySelector('.admin-layout__topbar');
+    const stickyTop = document.getElementById('stickyTop');
 
+    const topbarH = topbar ? Math.ceil(topbar.offsetHeight) : 56;
+    const stickyH = stickyTop ? Math.ceil(stickyTop.offsetHeight) : 260;
+
+    root.style.setProperty('--hib-topbar-h', topbarH + 'px');
+    root.style.setProperty('--hib-sticky-h', stickyH + 'px');
+    root.style.setProperty('--hib-sticky-top', (topbarH + stickyH) + 'px');
+  }
+
+  syncStickyOffsets();
+  window.addEventListener('resize', syncStickyOffsets);
+  window.addEventListener('load', syncStickyOffsets);
+});
+</script>
 {% endblock %}

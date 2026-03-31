@@ -1288,22 +1288,28 @@ foreach ($miscRows as $row) {
 
 private function getLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack): array
 {
-    $session = $requestStack->getSession();
-    $slots = $session->get('hib_label_builder_slots', [null, null, null, null]);
+    $format = $this->getLabelBuilderFormat($requestStack);
+    $count = $this->getLabelBuilderSlotCount($format);
 
-    if (!is_array($slots) || count($slots) !== 4) {
-        $slots = [null, null, null, null];
+    $slots = $requestStack->getSession()->get('hib_label_builder_slots', array_fill(0, $count, null));
+
+    if (!is_array($slots)) {
+        $slots = [];
     }
 
-    return array_values($slots);
+    $slots = array_values(array_pad(array_slice($slots, 0, $count), $count, null));
+
+    return $slots;
 }
 
 private function saveLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack, array $slots): void
 {
-    $slots = array_values(array_pad(array_slice($slots, 0, 4), 4, null));
+    $format = $this->getLabelBuilderFormat($requestStack);
+    $count = $this->getLabelBuilderSlotCount($format);
+
+    $slots = array_values(array_pad(array_slice($slots, 0, $count), $count, null));
     $requestStack->getSession()->set('hib_label_builder_slots', $slots);
 }
-
 private function addProductToLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack, int $productId): bool
 {
     $slots = $this->getLabelBuilderSlots($requestStack);
@@ -1332,8 +1338,28 @@ private function removeSlotFromLabelBuilder(\Symfony\Component\HttpFoundation\Re
 
 private function clearLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack): void
 {
-    $this->saveLabelBuilderSlots($requestStack, [null, null, null, null]);
+    $count = $this->getLabelBuilderSlotCount($this->getLabelBuilderFormat($requestStack));
+    $this->saveLabelBuilderSlots($requestStack, array_fill(0, $count, null));
 }
+
+
+#[Route('/labels-builder/set-format', name: 'labels_builder_set_format', methods: ['POST'])]
+public function setLabelsBuilderFormat(Request $request): Response
+{
+    $format = (string) $request->request->get('format', 'a5');
+    if (!in_array($format, ['a5', 'a4'], true)) {
+        $format = 'a5';
+    }
+
+    $this->requestStack->getSession()->set('hib_label_builder_format', $format);
+
+    // normalise le nombre de slots après changement de format
+    $slots = $this->getLabelBuilderSlots($this->requestStack);
+    $this->saveLabelBuilderSlots($this->requestStack, $slots);
+
+    return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+}
+
 
 #[Route('/labels-builder/add/{id}', name: 'labels_builder_add', requirements: ['id' => '\d+'], methods: ['POST'])]
 public function addToLabelsBuilder(int $id): Response
@@ -1345,19 +1371,22 @@ public function addToLabelsBuilder(int $id): Response
 
     $ok = $this->addProductToLabelBuilder($this->requestStack, $id);
 
-    if ($ok) {
-        $this->addFlash('success', 'Produit ajouté à la planche étiquettes.');
-    } else {
-        $this->addFlash('error', 'La planche contient déjà 4 produits.');
-    }
+   if ($ok) {
+    $this->addFlash('success', 'Produit ajouté à la planche étiquettes.');
+} else {
+    $max = $this->getLabelBuilderSlotCount($this->getLabelBuilderFormat($this->requestStack));
+    $this->addFlash('error', sprintf('La planche contient déjà %d produits.', $max));
+}
 
     return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
 }
 
 
-#[Route('/labels-builder/fill-from-index', name: 'labels_builder_fill_from_index', methods: ['POST'])]
 public function fillLabelsBuilderFromIndex(Request $request): Response
 {
+    $format = $this->getLabelBuilderFormat($this->requestStack);
+    $max = $this->getLabelBuilderSlotCount($format);
+
     $ids = $request->request->all('ids');
     $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
 
@@ -1366,12 +1395,12 @@ public function fillLabelsBuilderFromIndex(Request $request): Response
         return $this->redirectToRoute('admin_hiboutik_product_index');
     }
 
-    if (count($ids) > 4) {
-        $this->addFlash('error', 'Vous ne pouvez sélectionner que 4 produits maximum.');
+    if (count($ids) > $max) {
+        $this->addFlash('error', sprintf('Vous ne pouvez sélectionner que %d produits maximum.', $max));
         return $this->redirectToRoute('admin_hiboutik_product_index');
     }
 
-    $slots = [null, null, null, null];
+    $slots = array_fill(0, $max, null);
     foreach ($ids as $i => $id) {
         $slots[$i] = $id;
     }
@@ -1418,6 +1447,8 @@ public function addBatchToLabelsBuilder(Request $request): Response
 #[Route('/labels-builder', name: 'labels_builder', methods: ['GET'])]
 public function labelsBuilder(Request $request): Response
 {
+    $builderFormat = $this->getLabelBuilderFormat($this->requestStack);
+    $slotMax = $this->getLabelBuilderSlotCount($builderFormat);
     $slots = $this->getLabelBuilderSlots($this->requestStack);
 
     $slotViews = [];
@@ -1555,16 +1586,19 @@ if ($q !== '') {
     }
 
     return $this->render('@SyliusAdmin/Hiboutik/Products/labels_builder.html.twig', [
-        'slots'   => $slotViews,
-        'q'       => $q,
-        'results' => $results,
-    ]);
+    'slots'         => $slotViews,
+    'q'             => $q,
+    'results'       => $results,
+    'builderFormat' => $builderFormat,
+    'slotMax'       => $slotMax,
+]);
 }
 
 #[Route('/labels-builder/remove/{slot}', name: 'labels_builder_remove', requirements: ['slot' => '\d+'], methods: ['POST'])]
 public function removeFromLabelsBuilder(int $slot): Response
 {
-    if ($slot < 0 || $slot > 3) {
+   $max = $this->getLabelBuilderSlotCount($this->getLabelBuilderFormat($this->requestStack));
+if ($slot < 0 || $slot >= $max) {
         throw $this->createNotFoundException('Slot invalide');
     }
 
@@ -1589,6 +1623,7 @@ public function clearLabelsBuilder(): Response
 public function labelsBuilderPdf(): Response
 {
     $slots = $this->getLabelBuilderSlots($this->requestStack);
+    $builderFormat = $this->getLabelBuilderFormat($this->requestStack);
 
     $pdfSlots = [];
 
@@ -1673,9 +1708,17 @@ foreach ($miscRows as $row) {
 
     // dump($filename);
 
-    $file = $this->labelTcpdfGenerator->generateA5Slots60x105($pdfSlots, $filename);
+   
 
-    return $this->redirect($file['url'], 303);
+   if ($builderFormat === 'a4') {
+    $filename = sprintf('labels-a4-x8-builder-%s.pdf', date('Ymd-His'));
+    $file = $this->labelTcpdfGenerator->generateA4EightLabels60x105($pdfSlots, $filename);
+} else {
+    $filename = sprintf('labels-a5-builder-%s.pdf', date('Ymd-His'));
+    $file = $this->labelTcpdfGenerator->generateA5Slots60x105($pdfSlots, $filename);
+}
+
+return $this->redirect($file['url'], 303);
 }
 
 
@@ -2051,5 +2094,16 @@ private function findDefaultPhoneOccasionCategoryId(array $categories): ?int
     return null;
 }
 
+private function getLabelBuilderFormat(\Symfony\Component\HttpFoundation\RequestStack $requestStack): string
+{
+    $format = (string) $requestStack->getSession()->get('hib_label_builder_format', 'a5');
+
+    return in_array($format, ['a5', 'a4'], true) ? $format : 'a5';
+}
+
+private function getLabelBuilderSlotCount(string $format): int
+{
+    return $format === 'a4' ? 8 : 4;
+}
 
 }
