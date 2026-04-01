@@ -4,11 +4,11 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 18px;
     margin-top: 12px;
+    align-items: stretch;
 }
 
 .dashboard-card {
     position: relative;
-    aspect-ratio: 1 / 1;
     min-height: 220px;
     border-radius: 24px;
     padding: 18px;
@@ -18,6 +18,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    height: 100%;
 }
 
 .dashboard-card::before {
@@ -124,3 +125,14 @@
         {% include '@SyliusAdmin/Dashboard/_hiboutik_dashboard_card.html.twig' with { card: card } only %}
     {% endfor %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const cards = document.querySelectorAll('.dashboard-card');
+    let maxHeight = 0;
+
+    cards.forEach(card => card.style.height = 'auto');
+    cards.forEach(card => maxHeight = Math.max(maxHeight, card.offsetHeight));
+    cards.forEach(card => card.style.height = maxHeight + 'px');
+});
+</script>

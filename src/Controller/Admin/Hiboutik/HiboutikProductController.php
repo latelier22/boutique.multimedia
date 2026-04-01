@@ -37,9 +37,10 @@ final class HiboutikProductController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(Request $request): Response
     {
+
     // -------------------------
     // FILTRES GET
-    // -------------------------
+    // -------------------------    
     $q     = trim((string)$request->query->get('q', ''));
     $www   = (string)$request->query->get('www', '');
     $cat   = (string)$request->query->get('cat', '');
@@ -82,16 +83,30 @@ final class HiboutikProductController extends AbstractController
         }
     }
 
-    $catChoices = [];
-    $catMapName = [];
-    foreach (($catsRes['data'] ?? []) as $c) {
-        $id = (int)($c['category_id'] ?? 0);
-        $name = trim((string)($c['category_name'] ?? ''));
-        if ($id && $name) {
-            $catChoices[$name] = $id;
-            $catMapName[$id] = $name;
-        }
+   $categories = is_array($catsRes['data'] ?? null) ? $catsRes['data'] : [];
+
+$categoryOptions = $this->buildCategorySelectOptions($categories);
+
+$catChoices = [];
+$catMapName = [];
+
+foreach ($categoryOptions as $opt) {
+    $id = (int)($opt['id'] ?? 0);
+    $label = trim((string)($opt['label'] ?? ''));
+
+    if ($id <= 0 || $label === '') {
+        continue;
     }
+
+    // on n'affiche dans le filtre que les catégories sélectionnables
+    if (!empty($opt['selectable'])) {
+        $prettyLabel = str_replace(' › ', ' - ', $label);
+        $catChoices[$prettyLabel] = $id;
+    }
+
+    // pour l'affichage dans la liste, on garde aussi le chemin complet
+    $catMapName[$id] = str_replace(' › ', ' - ', $label);
+}
 
     $supplierChoices = [];
     $supMapName = [];
@@ -175,8 +190,19 @@ final class HiboutikProductController extends AbstractController
     $bTime = strtotime($b['updatedAt'] ?? $b['updated_at'] ?? '1970-01-01');
 
     return $bTime <=> $aTime;
-});
+    });
 
+    // -------------------------
+    // Etiquettes : format et nombre de slots configurés
+    // -------------------------
+
+    $builderFormat = $this->getLabelBuilderFormat($this->requestStack);
+    $builderSlots = $this->getLabelBuilderSlots($this->requestStack);
+    $builderCount = count(array_filter($builderSlots, fn ($v) => $v !== null));
+    $builderSlotMax = $this->getLabelBuilderSlotCount($builderFormat);
+
+    
+    
     // -------------------------
     // RENDER
     // -------------------------
@@ -194,6 +220,9 @@ final class HiboutikProductController extends AbstractController
             'sup' => $sup,
             'tag' => $tag,
         ],
+        'builderFormat' => $builderFormat,
+        'builderCount' => $builderCount,
+        'builderSlotMax' => $builderSlotMax,
     ]);
 }
 
@@ -1286,7 +1315,7 @@ foreach ($miscRows as $row) {
 }
 
 
-private function getLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack): array
+private function getLabelBuilderSlots(RequestStack $requestStack): array
 {
     $format = $this->getLabelBuilderFormat($requestStack);
     $count = $this->getLabelBuilderSlotCount($format);
@@ -1302,7 +1331,7 @@ private function getLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestS
     return $slots;
 }
 
-private function saveLabelBuilderSlots(\Symfony\Component\HttpFoundation\RequestStack $requestStack, array $slots): void
+private function saveLabelBuilderSlots(RequestStack $requestStack, array $slots): void
 {
     $format = $this->getLabelBuilderFormat($requestStack);
     $count = $this->getLabelBuilderSlotCount($format);
@@ -1310,7 +1339,7 @@ private function saveLabelBuilderSlots(\Symfony\Component\HttpFoundation\Request
     $slots = array_values(array_pad(array_slice($slots, 0, $count), $count, null));
     $requestStack->getSession()->set('hib_label_builder_slots', $slots);
 }
-private function addProductToLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack, int $productId): bool
+private function addProductToLabelBuilder(RequestStack $requestStack, int $productId): bool
 {
     $slots = $this->getLabelBuilderSlots($requestStack);
 
@@ -1325,7 +1354,7 @@ private function addProductToLabelBuilder(\Symfony\Component\HttpFoundation\Requ
     return false;
 }
 
-private function removeSlotFromLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack, int $slotIndex): void
+private function removeSlotFromLabelBuilder(RequestStack $requestStack, int $slotIndex): void
 {
     $slots = $this->getLabelBuilderSlots($requestStack);
 
@@ -1336,7 +1365,7 @@ private function removeSlotFromLabelBuilder(\Symfony\Component\HttpFoundation\Re
     $this->saveLabelBuilderSlots($requestStack, $slots);
 }
 
-private function clearLabelBuilder(\Symfony\Component\HttpFoundation\RequestStack $requestStack): void
+private function clearLabelBuilder(RequestStack $requestStack): void
 {
     $count = $this->getLabelBuilderSlotCount($this->getLabelBuilderFormat($requestStack));
     $this->saveLabelBuilderSlots($requestStack, array_fill(0, $count, null));
@@ -1414,32 +1443,91 @@ public function fillLabelsBuilderFromIndex(Request $request): Response
 #[Route('/labels-builder/add-batch', name: 'labels_builder_add_batch', methods: ['POST'])]
 public function addBatchToLabelsBuilder(Request $request): Response
 {
+    if (!$this->isCsrfTokenValid('hib_batch', (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
     $ids = $request->request->all('ids');
-    $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+    $ids = array_values(array_unique(array_filter(array_map('intval', (array) $ids), fn ($v) => $v > 0)));
 
     if (!$ids) {
         $this->addFlash('error', 'Aucun produit sélectionné.');
         return $this->redirectToRoute('admin_hiboutik_product_index');
     }
 
+    $builderFormat = $this->getLabelBuilderFormat($this->requestStack);
     $slots = $this->getLabelBuilderSlots($this->requestStack);
+    $existingIds = array_values(array_filter(array_map('intval', $slots), fn ($v) => $v > 0));
+
+    $duplicates = [];
+    $newIds = [];
 
     foreach ($ids as $id) {
+        if (in_array($id, $existingIds, true)) {
+            $duplicates[] = $id;
+        } else {
+            $newIds[] = $id;
+        }
+    }
+
+    $targetTotal = count($existingIds) + count($newIds);
+
+    // Si on dépasse 4, on bascule automatiquement en A4
+    if ($builderFormat === 'a5' && $targetTotal > 4) {
+        $builderFormat = 'a4';
+        $this->requestStack->getSession()->set('hib_label_builder_format', 'a4');
+
+        // on élargit la planche à 8 slots
+        $slots = array_values(array_pad(array_slice($slots, 0, 8), 8, null));
+    }
+
+    $slotMax = $this->getLabelBuilderSlotCount($builderFormat); // 4 ou 8
+    $added = 0;
+    $refused = [];
+
+    foreach ($newIds as $id) {
+        $placed = false;
+
         foreach ($slots as $i => $slot) {
             if ($slot === null) {
                 $slots[$i] = $id;
-                continue 2;
+                $added++;
+                $placed = true;
+                break;
             }
         }
 
-        $this->addFlash('error', 'La planche est pleine (4 slots max).');
-        $this->saveLabelBuilderSlots($this->requestStack, $slots);
-
-        return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
+        if (!$placed) {
+            $refused[] = $id;
+        }
     }
 
     $this->saveLabelBuilderSlots($this->requestStack, $slots);
-    $this->addFlash('success', 'Produit(s) ajouté(s) à la planche.');
+
+    $currentCount = count(array_filter($slots, fn ($v) => $v !== null));
+
+    if ($added > 0) {
+        $this->addFlash('success', sprintf(
+            '%d produit(s) ajouté(s) à la planche. (%d/%d)',
+            $added,
+            $currentCount,
+            $slotMax
+        ));
+    }
+
+    if ($duplicates) {
+        $this->addFlash('warning', sprintf(
+            '%d produit(s) déjà présents dans la planche, ignorés.',
+            count($duplicates)
+        ));
+    }
+
+    if ($refused) {
+        $this->addFlash('error', sprintf(
+            'Planche pleine : %d produit(s) non ajoutés.',
+            count($refused)
+        ));
+    }
 
     return $this->redirectToRoute('admin_hiboutik_product_labels_builder');
 }
@@ -2094,7 +2182,7 @@ private function findDefaultPhoneOccasionCategoryId(array $categories): ?int
     return null;
 }
 
-private function getLabelBuilderFormat(\Symfony\Component\HttpFoundation\RequestStack $requestStack): string
+private function getLabelBuilderFormat(RequestStack $requestStack): string
 {
     $format = (string) $requestStack->getSession()->get('hib_label_builder_format', 'a5');
 

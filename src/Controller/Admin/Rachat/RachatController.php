@@ -419,7 +419,11 @@ $reshaped['ciVerso'] = $ciVerso;
 $categoryOptions = $this->buildCategorySelectOptions($categories);
 $defaultCategoryId = $this->findDefaultPhoneOccasionCategoryId($categories);
 
-$selectedCategoryId = (int)($r->getHibCategoryId() ?: ($defaultCategoryId ?: 0));
+if (!$request->isMethod('POST') && !$r->getHibCategoryId() && $defaultCategoryId) {
+    $r->setHibCategoryId($defaultCategoryId);
+}
+
+$selectedCategoryId = (int)($r->getHibCategoryId() ?: 0);
 
 $initialAttributeValues = is_array($r->getAttributes()) ? $r->getAttributes() : [];
 
@@ -1540,44 +1544,62 @@ if ($brandUiValue === '__new__' && $newBrandName !== '') {
      *  UPLOAD CI / PHOTOS (AJAX)
      * ============================================================ */
 
-    #[Route('/{id<\d+>}/upload-ci', name: 'upload_ci', methods: ['POST'])]
-    public function uploadCi(int $id, Request $req): JsonResponse
-    {
-        $r = $this->em->getRepository(Rachat::class)->find($id);
-        if (!$r) return $this->json(['ok' => false, 'error' => 'Rachat introuvable'], 404);
-
-        $kind = (string)$req->request->get('kind', 'recto');
-        /** @var UploadedFile|null $file */
-        $file = $req->files->get('ci');
-        if (!$file) return $this->json(['ok' => false, 'error' => 'Aucun fichier reçu'], 400);
-
-        $base = $this->getVarPrivateDir($r->getId());
-        @mkdir($base, 0775, true);
-
-        $dst = sprintf('%s/piece_identite_%s.jpg', $base, $kind);
-        $this->shrinkToJpegUnder($file->getPathname(), $dst, 2000, 2000, 1_000_000);
-
-        $urls = [];
-        if ($r->getPieceIdentiteUrl()) {
-            $old = json_decode($r->getPieceIdentiteUrl(), true);
-            if (is_array($old)) $urls = $old;
-        }
-
-        $urls[$kind] = $this->generateUrl('admin_rachats_ci', [
-            'id' => $id,
-            'kind' => $kind,
-        ], UrlGeneratorInterface::ABSOLUTE_URL);
-
-        $r->setPieceIdentiteUrl(json_encode($urls, JSON_UNESCAPED_SLASHES));
-        $this->em->flush();
-
-        return $this->json([
-            'ok' => true,
-            'kind' => $kind,
-            'url' => $urls[$kind],
-            'msg' => "Pièce $kind enregistrée",
-        ]);
+#[Route('/{id<\d+>}/upload-ci', name: 'upload_ci', methods: ['POST'])]
+public function uploadCi(
+    int $id,
+    Request $req,
+    CsrfTokenManagerInterface $csrf
+): JsonResponse {
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) {
+        return $this->json(['ok' => false, 'error' => 'Rachat introuvable'], 404);
     }
+
+    $token = new CsrfToken('rachat_edit_' . $id, (string)$req->request->get('_token'));
+    if (!$csrf->isTokenValid($token)) {
+        return $this->json(['ok' => false, 'error' => 'CSRF invalide'], 400);
+    }
+
+    $kind = (string)$req->request->get('kind', 'recto');
+    if (!in_array($kind, ['recto', 'verso'], true)) {
+        return $this->json(['ok' => false, 'error' => 'Type de pièce invalide'], 400);
+    }
+
+    /** @var UploadedFile|null $file */
+    $file = $req->files->get('ci');
+    if (!$file) {
+        return $this->json(['ok' => false, 'error' => 'Aucun fichier reçu'], 400);
+    }
+
+    $base = $this->getVarPrivateDir($r->getId());
+    @mkdir($base, 0775, true);
+
+    $dst = sprintf('%s/piece_identite_%s.jpg', $base, $kind);
+    $this->shrinkToJpegUnder($file->getPathname(), $dst, 2000, 2000, 1_000_000);
+
+    $urls = [];
+    if ($r->getPieceIdentiteUrl()) {
+        $old = json_decode($r->getPieceIdentiteUrl(), true);
+        if (is_array($old)) {
+            $urls = $old;
+        }
+    }
+
+    $urls[$kind] = $this->generateUrl('admin_rachats_ci', [
+        'id' => $id,
+        'kind' => $kind,
+    ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+    $r->setPieceIdentiteUrl(json_encode($urls, JSON_UNESCAPED_SLASHES));
+    $this->em->flush();
+
+    return $this->json([
+        'ok' => true,
+        'kind' => $kind,
+        'url' => $urls[$kind],
+        'msg' => "Pièce $kind enregistrée",
+    ]);
+}
 
     #[Route('/{id}/upload-photos', name: 'upload_photos', methods: ['POST'])]
     public function uploadPhotos(int $id, Request $req, CsrfTokenManagerInterface $csrf): Response

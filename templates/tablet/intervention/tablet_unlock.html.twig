@@ -1,264 +1,189 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Intervention #{{ intervention.interventionNumber }}</title>
-  <style>
-    :root{
-      --bg:#f5f7fb;
-      --card:#ffffff;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --line:#d1d5db;
-      --primary:#2563eb;
-      --success:#16a34a;
-      --danger:#dc2626;
-      --warning:#d97706;
-    }
-    * { box-sizing: border-box; }
-    body{
-      margin:0;
-      font-family:Arial, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-      padding:20px;
-    }
-    .wrap{ max-width:900px; margin:0 auto; }
-    .card{
-      background:var(--card);
-      border-radius:16px;
-      padding:20px;
-      box-shadow:0 8px 24px rgba(0,0,0,.08);
-      margin-bottom:20px;
-    }
-    h1,h2,h3{ margin-top:0; }
-    .topbar{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:12px;
-      margin-bottom:20px;
-    }
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    .field label{
-      font-size:14px;
-      color:var(--muted);
-    }
-    .field input,
-    .field textarea{
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:10px 12px;
-      font-size:16px;
-      background:#fff;
-      width:100%;
-    }
-    .pattern-area{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:14px;
-    }
-    canvas{
-      width:min(90vw, 420px);
-      height:min(90vw, 420px);
-      max-width:420px;
-      max-height:420px;
-      touch-action:none;
-      border-radius:18px;
-      background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-      border:1px solid var(--line);
-    }
-    .actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:center;
-    }
-    button{
-      border:none;
-      border-radius:12px;
-      padding:12px 18px;
-      font-size:16px;
-      font-weight:bold;
-      cursor:pointer;
-    }
-    .btn-secondary{ background:#e5e7eb; color:#111827; }
-    .btn-success{ background:var(--success); color:#fff; }
-    .status{
-      min-height:28px;
-      font-size:15px;
-      text-align:center;
-      padding:8px 12px;
-      border-radius:10px;
-      width:min(100%, 520px);
-    }
-    .status.info{ color:var(--primary); background:#eff6ff; }
-    .status.ok{ color:var(--success); background:#f0fdf4; }
-    .status.err{ color:var(--danger); background:#fef2f2; }
-    .status.warn{ color:var(--warning); background:#fffbeb; }
-    .small{
-      font-size:13px;
-      color:var(--muted);
-    }
-    .hidden{
-      display:none !important;
-    }
-    .step-badge{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:bold;
-      background:#e0e7ff;
-      color:#3730a3;
-      margin-bottom:10px;
-    }
-    .success-screen{
-      text-align:center;
-      padding:30px 20px;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Intervention #{{ intervention.interventionNumber }}</title>
+
+      {% include 'tablet/tablet/tablet_css.html.twig' %}
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Intervention #{{ intervention.interventionNumber }}</h1>
-      <p>
-        {{ intervention.customerLastName }} {{ intervention.customerFirstName }}
-        {% if intervention.deviceLabel %} — {{ intervention.deviceLabel }}{% endif %}
-      </p>
 
-      <div class="topbar">
-        <div class="field">
-          <label for="pinCode">Code secret</label>
-          <input id="pinCode" type="text" placeholder="Ex: 2580">
+<div class="tablet-page">
+    <div class="tablet-shell">
+
+        <div class="tablet-card">
+            <div class="tablet-header">
+                <div class="tablet-header-top">
+                    <div class="tablet-logo-box">
+                        <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
+                    </div>
+
+                    <div class="tablet-title-wrap">
+                        <div class="tablet-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                        <div class="tablet-subtitle">Achat - Vente - Réparation</div>
+
+                        <span class="tablet-chip">Intervention #{{ intervention.interventionNumber }}</span>
+
+                        <div class="tablet-meta-grid">
+                            <div class="tablet-meta-item">
+                                <span class="tablet-meta-label">Client</span>
+                                <span class="tablet-meta-value">
+                                    {{ intervention.customerLastName }} {{ intervention.customerFirstName }}
+                                </span>
+                            </div>
+
+                            <div class="tablet-meta-item">
+                                <span class="tablet-meta-label">Appareil</span>
+                                <span class="tablet-meta-value">{{ intervention.deviceLabel ?: '—' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tablet-content">
+                <div class="tablet-section">
+                    <h2 class="tablet-section-title">Déverrouillage</h2>
+
+                    <div class="tablet-grid">
+                        <div class="tablet-field">
+                            <label for="pinCode">Code secret</label>
+                            <input id="pinCode" class="tablet-input" type="text" placeholder="Ex : 2580">
+                        </div>
+
+                        <div class="tablet-field tablet-field-full">
+                            <label for="remarks">Remarques</label>
+                            <textarea id="remarks" class="tablet-textarea" rows="3" placeholder="Ex : tactile cassé, Face ID HS..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tablet-panel">
+                    <div class="tablet-pattern-wrap">
+                        <div id="stepBadge" class="tablet-step-badge">Étape 1 : dessinez le schéma</div>
+
+                        <canvas id="patternCanvas" class="tablet-pattern-canvas" width="420" height="420"></canvas>
+
+                        <div class="tablet-small">
+                            Points traversés : <span id="patternText">[]</span>
+                        </div>
+
+                        <div id="status" class="tablet-status info">
+                            Dessinez le schéma. Quand le doigt se lève, la saisie est terminée.
+                        </div>
+
+                        <div class="tablet-actions" style="justify-content:center;">
+                            <button id="btnReset" class="tablet-btn tablet-btn-secondary" type="button">
+                                Reset schéma
+                            </button>
+
+                            <button id="btnSave" class="tablet-btn tablet-btn-primary hidden" type="button">
+                                Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="field" style="grid-column:1/-1;">
-          <label for="remarks">Remarques</label>
-          <textarea id="remarks" rows="3" placeholder="Ex: tactile cassé, Face ID HS..."></textarea>
-        </div>
-      </div>
-
-      <div class="pattern-area">
-        <div id="stepBadge" class="step-badge">Étape 1 : dessinez le schéma</div>
-
-        <canvas id="patternCanvas" width="420" height="420"></canvas>
-
-        <div class="small">
-          Points traversés : <span id="patternText">[]</span>
+        <div id="successCard" class="tablet-card hidden">
+            <div class="tablet-content">
+                <div class="tablet-success-screen">
+                    <h2>Merci</h2>
+                    <p>Les informations ont bien été enregistrées.</p>
+                </div>
+            </div>
         </div>
 
-        <div id="status" class="status info">
-          Dessinez le schéma. Quand le doigt se lève, la saisie est terminée.
-        </div>
-
-        <div class="actions">
-          <button id="btnReset" class="btn-secondary" type="button">Reset schéma</button>
-          <button id="btnSave" class="btn-success hidden" type="button">Enregistrer</button>
-        </div>
-      </div>
     </div>
+</div>
 
-    <div id="successCard" class="card hidden">
-      <div class="success-screen">
-        <h2>Merci</h2>
-        <p>Les informations ont bien été enregistrées.</p>
-      </div>
-    </div>
-  </div>
+<script>
+const WAIT_URL = "{{ path('tablet_wait', {device: app.request.query.get('device')|default('TAB1')}) }}";
+const SAVE_URL = "{{ path('app_tablet_intervention_save', { token: token }) }}";
 
-  <script>
+const canvas = document.getElementById("patternCanvas");
+const ctx = canvas.getContext("2d");
 
-    const WAIT_URL = "{{ path('tablet_wait') }}";
+const patternText = document.getElementById("patternText");
+const statusEl = document.getElementById("status");
+const stepBadge = document.getElementById("stepBadge");
 
-    const SAVE_URL = "{{ path('app_tablet_intervention_save', { token: token }) }}";
+const btnReset = document.getElementById("btnReset");
+const btnSave = document.getElementById("btnSave");
 
-    const canvas = document.getElementById("patternCanvas");
-    const ctx = canvas.getContext("2d");
+const pinCodeInput = document.getElementById("pinCode");
+const remarksInput = document.getElementById("remarks");
 
-    const patternText = document.getElementById("patternText");
-    const statusEl = document.getElementById("status");
-    const stepBadge = document.getElementById("stepBadge");
+const successCard = document.getElementById("successCard");
+const mainCard = document.querySelector('.tablet-card');
 
-    const btnReset = document.getElementById("btnReset");
-    const btnSave = document.getElementById("btnSave");
+const POINT_RADIUS = 18;
+const ACTIVE_RADIUS = 28;
 
-    const pinCodeInput = document.getElementById("pinCode");
-    const remarksInput = document.getElementById("remarks");
+let points = [];
+let selected = [];
+let isDrawing = false;
+let currentPointer = null;
 
-    const successCard = document.getElementById("successCard");
+let step = 1;
+let firstPattern = [];
+let confirmedPattern = [];
 
-    const POINT_RADIUS = 18;
-    const ACTIVE_RADIUS = 28;
+function setStatus(message, type = "info") {
+    statusEl.textContent = message || "";
+    statusEl.className = "tablet-status " + type;
+}
 
-    let points = [];
-    let selected = [];
-    let isDrawing = false;
-    let currentPointer = null;
+function initPoints() {
+    points = [];
+    const size = canvas.width;
+    const margin = 70;
+    const gap = (size - margin * 2) / 2;
 
-    let step = 1;
-    let firstPattern = [];
-    let confirmedPattern = [];
-
-    function setStatus(message, type = "info") {
-      statusEl.textContent = message || "";
-      statusEl.className = "status " + type;
-    }
-
-    function initPoints() {
-      points = [];
-      const size = canvas.width;
-      const margin = 70;
-      const gap = (size - margin * 2) / 2;
-
-      let id = 1;
-      for (let row = 0; row < 3; row++) {
+    let id = 1;
+    for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
-          points.push({
-            id,
-            x: margin + col * gap,
-            y: margin + row * gap
-          });
-          id++;
+            points.push({
+                id,
+                x: margin + col * gap,
+                y: margin + row * gap
+            });
+            id++;
         }
-      }
     }
+}
 
-    function getPointById(id) {
-      return points.find(p => p.id === id);
-    }
+function getPointById(id) {
+    return points.find(p => p.id === id);
+}
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (selected.length > 0) {
+    if (selected.length > 0) {
         ctx.beginPath();
         const first = getPointById(selected[0]);
         ctx.moveTo(first.x, first.y);
 
         for (let i = 1; i < selected.length; i++) {
-          const p = getPointById(selected[i]);
-          ctx.lineTo(p.x, p.y);
+            const p = getPointById(selected[i]);
+            ctx.lineTo(p.x, p.y);
         }
 
         if (isDrawing && currentPointer) {
-          ctx.lineTo(currentPointer.x, currentPointer.y);
+            ctx.lineTo(currentPointer.x, currentPointer.y);
         }
 
-        ctx.strokeStyle = "#2563eb";
+        ctx.strokeStyle = "#1f4ea8";
         ctx.lineWidth = 8;
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         ctx.stroke();
-      }
+    }
 
-      for (const p of points) {
+    for (const p of points) {
         const isActive = selected.includes(p.id);
 
         ctx.beginPath();
@@ -266,12 +191,12 @@
         ctx.fillStyle = isActive ? "#dbeafe" : "#ffffff";
         ctx.fill();
         ctx.lineWidth = isActive ? 5 : 3;
-        ctx.strokeStyle = isActive ? "#2563eb" : "#9ca3af";
+        ctx.strokeStyle = isActive ? "#ef6c00" : "#9ca3af";
         ctx.stroke();
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, isActive ? 10 : 6, 0, Math.PI * 2);
-        ctx.fillStyle = isActive ? "#2563eb" : "#9ca3af";
+        ctx.fillStyle = isActive ? "#ef6c00" : "#9ca3af";
         ctx.fill();
 
         ctx.fillStyle = "#374151";
@@ -279,102 +204,102 @@
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(String(p.id), p.x, p.y + 42);
-      }
-
-      patternText.textContent = JSON.stringify(selected);
     }
 
-    function getCanvasPos(evt) {
-      const rect = canvas.getBoundingClientRect();
-      const source = evt.touches && evt.touches[0]
+    patternText.textContent = JSON.stringify(selected);
+}
+
+function getCanvasPos(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const source = evt.touches && evt.touches[0]
         ? evt.touches[0]
         : evt.changedTouches && evt.changedTouches[0]
-          ? evt.changedTouches[0]
-          : evt;
+            ? evt.changedTouches[0]
+            : evt;
 
-      return {
+    return {
         x: (source.clientX - rect.left) * (canvas.width / rect.width),
         y: (source.clientY - rect.top) * (canvas.height / rect.height)
-      };
-    }
+    };
+}
 
-    function findPointAt(x, y) {
-      for (const p of points) {
+function findPointAt(x, y) {
+    for (const p of points) {
         const dx = x - p.x;
         const dy = y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist <= ACTIVE_RADIUS + 10) return p;
-      }
-      return null;
     }
+    return null;
+}
 
-    function addPointIfNeeded(point) {
-      if (!point) return;
-      if (!selected.includes(point.id)) {
+function addPointIfNeeded(point) {
+    if (!point) return;
+    if (!selected.includes(point.id)) {
         selected.push(point.id);
         draw();
-      }
     }
+}
 
-    function samePattern(a, b) {
-      if (!Array.isArray(a) || !Array.isArray(b)) return false;
-      if (a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i++) {
+function samePattern(a, b) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
         if (a[i] !== b[i]) return false;
-      }
-      return true;
     }
+    return true;
+}
 
-    function clearCurrentDrawing() {
-      selected = [];
-      currentPointer = null;
-      isDrawing = false;
-      draw();
-    }
+function clearCurrentDrawing() {
+    selected = [];
+    currentPointer = null;
+    isDrawing = false;
+    draw();
+}
 
-    function resetPatternOnly() {
-      step = 1;
-      firstPattern = [];
-      confirmedPattern = [];
-      stepBadge.textContent = "Étape 1 : dessinez le schéma";
-      setStatus("Dessinez le schéma. Quand le doigt se lève, la saisie est terminée.", "info");
-      clearCurrentDrawing();
-      toggleSaveVisibility();
-    }
+function resetPatternOnly() {
+    step = 1;
+    firstPattern = [];
+    confirmedPattern = [];
+    stepBadge.textContent = "Étape 1 : dessinez le schéma";
+    setStatus("Dessinez le schéma. Quand le doigt se lève, la saisie est terminée.", "info");
+    clearCurrentDrawing();
+    toggleSaveVisibility();
+}
 
-    function buildPayload() {
-      return {
+function buildPayload() {
+    return {
         pin: pinCodeInput.value.trim() || null,
         pattern: confirmedPattern.length ? [...confirmedPattern] : null,
         remarks: remarksInput.value.trim() || null
-      };
-    }
+    };
+}
 
-    function toggleSaveVisibility() {
-      const pin = pinCodeInput.value.trim();
-      const remarks = remarksInput.value.trim();
-      const canSaveWithoutPattern = pin !== '' || remarks !== '';
-      const canSaveWithPattern = confirmedPattern.length > 0;
+function toggleSaveVisibility() {
+    const pin = pinCodeInput.value.trim();
+    const remarks = remarksInput.value.trim();
+    const canSaveWithoutPattern = pin !== '' || remarks !== '';
+    const canSaveWithPattern = confirmedPattern.length > 0;
 
-      if (canSaveWithoutPattern || canSaveWithPattern) {
+    if (canSaveWithoutPattern || canSaveWithPattern) {
         btnSave.classList.remove('hidden');
-      } else {
+    } else {
         btnSave.classList.add('hidden');
-      }
-
-      if (step === 2) {
-        btnSave.classList.add('hidden');
-      }
     }
 
-    function handleCompletedPattern() {
-      if (selected.length < 2) {
+    if (step === 2) {
+        btnSave.classList.add('hidden');
+    }
+}
+
+function handleCompletedPattern() {
+    if (selected.length < 2) {
         setStatus("Schéma trop court. Recommencez.", "err");
         clearCurrentDrawing();
         return;
-      }
+    }
 
-      if (step === 1) {
+    if (step === 1) {
         firstPattern = [...selected];
         step = 2;
         stepBadge.textContent = "Étape 2 : confirmez le schéma";
@@ -382,18 +307,18 @@
         clearCurrentDrawing();
         toggleSaveVisibility();
         return;
-      }
+    }
 
-      if (step === 2) {
+    if (step === 2) {
         if (!samePattern(firstPattern, selected)) {
-          setStatus("Les deux schémas sont différents. Recommencez.", "err");
-          step = 1;
-          firstPattern = [];
-          confirmedPattern = [];
-          stepBadge.textContent = "Étape 1 : dessinez le schéma";
-          clearCurrentDrawing();
-          toggleSaveVisibility();
-          return;
+            setStatus("Les deux schémas sont différents. Recommencez.", "err");
+            step = 1;
+            firstPattern = [];
+            confirmedPattern = [];
+            stepBadge.textContent = "Étape 1 : dessinez le schéma";
+            clearCurrentDrawing();
+            toggleSaveVisibility();
+            return;
         }
 
         confirmedPattern = [...selected];
@@ -401,111 +326,115 @@
         stepBadge.textContent = "Schéma confirmé";
         setStatus("Schéma confirmé.", "ok");
         toggleSaveVisibility();
-      }
     }
-
-   async function saveData() {
-  const payload = buildPayload();
-
-  if (!payload.pin && !payload.remarks && !payload.pattern) {
-    setStatus("Aucune donnée à enregistrer.", "err");
-    return;
-  }
-
-  setStatus("Envoi en cours...", "info");
-
-  try {
-    const response = await fetch(SAVE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const text = await response.text();
-    let result;
-    try {
-      result = JSON.parse(text);
-    } catch {
-      result = { raw: text };
-    }
-
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || ("HTTP " + response.status));
-    }
-
-    document.querySelector('.card').classList.add('hidden');
-    successCard.classList.remove('hidden');
-
-    successCard.innerHTML = `
-      <div class="success-screen">
-        <h2>Merci</h2>
-        <p>Les informations ont bien été enregistrées.</p>
-        <p>Retour à l’écran d’attente…</p>
-      </div>
-    `;
-
-    setTimeout(() => {
-      window.location.href = WAIT_URL;
-    }, 1200);
-
-  } catch (error) {
-    setStatus("Erreur : " + error.message, "err");
-  }
 }
-    function handleDrawStart(e) {
-      if (step === 3) return;
-      isDrawing = true;
-      currentPointer = getCanvasPos(e);
-      addPointIfNeeded(findPointAt(currentPointer.x, currentPointer.y));
-      draw();
+
+async function saveData() {
+    const payload = buildPayload();
+
+    if (!payload.pin && !payload.remarks && !payload.pattern) {
+        setStatus("Aucune donnée à enregistrer.", "err");
+        return;
     }
 
-    function handleDrawMove(e) {
-      if (!isDrawing || step === 3) return;
-      currentPointer = getCanvasPos(e);
-      addPointIfNeeded(findPointAt(currentPointer.x, currentPointer.y));
-      draw();
+    setStatus("Envoi en cours...", "info");
+
+    try {
+        const response = await fetch(SAVE_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch {
+            result = { raw: text };
+        }
+
+        if (!response.ok || !result.ok) {
+            throw new Error(result.error || ("HTTP " + response.status));
+        }
+
+        mainCard.classList.add('hidden');
+        successCard.classList.remove('hidden');
+
+        successCard.innerHTML = `
+            <div class="tablet-content">
+                <div class="tablet-success-screen">
+                    <h2>Merci</h2>
+                    <p>Les informations ont bien été enregistrées.</p>
+                    <p>Retour à l’écran d’attente…</p>
+                </div>
+            </div>
+        `;
+
+        setTimeout(() => {
+            window.location.href = WAIT_URL;
+        }, 1200);
+
+    } catch (error) {
+        setStatus("Erreur : " + error.message, "err");
     }
+}
 
-    function handleDrawEnd() {
-      if (!isDrawing || step === 3) return;
-      isDrawing = false;
-      currentPointer = null;
-      draw();
-      handleCompletedPattern();
-    }
+function handleDrawStart(e) {
+    if (step === 3) return;
+    isDrawing = true;
+    currentPointer = getCanvasPos(e);
+    addPointIfNeeded(findPointAt(currentPointer.x, currentPointer.y));
+    draw();
+}
 
-    canvas.addEventListener("mousedown", (e) => handleDrawStart(e));
-    canvas.addEventListener("mousemove", (e) => handleDrawMove(e));
-    canvas.addEventListener("mouseup", () => handleDrawEnd());
-    canvas.addEventListener("mouseleave", () => { if (isDrawing) handleDrawEnd(); });
+function handleDrawMove(e) {
+    if (!isDrawing || step === 3) return;
+    currentPointer = getCanvasPos(e);
+    addPointIfNeeded(findPointAt(currentPointer.x, currentPointer.y));
+    draw();
+}
 
-    canvas.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      handleDrawStart(e);
-    }, { passive: false });
+function handleDrawEnd() {
+    if (!isDrawing || step === 3) return;
+    isDrawing = false;
+    currentPointer = null;
+    draw();
+    handleCompletedPattern();
+}
 
-    canvas.addEventListener("touchmove", (e) => {
-      e.preventDefault();
-      handleDrawMove(e);
-    }, { passive: false });
+canvas.addEventListener("mousedown", (e) => handleDrawStart(e));
+canvas.addEventListener("mousemove", (e) => handleDrawMove(e));
+canvas.addEventListener("mouseup", () => handleDrawEnd());
+canvas.addEventListener("mouseleave", () => { if (isDrawing) handleDrawEnd(); });
 
-    canvas.addEventListener("touchend", (e) => {
-      e.preventDefault();
-      handleDrawEnd();
-    }, { passive: false });
+canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    handleDrawStart(e);
+}, { passive: false });
 
-    btnReset.addEventListener("click", resetPatternOnly);
-    btnSave.addEventListener("click", saveData);
+canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    handleDrawMove(e);
+}, { passive: false });
 
-    pinCodeInput.addEventListener('input', toggleSaveVisibility);
-    remarksInput.addEventListener('input', toggleSaveVisibility);
+canvas.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    handleDrawEnd();
+}, { passive: false });
 
-    initPoints();
-    resetPatternOnly();
-  </script>
+btnReset.addEventListener("click", resetPatternOnly);
+btnSave.addEventListener("click", saveData);
+
+pinCodeInput.addEventListener('input', toggleSaveVisibility);
+remarksInput.addEventListener('input', toggleSaveVisibility);
+
+initPoints();
+resetPatternOnly();
+</script>
+
 </body>
 </html>

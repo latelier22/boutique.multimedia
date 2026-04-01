@@ -4,8 +4,6 @@
 
 {% block content %}
 
-{# Top menu dans le pre_content du Layout Admin #}
-
 <div class="ui breadcrumb">
   <h1 class="ui header">
     <i class="edit icon"></i>
@@ -47,7 +45,6 @@
   <input type="hidden" name="misc_values_json" id="miscValuesJson" value="{}" />
 
   <div class="ui stackable grid">
-    {# ===================== COLONNE GAUCHE ===================== #}
     <div class="eight wide column">
       <div class="ui segment">
         <h3 class="ui header">
@@ -110,24 +107,24 @@
         </div>
 
         <div class="field">
-  <label>Marque</label>
-  <select name="product_brand" id="product_brand_select" class="ui fluid search selection dropdown hib-search-dropdown">
-    <option value="0">Choisir une marque</option>
-    <option value="__new__">+ Nouvelle marque...</option>
+          <label>Marque</label>
+          <select name="product_brand" id="product_brand_select" class="ui fluid search selection dropdown hib-search-dropdown">
+            <option value="0">Choisir une marque</option>
+            <option value="__new__">+ Nouvelle marque...</option>
 
-    {% for b in brands %}
-      <option value="{{ b.brand_id }}"
-        {% if (product.product_brand ?? 0) == b.brand_id %}selected{% endif %}>
-        {{ b.brand_name ?: ('BRAND #' ~ b.brand_id) }}
-      </option>
-    {% endfor %}
-  </select>
-</div>
+            {% for b in brands %}
+              <option value="{{ b.brand_id }}"
+                {% if (product.product_brand ?? 0) == b.brand_id %}selected{% endif %}>
+                {{ b.brand_name ?: ('BRAND #' ~ b.brand_id) }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
 
-<div class="field" id="new-brand-field" style="display:none;">
-  <label>Nouvelle marque</label>
-  <input type="text" name="new_brand_name" id="new_brand_name" placeholder="Ex : Xiaomi">
-</div>
+        <div class="field" id="new-brand-field" style="display:none;">
+          <label>Nouvelle marque</label>
+          <input type="text" name="new_brand_name" id="new_brand_name" placeholder="Ex : Xiaomi">
+        </div>
 
         <div class="field">
           <div class="ui toggle checkbox">
@@ -138,73 +135,67 @@
         </div>
       </div>
 
-      {# ===== TAGS ===== #}
-     <div class="ui segment">
-  <h3 class="ui header">
-    <i class="tags icon"></i>
-    Gestion des tags
-  </h3>
+      <div class="ui segment">
+        <h3 class="ui header">
+          <i class="tags icon"></i>
+          Gestion des tags
+        </h3>
 
-  <div class="ui info message">
-    Coche les tags à appliquer, puis clique sur <strong>Enregistrer</strong>.
-  </div>
-
-  {% if tagGroups is empty %}
-    <div class="ui message">Aucun tag disponible.</div>
-  {% else %}
-    <div style="overflow:auto;">
-      {% for group in tagGroups %}
-        <div class="ui segment" style="margin-bottom:14px;">
-          <div style="font-weight:700; font-size:16px; margin-bottom:8px;">
-            {{ group.name ?: 'Sans catégorie' }}
-          </div>
-
-          {% if group.desc %}
-            <div style="color:#666; font-size:12px; margin-bottom:10px;">
-              {{ group.desc }}
-            </div>
-          {% endif %}
-
-          {% if group.tags is empty %}
-            <div class="ui tiny message">Aucun tag dans cette catégorie.</div>
-          {% else %}
-            <div class="ui stackable two column grid">
-              {% for tag in group.tags %}
-                <div class="column">
-                  <div class="field" style="margin-bottom:8px;">
-                    <div class="ui checkbox">
-                      <input
-                        type="checkbox"
-                        name="product_tags[]"
-                        value="{{ tag.id }}"
-                        {% if tag.id in currentTagIds %}checked{% endif %}
-                      >
-                      <label>
-                        <strong>{{ tag.label }}</strong>
-                        {% if tag.desc %}
-                          <br>
-                          <span style="color:#666; font-size:12px;">{{ tag.desc }}</span>
-                        {% endif %}
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
+        <div class="ui info message">
+          Coche les tags à appliquer, puis clique sur <strong>Enregistrer</strong>.
         </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-</div>
+
+        {% if tagGroups is empty %}
+          <div class="ui message">Aucun tag disponible.</div>
+        {% else %}
+          <div style="overflow:auto;">
+            {% for group in tagGroups %}
+              <div class="ui segment" style="margin-bottom:14px;">
+                <div style="font-weight:700; font-size:16px; margin-bottom:8px;">
+                  {{ group.name ?: 'Sans catégorie' }}
+                </div>
+
+                {% if group.desc %}
+                  <div style="color:#666; font-size:12px; margin-bottom:10px;">
+                    {{ group.desc }}
+                  </div>
+                {% endif %}
+
+                {% if group.tags is empty %}
+                  <div class="ui tiny message">Aucun tag dans cette catégorie.</div>
+                {% else %}
+                  <div class="ui stackable two column grid">
+                    {% for tag in group.tags %}
+                      <div class="column">
+                        <div class="field" style="margin-bottom:8px;">
+                          <div class="ui checkbox">
+                            <input
+                              type="checkbox"
+                              name="product_tags[]"
+                              value="{{ tag.id }}"
+                              {% if tag.id in currentTagIds %}checked{% endif %}
+                            >
+                            <label>
+                              <strong>{{ tag.label }}</strong>
+                              {% if tag.desc %}
+                                <br>
+                                <span style="color:#666; font-size:12px;">{{ tag.desc }}</span>
+                              {% endif %}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
     </div>
 
-    {# ===================== COLONNE DROITE ===================== #}
     <div class="eight wide column">
-
-      
-
-      {# ===== ATTRIBUTS ===== #}
       <div class="ui segment">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
           <h3 class="ui header" style="margin:0;">
@@ -287,12 +278,11 @@
 
 <div class="ui divider"></div>
 
-{# ===================== IMAGES EN DESSOUS ===================== #}
 <div class="ui segment">
   <h3 class="ui header">Images produit</h3>
 
   <script>
-  const imagesUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
+    const imagesUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
   </script>
 
   <div id="images-container">
@@ -300,418 +290,546 @@
   </div>
 </div>
 
+{# =========================================================
+   SCRIPT GLOBAL
+   - Gère l’initialisation de la page
+   - Compatible DOMContentLoaded + turbo:load
+   - Évite le bug du spinner qui tourne sans fin
+   ========================================================= #}
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    fetch(imagesUrl)
-        .then(r => r.text())
-        .then(html => {
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
+(function () {
+    /**
+     * Point d’entrée principal de la page produit.
+     * On l'appelle :
+     * - si le DOM est déjà prêt
+     * - au DOMContentLoaded
+     * - au turbo:load si navigation turbo / admin dynamique
+     */
+    function bootHibProductEditPage() {
+        initSemanticUiComponents();
+        initBrandToggle();
+        initAttributesSection();
+        initImagesSection();
+    }
 
-            const grid = temp.querySelector('.ui.grid');
-            const container = document.getElementById('images-container');
-            container.innerHTML = '';
+    /**
+     * Initialise les composants Semantic UI.
+     * On le relance à chaque chargement de page.
+     */
+    function initSemanticUiComponents() {
+        if (window.$ && $.fn.dropdown) {
+            $('.ui.dropdown').not('.hib-search-dropdown').dropdown();
+        }
 
-            if (grid) {
-                container.appendChild(grid);
-            } else {
-                container.innerHTML = html;
+        if (window.$ && $.fn.checkbox) {
+            $('.ui.checkbox').checkbox();
+        }
+    }
+
+    /**
+     * Gère l'affichage du champ "Nouvelle marque"
+     * quand on choisit l'option "__new__".
+     */
+    function initBrandToggle() {
+        const form = document.getElementById('hibProductEditForm');
+        if (!form) return;
+
+        const brandSelect = document.getElementById('product_brand_select');
+        const newBrandField = document.getElementById('new-brand-field');
+        const newBrandInput = document.getElementById('new_brand_name');
+
+        if (!brandSelect || !newBrandField) return;
+
+        function toggleNewBrandField() {
+            const isNew = brandSelect.value === '__new__';
+            newBrandField.style.display = isNew ? '' : 'none';
+
+            if (!isNew && newBrandInput) {
+                newBrandInput.value = '';
+            }
+        }
+
+        toggleNewBrandField();
+        brandSelect.onchange = toggleNewBrandField;
+    }
+
+    /**
+     * Charge la zone images par fetch puis branche
+     * les fonctions preview / upload / delete / paste.
+     */
+    function initImagesSection() {
+        const container = document.getElementById('images-container');
+        if (!container) return;
+
+        if (container.dataset.imagesLoaded === '1') {
+            return;
+        }
+        container.dataset.imagesLoaded = '1';
+
+        fetch(imagesUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => r.text())
+            .then(html => {
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+
+                const grid = temp.querySelector('.ui.grid');
+                container.innerHTML = '';
+
+                if (grid) {
+                    container.appendChild(grid);
+                } else {
+                    container.innerHTML = html;
+                }
+
+                bindImagesActions();
+            })
+            .catch(err => {
+                console.error(err);
+                container.innerHTML = "Erreur chargement";
+            });
+    }
+
+    /**
+     * Branche toutes les actions liées aux images produit.
+     * On les met sur window pour garder la compatibilité
+     * avec les boutons inline déjà présents dans le HTML chargé.
+     */
+    function bindImagesActions() {
+        window.selectedFiles = {};
+
+        window.previewImage = function(e, id) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            window.selectedFiles[id] = file;
+
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = document.getElementById('preview-' + id);
+                if (img) img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.uploadImage = function(id) {
+            if (!window.selectedFiles[id]) {
+                alert("Choisir image");
+                return;
             }
 
-            initImages();
-        })
-        .catch(err => {
-            console.error(err);
-            document.getElementById('images-container').innerHTML = "Erreur chargement";
-        });
-});
-</script>
+            const fd = new FormData();
+            fd.append('image', window.selectedFiles[id]);
+            fd.append('image_id', id);
 
-<script>
-function initImages() {
-    window.selectedFiles = {};
-
-    window.previewImage = function(e, id) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        selectedFiles[id] = file;
-
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const img = document.getElementById('preview-' + id);
-            if (img) img.src = ev.target.result;
+            fetch(imagesUrl, {
+                method: 'POST',
+                body: fd
+            })
+            .then(r => r.text())
+            .then(t => {
+                console.log("UPLOAD OK", t);
+                location.reload();
+            })
+            .catch(e => {
+                console.error(e);
+                alert("Erreur upload");
+            });
         };
-        reader.readAsDataURL(file);
-    };
 
-    window.uploadImage = function(id) {
-        if (!selectedFiles[id]) {
-            alert("Choisir image");
+        window.deleteImage = function(name) {
+            if (!confirm("Supprimer ?")) return;
+
+            const fd = new FormData();
+            fd.append('delete_image', name);
+
+            fetch(imagesUrl, {
+                method: 'POST',
+                body: fd
+            })
+            .then(() => location.reload())
+            .catch(e => {
+                console.error(e);
+                alert("Erreur suppression");
+            });
+        };
+
+        window.pasteImage = async function(id) {
+            try {
+                const items = await navigator.clipboard.read();
+
+                for (const item of items) {
+                    for (const type of item.types) {
+                        if (type.startsWith('image/')) {
+                            const blob = await item.getType(type);
+                            const file = new File([blob], "paste.png", { type });
+
+                            window.selectedFiles[id] = file;
+
+                            const reader = new FileReader();
+                            reader.onload = e => {
+                                const img = document.getElementById('preview-' + id);
+                                if (img) img.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+
+                            setTimeout(() => window.uploadImage(id), 100);
+                            return;
+                        }
+                    }
+                }
+
+                alert("Aucune image");
+            } catch (e) {
+                console.error(e);
+                alert("Clipboard bloqué");
+            }
+        };
+    }
+
+    /**
+     * Initialise toute la zone des attributs.
+     * C’est ici que se trouvait le bug :
+     * avant, tout dépendait seulement de DOMContentLoaded.
+     * Maintenant, on initialise correctement même si la page
+     * est injectée / rechargée autrement.
+     */
+    function initAttributesSection() {
+        const form = document.getElementById('hibProductEditForm');
+        if (!form) return;
+
+        /**
+         * Évite les doubles branchements sur la même page.
+         */
+        if (form.dataset.hibAttrInit === '1') {
+            return;
+        }
+        form.dataset.hibAttrInit = '1';
+
+        const INITIAL_MISC_VALUES = {{ miscValues|default({})|json_encode|raw }};
+        const INITIAL_CATEGORY_ID = {{ selectedCategoryId|default(0)|json_encode|raw }};
+        const INITIAL_ATTR_DEFS = {{ initialAttributeDefs|default([])|json_encode|raw }};
+
+        const catSelect = document.querySelector('select[name="product_category"]');
+        const listEl = document.getElementById('hib-attributes-list');
+        const rawBox = document.getElementById('miscRawBox');
+        const miscValuesJsonInput = document.getElementById('miscValuesJson');
+
+        const QUICK_ATTR_URL = '/admin/hiboutik/categories/attributes/create';
+
+        const quickAttrLabel = document.getElementById('quickAttrLabel');
+        const quickAttrType = document.getElementById('quickAttrType');
+        const quickAttrOptions = document.getElementById('quickAttrOptions');
+        const quickAttrOptionsField = document.getElementById('quickAttrOptionsField');
+        const quickAttrBtn = document.getElementById('btnQuickCreateAttr');
+        const quickAttrState = document.getElementById('quickAttrState');
+
+        if (!catSelect || !listEl || !miscValuesJsonInput) {
             return;
         }
 
-        const fd = new FormData();
-        fd.append('image', selectedFiles[id]);
-        fd.append('image_id', id);
+        let defs = [];
+        let values = JSON.parse(JSON.stringify(INITIAL_MISC_VALUES || {}));
+        const preloadedDefsByCategory = {};
 
-        fetch(imagesUrl, {
-            method: 'POST',
-            body: fd
-        })
-        .then(r => r.text())
-        .then(t => {
-            console.log("UPLOAD OK", t);
-            location.reload();
-        })
-        .catch(e => {
-            console.error(e);
-            alert("Erreur upload");
-        });
-    };
+        /**
+         * On injecte les attributs déjà fournis par Twig/PHP
+         * pour éviter un fetch inutile au premier affichage.
+         */
+        if (String(INITIAL_CATEGORY_ID || '0') !== '0') {
+            preloadedDefsByCategory[String(INITIAL_CATEGORY_ID)] = Array.isArray(INITIAL_ATTR_DEFS) ? INITIAL_ATTR_DEFS : [];
+        }
 
-    window.deleteImage = function(name) {
-        if (!confirm("Supprimer ?")) return;
+        function escapeHtml(str) {
+            return String(str ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
 
-        const fd = new FormData();
-        fd.append('delete_image', name);
+        function escapeHtmlAttr(str) {
+            return escapeHtml(str);
+        }
 
-        fetch(imagesUrl, {
-            method: 'POST',
-            body: fd
-        })
-        .then(() => location.reload());
-    };
+        /**
+         * Construit l’aperçu JSON qui sera affiché
+         * dans la zone "misc_text brut".
+         */
+        function buildMiscPreviewRows() {
+            if (!Array.isArray(defs) || defs.length === 0) {
+                return values || {};
+            }
 
-    window.pasteImage = async function(id) {
-        try {
-            const items = await navigator.clipboard.read();
+            return defs.map(def => ({
+                code: String(def.code || ''),
+                label: String(def.label || def.code || ''),
+                value: String(values?.[def.code] ?? '')
+            }));
+        }
 
-            for (const item of items) {
-                for (const type of item.types) {
-                    if (type.startsWith('image/')) {
-                        const blob = await item.getType(type);
-                        const file = new File([blob], "paste.png", { type });
+        /**
+         * Synchronise :
+         * - le champ caché misc_values_json
+         * - l’aperçu brut
+         */
+        function syncMiscHiddenInput() {
+            miscValuesJsonInput.value = JSON.stringify(values || {});
 
-                        selectedFiles[id] = file;
+            if (rawBox) {
+                rawBox.textContent = JSON.stringify(buildMiscPreviewRows(), null, 2);
+            }
+        }
 
-                        const reader = new FileReader();
-                        reader.onload = e => {
-                            const img = document.getElementById('preview-' + id);
-                            if (img) img.src = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
+        /**
+         * Affiche ou masque le champ "options"
+         * selon le type d’attribut rapide.
+         */
+        function refreshQuickAttrVisibility() {
+            if (!quickAttrType || !quickAttrOptionsField) return;
+            quickAttrOptionsField.style.display = quickAttrType.value === 'select' ? '' : 'none';
+        }
 
-                        setTimeout(() => uploadImage(id), 100);
-                        return;
-                    }
+        /**
+         * Garde uniquement les valeurs dont les codes
+         * existent encore dans les defs courantes.
+         */
+        function normalizeValuesForCurrentDefs() {
+            const allowedCodes = new Set((defs || []).map(d => String(d.code || '')));
+            const nextValues = {};
+
+            for (const code of Object.keys(values || {})) {
+                if (allowedCodes.has(code)) {
+                    nextValues[code] = values[code];
                 }
             }
 
-            alert("Aucune image");
-        } catch {
-            alert("Clipboard bloqué");
-        }
-    };
-}
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    if (window.$ && $.fn.dropdown) {
-        $('#quickAttrType').dropdown();
-        $('.ui.dropdown').not('.hib-search-dropdown').not('#quickAttrType').dropdown();
-    }
-
-    if (window.$ && $.fn.checkbox) {
-        $('.ui.checkbox').checkbox();
-    }
-});
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const INITIAL_MISC_VALUES = {{ miscValues|default({})|json_encode|raw }};
-    const INITIAL_CATEGORY_ID = {{ selectedCategoryId|default(0)|json_encode|raw }};
-    const INITIAL_ATTR_DEFS = {{ initialAttributeDefs|default([])|json_encode|raw }};
-
-    const catSelect = document.querySelector('select[name="product_category"]');
-    const listEl = document.getElementById('hib-attributes-list');
-    const rawBox = document.getElementById('miscRawBox');
-    const miscValuesJsonInput = document.getElementById('miscValuesJson');
-
-    const QUICK_ATTR_URL = '/admin/hiboutik/categories/attributes/create';
-
-    const quickAttrLabel = document.getElementById('quickAttrLabel');
-    const quickAttrType = document.getElementById('quickAttrType');
-    const quickAttrOptions = document.getElementById('quickAttrOptions');
-    const quickAttrOptionsField = document.getElementById('quickAttrOptionsField');
-    const quickAttrBtn = document.getElementById('btnQuickCreateAttr');
-    const quickAttrState = document.getElementById('quickAttrState');
-
-    let defs = [];
-    let values = JSON.parse(JSON.stringify(INITIAL_MISC_VALUES || {}));
-    const preloadedDefsByCategory = {};
-
-    if (String(INITIAL_CATEGORY_ID || '0') !== '0') {
-        preloadedDefsByCategory[String(INITIAL_CATEGORY_ID)] = Array.isArray(INITIAL_ATTR_DEFS) ? INITIAL_ATTR_DEFS : [];
-    }
-
-    function escapeHtml(str) {
-        return String(str ?? '')
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
-
-    function escapeHtmlAttr(str) {
-        return escapeHtml(str);
-    }
-
-    function buildMiscPreviewRows() {
-        if (!Array.isArray(defs) || defs.length === 0) {
-            return values || {};
+            values = nextValues;
         }
 
-        return defs.map(def => ({
-            code: String(def.code || ''),
-            label: String(def.label || def.code || ''),
-            value: String(values?.[def.code] ?? '')
-        }));
-    }
+        /**
+         * Branche les événements sur les inputs générés.
+         */
+        function bindInputs() {
+            listEl.querySelectorAll('.hib-misc-input').forEach(el => {
+                const update = () => {
+                    const code = el.getAttribute('data-code');
+                    values[code] = el.value;
+                    syncMiscHiddenInput();
+                };
 
-    function syncMiscHiddenInput() {
-        if (miscValuesJsonInput) {
-            miscValuesJsonInput.value = JSON.stringify(values || {});
-        }
-
-        if (rawBox) {
-            rawBox.textContent = JSON.stringify(buildMiscPreviewRows(), null, 2);
-        }
-    }
-
-    function refreshQuickAttrVisibility() {
-        if (!quickAttrType || !quickAttrOptionsField) return;
-        quickAttrOptionsField.style.display = quickAttrType.value === 'select' ? '' : 'none';
-    }
-
-    function normalizeValuesForCurrentDefs() {
-        const allowedCodes = new Set((defs || []).map(d => String(d.code || '')));
-        const nextValues = {};
-
-        for (const code of Object.keys(values || {})) {
-            if (allowedCodes.has(code)) {
-                nextValues[code] = values[code];
-            }
-        }
-
-        values = nextValues;
-    }
-
-function renderDefs() {
-    if (!defs.length) {
-        listEl.innerHTML = `<div class="ui message">Aucun attribut défini pour cette catégorie.</div>`;
-        syncMiscHiddenInput();
-        return;
-    }
-
-    listEl.innerHTML = '';
-
-    defs.forEach(def => {
-        const currentValue = String(values?.[def.code] ?? '');
-        const wrapper = document.createElement('div');
-        wrapper.className = 'ui segment';
-
-        let inputHtml = '';
-
-        if (def.type === 'select') {
-            const opts = Array.isArray(def.options) ? def.options : [];
-
-            inputHtml = `
-                <select
-                    data-code="${escapeHtmlAttr(def.code)}"
-                    class="hib-misc-input"
-                    style="width:100%;padding:8px;"
-                >
-                    <option value="">-- choisir --</option>
-                    ${opts.map(o => `
-                        <option value="${escapeHtmlAttr(o)}" ${String(o) === currentValue ? 'selected' : ''}>
-                            ${escapeHtml(o)}
-                        </option>
-                    `).join('')}
-                </select>
-            `;
-        } else {
-            inputHtml = `
-                <input
-                    type="text"
-                    value="${escapeHtmlAttr(currentValue)}"
-                    data-code="${escapeHtmlAttr(def.code)}"
-                    class="hib-misc-input"
-                    style="width:100%;padding:8px;"
-                >
-            `;
-        }
-
-        wrapper.innerHTML = `
-            <div style="font-weight:700;margin-bottom:6px;">${escapeHtml(def.label || def.code)}</div>
-            <div style="font-size:12px;color:#666;margin-bottom:8px;">
-                code: <code>${escapeHtml(def.code)}</code>
-            </div>
-            ${inputHtml}
-        `;
-
-        listEl.appendChild(wrapper);
-    });
-
-    bindInputs();
-    syncMiscHiddenInput();
-}
-    function bindInputs() {
-    listEl.querySelectorAll('.hib-misc-input').forEach(el => {
-        const update = () => {
-            const code = el.getAttribute('data-code');
-            values[code] = el.value;
-            syncMiscHiddenInput();
-        };
-
-        el.addEventListener('change', update);
-        el.addEventListener('input', update);
-    });
-
-    syncMiscHiddenInput();
-}
-
-    async function loadDefs() {
-        const catId = String(catSelect?.value || '0');
-
-        if (!catId || catId === '0') {
-            listEl.innerHTML = `<div class="ui message">Choisis une catégorie pour afficher les attributs.</div>`;
-            defs = [];
-            values = {};
-            syncMiscHiddenInput();
-            return;
-        }
-
-        if (preloadedDefsByCategory[catId]) {
-            defs = preloadedDefsByCategory[catId];
-            normalizeValuesForCurrentDefs();
-            renderDefs();
-            return;
-        }
-
-        listEl.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
-
-        try {
-            const res = await fetch('/admin/hiboutik/categories/attributes/' + encodeURIComponent(catId));
-            if (!res.ok) {
-                listEl.innerHTML = `<div class="ui negative message">Erreur chargement attributs</div>`;
-                return;
-            }
-
-            defs = await res.json();
-            preloadedDefsByCategory[catId] = defs;
-            normalizeValuesForCurrentDefs();
-            renderDefs();
-        } catch (e) {
-            console.error(e);
-            listEl.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
-        }
-    }
-
-    async function createQuickAttribute() {
-        const catId = String(catSelect?.value || '0');
-        const label = String(quickAttrLabel?.value || '').trim();
-        const type = String(quickAttrType?.value || 'text');
-        const options = String(quickAttrOptions?.value || '').trim();
-
-        if (!catId || catId === '0') {
-            quickAttrState.textContent = 'Choisis d’abord une catégorie';
-            return;
-        }
-
-        if (!label) {
-            quickAttrState.textContent = 'Label obligatoire';
-            return;
-        }
-
-        quickAttrState.textContent = 'Création...';
-
-        try {
-            const res = await fetch(QUICK_ATTR_URL, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    category_id: catId,
-                    label: label,
-                    type: type,
-                    options: options
-                })
+                el.addEventListener('change', update);
+                el.addEventListener('input', update);
             });
 
-            const json = await res.json();
+            syncMiscHiddenInput();
+        }
 
-            if (!res.ok || !json.ok) {
-                console.error(json);
-                quickAttrState.textContent = 'Erreur';
+        /**
+         * Rend les attributs dans le DOM.
+         */
+        function renderDefs() {
+            if (!defs.length) {
+                listEl.innerHTML = `<div class="ui message">Aucun attribut défini pour cette catégorie.</div>`;
+                syncMiscHiddenInput();
                 return;
             }
 
-            quickAttrLabel.value = '';
-            quickAttrType.value = 'text';
-            quickAttrOptions.value = '';
-            refreshQuickAttrVisibility();
+            listEl.innerHTML = '';
 
-            delete preloadedDefsByCategory[catId];
-            quickAttrState.textContent = 'Attribut créé';
-            await loadDefs();
-        } catch (e) {
-            console.error(e);
-            quickAttrState.textContent = 'Erreur JS';
+            defs.forEach(def => {
+                const currentValue = String(values?.[def.code] ?? '');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'ui segment';
+
+                let inputHtml = '';
+
+                if (def.type === 'select') {
+                    const opts = Array.isArray(def.options) ? def.options : [];
+
+                    inputHtml = `
+                        <select
+                            data-code="${escapeHtmlAttr(def.code)}"
+                            class="hib-misc-input"
+                            style="width:100%;padding:8px;"
+                        >
+                            <option value="">-- choisir --</option>
+                            ${opts.map(o => `
+                                <option value="${escapeHtmlAttr(o)}" ${String(o) === currentValue ? 'selected' : ''}>
+                                    ${escapeHtml(o)}
+                                </option>
+                            `).join('')}
+                        </select>
+                    `;
+                } else {
+                    inputHtml = `
+                        <input
+                            type="text"
+                            value="${escapeHtmlAttr(currentValue)}"
+                            data-code="${escapeHtmlAttr(def.code)}"
+                            class="hib-misc-input"
+                            style="width:100%;padding:8px;"
+                        >
+                    `;
+                }
+
+                wrapper.innerHTML = `
+                    <div style="font-weight:700;margin-bottom:6px;">${escapeHtml(def.label || def.code)}</div>
+                    <div style="font-size:12px;color:#666;margin-bottom:8px;">
+                        code: <code>${escapeHtml(def.code)}</code>
+                    </div>
+                    ${inputHtml}
+                `;
+
+                listEl.appendChild(wrapper);
+            });
+
+            bindInputs();
+            syncMiscHiddenInput();
         }
-    }
 
-    if (catSelect) {
+        /**
+         * Charge les définitions d’attributs
+         * pour la catégorie sélectionnée.
+         */
+        async function loadDefs() {
+            const catId = String(catSelect?.value || '0');
+
+            if (!catId || catId === '0') {
+                listEl.innerHTML = `<div class="ui message">Choisis une catégorie pour afficher les attributs.</div>`;
+                defs = [];
+                values = {};
+                syncMiscHiddenInput();
+                return;
+            }
+
+            /**
+             * Si Twig a déjà injecté les attributs,
+             * on les utilise immédiatement sans fetch.
+             */
+            if (Object.prototype.hasOwnProperty.call(preloadedDefsByCategory, catId)) {
+                defs = Array.isArray(preloadedDefsByCategory[catId]) ? preloadedDefsByCategory[catId] : [];
+                normalizeValuesForCurrentDefs();
+                renderDefs();
+                return;
+            }
+
+            listEl.innerHTML = `<div class="ui active inline loader"></div> Chargement...`;
+
+            try {
+                const res = await fetch('/admin/hiboutik/categories/attributes/' + encodeURIComponent(catId), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (!res.ok) {
+                    listEl.innerHTML = `<div class="ui negative message">Erreur chargement attributs</div>`;
+                    return;
+                }
+
+                defs = await res.json();
+                preloadedDefsByCategory[catId] = defs;
+                normalizeValuesForCurrentDefs();
+                renderDefs();
+            } catch (e) {
+                console.error(e);
+                listEl.innerHTML = `<div class="ui negative message">Erreur JS</div>`;
+            }
+        }
+
+        /**
+         * Crée rapidement un attribut pour la catégorie courante,
+         * puis recharge la liste des attributs.
+         */
+        async function createQuickAttribute() {
+            const catId = String(catSelect?.value || '0');
+            const label = String(quickAttrLabel?.value || '').trim();
+            const type = String(quickAttrType?.value || 'text');
+            const options = String(quickAttrOptions?.value || '').trim();
+
+            if (!catId || catId === '0') {
+                quickAttrState.textContent = 'Choisis d’abord une catégorie';
+                return;
+            }
+
+            if (!label) {
+                quickAttrState.textContent = 'Label obligatoire';
+                return;
+            }
+
+            quickAttrState.textContent = 'Création...';
+
+            try {
+                const res = await fetch(QUICK_ATTR_URL, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        category_id: catId,
+                        label: label,
+                        type: type,
+                        options: options
+                    })
+                });
+
+                const json = await res.json();
+
+                if (!res.ok || !json.ok) {
+                    console.error(json);
+                    quickAttrState.textContent = 'Erreur';
+                    return;
+                }
+
+                quickAttrLabel.value = '';
+                quickAttrType.value = 'text';
+                quickAttrOptions.value = '';
+                refreshQuickAttrVisibility();
+
+                delete preloadedDefsByCategory[catId];
+                quickAttrState.textContent = 'Attribut créé';
+                await loadDefs();
+            } catch (e) {
+                console.error(e);
+                quickAttrState.textContent = 'Erreur JS';
+            }
+        }
+
         catSelect.addEventListener('change', loadDefs);
-    }
 
-    if (quickAttrType) {
-        quickAttrType.addEventListener('change', refreshQuickAttrVisibility);
-        refreshQuickAttrVisibility();
-    }
-
-    if (quickAttrBtn) {
-        quickAttrBtn.addEventListener('click', createQuickAttribute);
-    }
-
-    syncMiscHiddenInput();
-    loadDefs();
-});
-</script>
-<script>
-// Gère l'affichage du champ "Nouvelle marque" dans le formulaire d'édition produit
-document.addEventListener("DOMContentLoaded", () => {
-    const brandSelect = document.getElementById('product_brand_select');
-    const newBrandField = document.getElementById('new-brand-field');
-    const newBrandInput = document.getElementById('new_brand_name');
-
-    function toggleNewBrandField() {
-        if (!brandSelect || !newBrandField) return;
-
-        const isNew = brandSelect.value === '__new__';
-        newBrandField.style.display = isNew ? '' : 'none';
-
-        if (!isNew && newBrandInput) {
-            newBrandInput.value = '';
+        if (quickAttrType) {
+            quickAttrType.addEventListener('change', refreshQuickAttrVisibility);
+            refreshQuickAttrVisibility();
         }
+
+        if (quickAttrBtn) {
+            quickAttrBtn.addEventListener('click', createQuickAttribute);
+        }
+
+        /**
+         * Initialisation immédiate :
+         * - on synchronise les données
+         * - on charge les attributs dès l’ouverture
+         */
+        syncMiscHiddenInput();
+        loadDefs();
     }
 
-    if (brandSelect) {
-        brandSelect.addEventListener('change', toggleNewBrandField);
-        toggleNewBrandField();
+    /**
+     * Appel immédiat si le DOM est déjà prêt,
+     * sinon on attend DOMContentLoaded.
+     */
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootHibProductEditPage, { once: true });
+    } else {
+        bootHibProductEditPage();
     }
-});
+
+    /**
+     * Sécurité supplémentaire si ton admin utilise Turbo
+     * ou un mécanisme de navigation partielle.
+     */
+    document.addEventListener('turbo:load', bootHibProductEditPage);
+})();
 </script>
+
 {% endblock %}

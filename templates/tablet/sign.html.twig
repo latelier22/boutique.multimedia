@@ -1,187 +1,162 @@
-{# templates/tablet/sign.html.twig #}
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Signature rachat #{{ r.id }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Signature rachat #{{ r.id }}</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
-
-  <style>
-    body{ margin:0; font-family: system-ui, Arial; background:#0b0f14; color:#e8f0ff; }
-    .top{ padding:12px; border-bottom:1px solid rgba(255,255,255,.12); background:#121826; }
-    .title{ font-weight:800; font-size:18px; margin:0 0 8px; }
-    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:6px 10px; color:#9fb2c7; font-size:14px; }
-    .grid b{ color:#e8f0ff; }
-
-    .wrap{ padding:12px; display:flex; flex-direction:column; gap:10px; height: calc(100vh - 86px); }
-    .box{ background:#121826; border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:10px; flex:1; display:flex; flex-direction:column; gap:8px; min-height:0; }
-    canvas{ width:100%; height:100%; background:#fff; border-radius:12px; touch-action:none; display:block; }
-    .actions{ display:flex; gap:10px; }
-    button{ flex:1; padding:14px 16px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#1b2636; color:#e8f0ff; font-weight:800; font-size:16px; }
-    button.primary{ background:#2563eb; border-color:#2563eb; }
-    .err{ display:none; padding:10px 12px; border-radius:12px; background:rgba(255,77,77,.12); border:1px solid rgba(255,77,77,.35); color:#ffd1d1; }
-    .err.show{ display:block; }
-  </style>
-  <style>
-:root{
-  --bg:#0B1220;
-  --card:rgba(255,255,255,.06);
-  --stroke:rgba(255,255,255,.12);
-  --text:#EAF0FF;
-  --blue:#2F5FB8;
-  --gold:#D6B04D;
-  --r:18px;
-}
-
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family: Inter, system-ui, Segoe UI, Roboto, Arial;
-  display:flex;
-  justify-content:center;
-  padding:20px;
-}
-
-.container{
-  width:100%;
-  max-width:900px;
-  display:flex;
-  flex-direction:column;
-  gap:20px;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--stroke);
-  border-radius:var(--r);
-  padding:20px;
-}
-
-h1{
-  margin:0 0 10px;
-  font-size:22px;
-}
-
-/* ===== SIGNATURE ===== */
-
-.signature-wrap{
-  background:white;
-  border-radius:14px;
-  overflow:hidden;
-  padding:10px;
-}
-
-canvas{
-  width:100%;
-  height:260px; /* 🔽 réduit */
-  background:#fff;
-  border-radius:12px;
-  touch-action:none;
-}
-
-/* ===== BUTTONS ===== */
-
-.actions{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  padding-top:10px;
-}
-
-button{
-  flex:1;
-  padding:14px;
-  border-radius:14px;
-  font-weight:600;
-  border:1px solid var(--stroke);
-  cursor:pointer;
-}
-
-.btn-clear{
-  background:#1f2937;
-  color:white;
-}
-
-.btn-submit{
-  background:linear-gradient(180deg, var(--blue), #1e3a8a);
-  color:white;
-}
-</style>
+    {% include 'tablet/tablet/tablet_css.html.twig' %}
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
 
-<div class="top">
-  <div class="title">Signature — Rachat #{{ r.id }}</div>
-  <div class="grid">
-    <div><b>Vendeur :</b> {{ (r.nom ~ ' ' ~ r.prenom)|trim }}</div>
-    <div><b>Tél :</b> {{ r.telephone ?: '—' }}</div>
-    <div><b>Appareil :</b> {{ r.marqueModele ?: '—' }}</div>
-    <div><b>Prix :</b> {{ r.prixAchat ?: '—' }} €</div>
-    <div style="grid-column:1/-1"><b>Date :</b> {{ (generated_at ?? "now")|date('d/m/Y H:i') }}</div>
-  </div>
-</div>
+<div class="tablet-page">
+    <div class="tablet-shell">
+        <div class="tablet-card">
+            <div class="tablet-header">
+                <div class="tablet-header-top">
+                    <div class="tablet-logo-box">
+                        <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
+                    </div>
 
-<div class="wrap">
-  <div class="err" id="err">Signature vide : dessine puis valide.</div>
+                    <div class="tablet-title-wrap">
+                        <div class="tablet-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                        <div class="tablet-subtitle">Achat - Vente - Réparation</div>
 
-  <form id="sig-form" method="post" action="{{ path('tablet_sign_submit', {id: r.id}) }}" style="flex:1; display:flex; flex-direction:column; gap:10px; min-height:0;">
-    <input type="hidden" name="token" value="{{ token }}">
-    <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+                        <span class="tablet-chip">Signature vendeur</span>
+                        <span class="tablet-chip">Rachat #{{ r.id }}</span>
+                    </div>
+                </div>
 
-    <div class="box">
-      <div style="color:#9fb2c7;font-size:13px;">Zone de signature (doigt / stylet)</div>
-      <canvas id="signature"></canvas>
+                <div class="tablet-meta-grid">
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Vendeur</span>
+                        <span class="tablet-meta-value">{{ (r.nom ~ ' ' ~ r.prenom)|trim ?: '—' }}</span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Téléphone</span>
+                        <span class="tablet-meta-value">{{ r.telephone ?: '—' }}</span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Appareil</span>
+                        <span class="tablet-meta-value">{{ r.marqueModele ?: '—' }}</span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Prix d'achat</span>
+                        <span class="tablet-meta-value">{{ r.prixAchat ?: '—' }} €</span>
+                    </div>
+
+                    <div class="tablet-meta-item" style="grid-column:1/-1;">
+                        <span class="tablet-meta-label">Date</span>
+                        <span class="tablet-meta-value">{{ (generated_at ?? "now")|date('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tablet-content">
+                <div id="err" class="tablet-flash tablet-flash-error hidden">
+                    Signature vide : dessine puis valide.
+                </div>
+
+                <form
+                    id="sig-form"
+                    method="post"
+                    action="{{ path('tablet_sign_submit', {id: r.id}) }}"
+                    class="tablet-stack"
+                >
+                    <input type="hidden" name="token" value="{{ token }}">
+                    <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+
+                    <div class="tablet-section">
+                        <h2 class="tablet-section-title">Signature</h2>
+
+                        <div class="tablet-panel-white">
+                            <canvas id="signature" class="tablet-signature-canvas"></canvas>
+                        </div>
+
+                        <div class="tablet-help">
+                            Signez avec le doigt ou un stylet dans la zone blanche.
+                        </div>
+                    </div>
+
+                    <div class="tablet-actions">
+                        <button type="button" id="btn-clear" class="tablet-btn tablet-btn-secondary">
+                            Effacer
+                        </button>
+
+                        <button type="submit" class="tablet-btn tablet-btn-primary">
+                            Valider la signature
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
-    <div class="actions">
-      <button type="button" id="btn-clear">Effacer</button>
-      <button type="submit" class="primary">Valider</button>
-    </div>
-  </form>
 </div>
 
 <script>
-(function(){
-  const canvas = document.getElementById('signature');
-  const err = document.getElementById('err');
-  const form = document.getElementById('sig-form');
-  const hidden = document.getElementById('signature_dataurl');
+(function () {
+    const canvas = document.getElementById('signature');
+    const err = document.getElementById('err');
+    const form = document.getElementById('sig-form');
+    const hidden = document.getElementById('signature_dataurl');
 
-  const pad = new SignaturePad(canvas, {minWidth:.9, maxWidth:2.8, penColor:'#111', backgroundColor:'#fff'});
+    if (!canvas || !form || !hidden) return;
 
-  function resize(){
-    const ratio = Math.max(window.devicePixelRatio||1,1);
-    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const pad = new SignaturePad(canvas, {
+        minWidth: 0.9,
+        maxWidth: 2.8,
+        penColor: '#111',
+        backgroundColor: '#fff'
+    });
 
-    const data = pad.isEmpty() ? null : pad.toData();
-    canvas.width  = Math.floor(w * ratio);
-    canvas.height = Math.floor(h * ratio);
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const data = pad.isEmpty() ? null : pad.toData();
 
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(ratio,0,0,ratio,0,0);
+        const displayWidth = canvas.clientWidth;
+        const displayHeight = canvas.clientHeight;
 
-    pad.clear();
-    if (data) pad.fromData(data);
-  }
+        canvas.width = Math.floor(displayWidth * ratio);
+        canvas.height = Math.floor(displayHeight * ratio);
 
-  // Observe le conteneur (important sinon height=0 parfois)
-  new ResizeObserver(resize).observe(canvas.parentElement);
-  window.addEventListener('orientationchange', ()=>setTimeout(resize, 150));
-  resize();
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-  document.getElementById('btn-clear').onclick = ()=>{ pad.clear(); err.classList.remove('show'); };
+        pad.clear();
 
-  form.addEventListener('submit', (e)=>{
-    if (pad.isEmpty()){
-      e.preventDefault();
-      err.classList.add('show');
-      return;
+        if (data) {
+            pad.fromData(data);
+        }
     }
-    hidden.value = pad.toDataURL('image/png');
-  });
+
+    const observerTarget = canvas.closest('.tablet-panel-white') || canvas.parentElement;
+    if (observerTarget && 'ResizeObserver' in window) {
+        new ResizeObserver(() => resizeCanvas()).observe(observerTarget);
+    }
+
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+    window.addEventListener('resize', resizeCanvas);
+
+    resizeCanvas();
+
+    document.getElementById('btn-clear').addEventListener('click', function () {
+        pad.clear();
+        err.classList.add('hidden');
+    });
+
+    form.addEventListener('submit', function (e) {
+        if (pad.isEmpty()) {
+            e.preventDefault();
+            err.classList.remove('hidden');
+            return;
+        }
+
+        hidden.value = pad.toDataURL('image/png');
+    });
 })();
 </script>
 

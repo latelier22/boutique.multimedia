@@ -1,376 +1,124 @@
 {% extends 'base.html.twig' %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'tablet/tablet/tablet_css.html.twig' %}
+
+{% endblock %}
+
 {% block body %}
 
-<style>
-:root{
-    --ms-orange: #ef6c00;
-    --ms-orange-dark: #d85f00;
-    --ms-blue: #1f4ea8;
-    --ms-blue-dark: #163c83;
-    --ms-bg: #f4f7fb;
-    --ms-card: #ffffff;
-    --ms-text: #1d2a3a;
-    --ms-border: #d9e2f0;
-    --ms-success: #1f8b4c;
-    --ms-error: #b42318;
-}
+<div class="tablet-page">
+    <div class="tablet-shell">
+        <div class="tablet-card">
 
-*{
-    box-sizing:border-box;
-}
+            <div class="tablet-header">
+                <div class="tablet-header-top">
+                    <div class="tablet-logo-box">
+                        <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
+                    </div>
 
-body{
-    margin:0;
-    background:linear-gradient(180deg, #f7f9fc 0%, #edf3fb 100%);
-    color:var(--ms-text);
-    font-family:Inter, Arial, sans-serif;
-}
-
-.page{
-    min-height:100vh;
-    display:flex;
-    align-items:flex-start;
-    justify-content:center;
-    padding:24px;
-}
-
-.card{
-    width:100%;
-    max-width:920px;
-    background:var(--ms-card);
-    border-radius:24px;
-    box-shadow:0 18px 50px rgba(20, 49, 96, .12);
-    overflow:hidden;
-    border:1px solid var(--ms-border);
-}
-
-.header{
-    background:linear-gradient(135deg, var(--ms-orange) 0%, #ff7f11 100%);
-    padding:22px 22px 18px 22px;
-    color:black;
-    position:relative;
-}
-
-.header-top{
-    display:flex;
-    align-items:center;
-    gap:16px;
-}
-
-.logo-box{
-    width:300px;
-    min-width:150px;
-    height:110px;
-    border-radius:18px;
-    background:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:10px;
-    box-shadow:0 8px 18px rgba(0,0,0,.12);
-}
-
-.logo-box img{
-    max-width:100%;
-    max-height:100%;
-    object-fit:contain;
-}
-
-.title-wrap{
-    flex:1;
-}
-
-.brand{
-    font-size:18px;
-    font-weight:800;
-    letter-spacing:.4px;
-    margin-bottom:4px;
-}
-
-.subtitle{
-    font-size:15px;
-    opacity:.95;
-}
-
-.client-id{
-    margin-top:12px;
-    display:inline-block;
-    background:rgba(255,255,255,.18);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:999px;
-    padding:8px 14px;
-    font-size:15px;
-    font-weight:700;
-}
-
-.content{
-    padding:24px;
-}
-
-.section{
-    margin-bottom:24px;
-}
-
-.section-title{
-    margin:0 0 14px 0;
-    color:var(--ms-blue);
-    font-size:22px;
-    font-weight:800;
-    padding-bottom:8px;
-    border-bottom:3px solid #e8eef8;
-}
-
-.grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px 18px;
-}
-
-.field-full{
-    grid-column:1 / -1;
-}
-
-label{
-    display:block;
-    margin:0 0 7px 0;
-    font-size:15px;
-    font-weight:700;
-    color:#29456f;
-}
-
-input, textarea{
-    width:100%;
-    padding:16px 18px;
-    border-radius:16px;
-    border:2px solid #dbe5f3;
-    background:#fdfefe;
-    font-size:20px;
-    color:var(--ms-text);
-    outline:none;
-    transition:border-color .15s ease, box-shadow .15s ease, transform .05s ease;
-}
-
-input:focus, textarea:focus{
-    border-color:var(--ms-orange);
-    box-shadow:0 0 0 4px rgba(239,108,0,.12);
-}
-
-textarea{
-    min-height:120px;
-    resize:vertical;
-}
-
-.actions{
-    margin-top:10px;
-}
-
-.btn{
-    width:100%;
-    border:none;
-    border-radius:18px;
-    padding:18px 20px;
-    font-size:22px;
-    font-weight:800;
-    cursor:pointer;
-    transition:transform .05s ease, opacity .2s ease, background .2s ease;
-}
-
-.btn:active{
-    transform:scale(.995);
-}
-
-.btn-save{
-    background:linear-gradient(135deg, var(--ms-blue) 0%, #2d67d1 100%);
-    color:white;
-    box-shadow:0 10px 24px rgba(31,78,168,.22);
-}
-
-.btn-save[disabled]{
-    opacity:.7;
-    cursor:not-allowed;
-}
-
-.btn-quit{
-    display:block;
-    margin-top:14px;
-    text-align:center;
-    text-decoration:none;
-    background:linear-gradient(135deg, var(--ms-orange) 0%, var(--ms-orange-dark) 100%);
-    color:white;
-    box-shadow:0 10px 24px rgba(239,108,0,.22);
-}
-
-.flash{
-    border-radius:16px;
-    padding:15px 18px;
-    margin-bottom:18px;
-    font-size:17px;
-    font-weight:700;
-}
-
-.flash-success{
-    background:#e8f7ee;
-    color:var(--ms-success);
-    border:1px solid #b7e1c5;
-}
-
-.flash-error{
-    background:#fdeceb;
-    color:var(--ms-error);
-    border:1px solid #f2b8b5;
-}
-
-.help{
-    margin-top:6px;
-    font-size:14px;
-    color:#5c6f8f;
-}
-
-@media (max-width: 760px){
-    .page{
-        padding:12px;
-    }
-
-    .card{
-        border-radius:18px;
-    }
-
-    .header-top{
-        flex-direction:column;
-        align-items:flex-start;
-    }
-
-    .logo-box{
-        width:90px;
-        min-width:90px;
-        height:90px;
-    }
-
-    .grid{
-        grid-template-columns:1fr;
-    }
-
-    .field-full{
-        grid-column:auto;
-    }
-
-    input, textarea{
-        font-size:18px;
-    }
-
-    .btn{
-        font-size:20px;
-    }
-}
-</style>
-
-<div class="page">
-    <div class="card">
-
-        <div class="header">
-            <div class="header-top">
-                <div class="logo-box">
-                    <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
-                </div>
-
-                <div class="title-wrap">
-                    <div class="brand">MULTIMÉDIA SERVICES &amp; CASH</div>
-                    <div class="subtitle">Achat - Vente - Réparation</div>
-                    <div class="client-id">Client #{{ customer.customers_id }}</div>
+                    <div class="tablet-title-wrap">
+                        <div class="tablet-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                        <div class="tablet-subtitle">Achat - Vente - Réparation</div>
+                        <span class="tablet-chip">Fiche client</span>
+                        <span class="tablet-chip">Client #{{ customer.customers_id }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="content">
+            <div class="tablet-content">
 
-            {% for message in app.flashes('success') %}
-                <div class="flash flash-success">{{ message }}</div>
-            {% endfor %}
+                {% for message in app.flashes('success') %}
+                    <div class="tablet-flash tablet-flash-success">{{ message }}</div>
+                {% endfor %}
 
-            {% for message in app.flashes('error') %}
-                <div class="flash flash-error">{{ message }}</div>
-            {% endfor %}
+                {% for message in app.flashes('error') %}
+                    <div class="tablet-flash tablet-flash-error">{{ message }}</div>
+                {% endfor %}
 
-            <form method="post" id="customerForm">
-                <div class="section">
-                    <h2 class="section-title">Informations client</h2>
+                <form method="post" id="customerForm" class="tablet-stack">
+                    <div class="tablet-section">
+                        <h2 class="tablet-section-title">Informations client</h2>
 
-                    <div class="grid">
-                        <div>
-                            <label>Nom</label>
-                            <input name="last_name" value="{{ customer.last_name ?? '' }}">
-                        </div>
+                        <div class="tablet-grid">
+                            <div class="tablet-field">
+                                <label>Nom</label>
+                                <input class="tablet-input" name="last_name" value="{{ customer.last_name ?? '' }}">
+                            </div>
 
-                        <div>
-                            <label>Prénom</label>
-                            <input name="first_name" value="{{ customer.first_name ?? '' }}">
-                        </div>
+                            <div class="tablet-field">
+                                <label>Prénom</label>
+                                <input class="tablet-input" name="first_name" value="{{ customer.first_name ?? '' }}">
+                            </div>
 
-                        <div class="field-full">
-                            <label>Société</label>
-                            <input name="company" value="{{ customer.company ?? '' }}">
-                        </div>
+                            <div class="tablet-field tablet-field-full">
+                                <label>Société</label>
+                                <input class="tablet-input" name="company" value="{{ customer.company ?? '' }}">
+                            </div>
 
-                        <div>
-                            <label>Email</label>
-                            <input name="email" value="{{ customer.email ?? '' }}" inputmode="email" autocomplete="email">
-                        </div>
+                            <div class="tablet-field">
+                                <label>Email</label>
+                                <input class="tablet-input" name="email" value="{{ customer.email ?? '' }}" inputmode="email" autocomplete="email">
+                            </div>
 
-                        <div>
-                            <label>Téléphone</label>
-                            <input name="phone" value="{{ customer.phone ?? '' }}" inputmode="tel" autocomplete="tel">
-                        </div>
+                            <div class="tablet-field">
+                                <label>Téléphone</label>
+                                <input class="tablet-input" name="phone" value="{{ customer.phone ?? '' }}" inputmode="tel" autocomplete="tel">
+                            </div>
 
-                        <div class="field-full">
-                            <label>Pays</label>
-                            <input name="country" value="{{ customer.country ?? 'FRA' }}">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Adresse</h2>
-
-                    <div class="grid">
-                        <div class="field-full">
-                            <label>Adresse</label>
-                            <textarea name="address_address">{{ address.address ?? '' }}</textarea>
-                        </div>
-
-                        <div>
-                            <label>Code postal</label>
-                            <input name="address_zip_code" value="{{ address.zip_code ?? '' }}">
-                        </div>
-
-                        <div>
-                            <label>Ville</label>
-                            <input name="address_city" value="{{ address.city ?? '' }}">
-                        </div>
-
-                        <div>
-                            <label>Département / Région</label>
-                            <input name="address_state" value="{{ address.state ?? '' }}">
-                        </div>
-
-                        <div>
-                            <label>Pays adresse</label>
-                            <input name="address_country" value="{{ address.country ?? 'FRA' }}">
+                            <div class="tablet-field tablet-field-full">
+                                <label>Pays</label>
+                                <input class="tablet-input" name="country" value="{{ customer.country ?? 'FRA' }}">
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="actions">
-                    <button type="submit" id="saveBtn" class="btn btn-save">ENREGISTRER</button>
+                    <div class="tablet-section">
+                        <h2 class="tablet-section-title">Adresse</h2>
 
-                    {% if saved %}
-                        <a href="{{ path('tablet_wait', {device: 'TAB1'}) }}" class="btn btn-quit">
-                            QUITTER
-                        </a>
-                    {% endif %}
-                </div>
-            </form>
+                        <div class="tablet-grid">
+                            <div class="tablet-field tablet-field-full">
+                                <label>Adresse</label>
+                                <textarea class="tablet-textarea" name="address_address">{{ address.address ?? '' }}</textarea>
+                            </div>
 
+                            <div class="tablet-field">
+                                <label>Code postal</label>
+                                <input class="tablet-input" name="address_zip_code" value="{{ address.zip_code ?? '' }}">
+                            </div>
+
+                            <div class="tablet-field">
+                                <label>Ville</label>
+                                <input class="tablet-input" name="address_city" value="{{ address.city ?? '' }}">
+                            </div>
+
+                            <div class="tablet-field">
+                                <label>Département / Région</label>
+                                <input class="tablet-input" name="address_state" value="{{ address.state ?? '' }}">
+                            </div>
+
+                            <div class="tablet-field">
+                                <label>Pays adresse</label>
+                                <input class="tablet-input" name="address_country" value="{{ address.country ?? 'FRA' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tablet-actions">
+                        <button type="submit" id="saveBtn" class="tablet-btn tablet-btn-primary">
+                            ENREGISTRER
+                        </button>
+
+                        {% if saved %}
+                            <a href="{{ path('tablet_wait', {device: 'TAB1'}) }}" class="tablet-btn tablet-btn-accent">
+                                QUITTER
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+
+            </div>
         </div>
     </div>
 </div>
@@ -387,7 +135,6 @@ textarea{
     });
 })();
 </script>
-
 
 <script>
 (function () {
@@ -476,7 +223,5 @@ textarea{
     form.addEventListener('submit', () => publish('saving'));
 })();
 </script>
-
-
 
 {% endblock %}
