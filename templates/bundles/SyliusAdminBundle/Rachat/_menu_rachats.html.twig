@@ -66,5 +66,10 @@
        class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_sales' ? 'active' : '' }}">
        💶 Ventes (interventions)
     </a>
+
+    <a href="{{ path('admin_display_message_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_display_message' ? 'active' : '' }}">
+      ✉️ Messages affichage
+    </a>
 </div>
 

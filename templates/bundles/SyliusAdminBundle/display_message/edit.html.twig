@@ -1,0 +1,17 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Modifier message{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <h1 class="ui header">
+        <i class="edit icon"></i>
+        <div class="content">
+            Modifier message #{{ message.id }}
+            <div class="sub header">{{ message.name }}</div>
+        </div>
+    </h1>
+
+    {% include '@SyliusAdmin/display_message/_form.html.twig' with { form: form } %}
+</div>
+{% endblock %}

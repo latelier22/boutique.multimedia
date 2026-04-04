@@ -11,6 +11,7 @@ parameters:
   tablet_socket_token: '%env(TABLET_SOCKET_TOKEN)%'
   tablet_pin: '%env(TABLET_PIN)%'
   tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
+  webhook_secret: '%env(WEBHOOK_SECRET)%'
 
   app.intervention_start_at: 2001
 
@@ -161,7 +162,8 @@ services:
     App\Service\CacheApiClient:
         arguments:
             $http: '@http_client'
-            $baseUrl: 'https://api.multimedia-services.fr'
+            $baseUrl: '%env(API_CACHE_BASE_URL)%'
+            $secret: '%env(WEBHOOK_SECRET)%'
 
     App\Service\SensitiveDataCipher:
         arguments:

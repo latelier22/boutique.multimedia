@@ -1,0 +1,121 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Messages diaporama{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div class="ui clearing basic segment" style="padding-left:0;padding-right:0;">
+        <h1 class="ui left floated header">
+            <i class="images outline icon"></i>
+            <div class="content">
+                Messages diaporama
+                <div class="sub header">Messages indépendants des produits</div>
+            </div>
+        </h1>
+
+        <a href="{{ path('admin_display_message_new') }}" class="ui right floated primary button">
+            <i class="plus icon"></i>
+            Nouveau message
+        </a>
+    </div>
+<div class="ui segment">
+    <form method="get" class="ui form">
+        <div class="fields" style="align-items:end;">
+            <div class="four wide field">
+                <label>Diaporama</label>
+                <select name="slot" class="ui dropdown">
+                    <option value="">Tous</option>
+                    {% for label, value in slotChoices %}
+                        <option value="{{ value }}" {% if currentSlot == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <button class="ui primary button" type="submit">
+                    Filtrer
+                </button>
+            </div>
+
+            <div class="field">
+                <a href="{{ path('admin_display_message_index') }}" class="ui button">
+                    Réinitialiser
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Slot</th>
+                <th>Titre</th>
+                <th>Actif</th>
+                <th>Rythme</th>
+                <th>Période</th>
+                <th>Ordre</th>
+                <th style="width: 170px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for message in messages %}
+            <tr>
+                <td>{{ message.id }}</td>
+                <td>{{ message.name }}</td>
+                <td><span class="ui label">{{ message.slot }}</span></td>
+                <td>{{ message.title ?: '—' }}</td>
+                <td>
+                    {% if message.isEnabled %}
+                        <span class="ui green label">Oui</span>
+                    {% else %}
+                        <span class="ui grey label">Non</span>
+                    {% endif %}
+                </td>
+                <td>
+                    toutes les <b>{{ message.intervalSeconds }}s</b><br>
+                    pendant <b>{{ message.durationSeconds }}s</b>
+                </td>
+                <td>
+                    {{ message.startsAt ? message.startsAt|date('d/m/Y H:i') : 'immédiat' }}<br>
+                    {{ message.endsAt ? '→ ' ~ message.endsAt|date('d/m/Y H:i') : 'sans fin' }}
+                </td>
+                <td>{{ message.sortOrder }}</td>
+              <td>
+    <a class="ui small button" href="{{ path('admin_display_message_edit', {id: message.id}) }}">
+        Modifier
+    </a>
+
+    <form method="post"
+          action="{{ path('admin_display_message_duplicate', {id: message.id}) }}"
+          style="display:inline-block; margin-top:6px;"
+          onsubmit="return confirm('Dupliquer ce message ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('duplicate_display_message_' ~ message.id) }}">
+        <button class="ui small blue button" type="submit">
+            Dupliquer
+        </button>
+    </form>
+
+    <form method="post"
+          action="{{ path('admin_display_message_delete', {id: message.id}) }}"
+          style="display:inline-block; margin-top:6px;"
+          onsubmit="return confirm('Supprimer ce message ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete_display_message_' ~ message.id) }}">
+        <button class="ui small red button" type="submit">
+            Supprimer
+        </button>
+    </form>
+</td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="9" class="center aligned">Aucun message.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

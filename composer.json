@@ -126,9 +126,7 @@
             "@php bin/console sylius:show-plus-info --ansi"
         ],
         "auto-scripts": {
-
             "vendor/monsieurbiz/sylius-rich-editor-plugin/scripts/replace_intl_extension.php": "php-script",
-
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
         }

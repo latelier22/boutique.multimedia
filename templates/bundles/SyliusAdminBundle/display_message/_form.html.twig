@@ -1,0 +1,206 @@
+{{ form_start(form, { attr: { class: 'ui form' } }) }}
+
+<style>
+.display-message-grid{
+    display:grid;
+    grid-template-columns: minmax(420px, 1fr) 520px;
+    gap:24px;
+    align-items:start;
+}
+.preview-panel{
+    position: sticky;
+    top: 90px;
+}
+.preview-frame{
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 18px 40px rgba(0,0,0,.18);
+    padding: 34px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    color:#fff;
+}
+.preview-frame.bg-black{
+    background:#080808;
+}
+.preview-frame.bg-orange{
+    background:linear-gradient(135deg, #ef6c00 0%, #c04a00 100%);
+}
+.preview-frame.bg-gradient{
+    background:linear-gradient(135deg, #0b1020 0%, #111827 45%, #1f2937 100%);
+}
+.preview-badge{
+    display:inline-block;
+    align-self:center;
+    font-size:14px;
+    font-weight:700;
+    padding:8px 14px;
+    border-radius:999px;
+    margin-bottom:18px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.18);
+}
+.preview-body{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+.preview-title{
+    font-size:38px;
+    font-weight:800;
+    line-height:1.1;
+}
+.preview-line{
+    font-size:28px;
+    line-height:1.15;
+    font-weight:600;
+}
+.preview-footer{
+    margin-top:22px;
+    font-size:15px;
+    opacity:.9;
+    letter-spacing:.03em;
+}
+.preview-left{
+    text-align:left;
+    align-items:flex-start;
+}
+.preview-center{
+    text-align:center;
+    align-items:center;
+}
+.form-columns{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:0 14px;
+}
+</style>
+
+<div class="display-message-grid">
+    <div>
+        <div class="ui segment">
+            <div class="form-columns">
+                {{ form_row(form.name) }}
+                {{ form_row(form.slot) }}
+
+                {{ form_row(form.isEnabled) }}
+                {{ form_row(form.template) }}
+
+                {{ form_row(form.badge) }}
+                {{ form_row(form.title) }}
+
+                {{ form_row(form.line1) }}
+                {{ form_row(form.line2) }}
+
+                {{ form_row(form.line3) }}
+                {{ form_row(form.footerText) }}
+
+                {{ form_row(form.backgroundType) }}
+                {{ form_row(form.textAlign) }}
+
+                {{ form_row(form.accentColor) }}
+                {{ form_row(form.sortOrder) }}
+
+                {{ form_row(form.intervalSeconds) }}
+                {{ form_row(form.durationSeconds) }}
+
+                {{ form_row(form.startsAt) }}
+                {{ form_row(form.endsAt) }}
+            </div>
+        </div>
+
+        <div class="ui buttons">
+            <button class="ui primary button" type="submit">
+                <i class="save icon"></i>
+                Enregistrer
+            </button>
+            <a href="{{ path('admin_display_message_index') }}" class="ui button">Retour</a>
+        </div>
+    </div>
+
+    <div class="preview-panel">
+        <div class="ui segment">
+            <h3 class="ui header">Aperçu</h3>
+            <div id="preview-frame" class="preview-frame bg-black preview-center">
+                <div id="preview-badge" class="preview-badge" style="display:none;">BADGE</div>
+
+                <div class="preview-body">
+                    <div id="preview-title" class="preview-title">Titre du message</div>
+                    <div id="preview-line1" class="preview-line">Première ligne</div>
+                    <div id="preview-line2" class="preview-line"></div>
+                    <div id="preview-line3" class="preview-line"></div>
+                    <div id="preview-footer" class="preview-footer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ form_rest(form) }}
+{{ form_end(form) }}
+
+<script>
+(function () {
+    const ids = {
+        badge: '{{ form.badge.vars.id }}',
+        title: '{{ form.title.vars.id }}',
+        line1: '{{ form.line1.vars.id }}',
+        line2: '{{ form.line2.vars.id }}',
+        line3: '{{ form.line3.vars.id }}',
+        footer: '{{ form.footerText.vars.id }}',
+        backgroundType: '{{ form.backgroundType.vars.id }}',
+        textAlign: '{{ form.textAlign.vars.id }}',
+        accentColor: '{{ form.accentColor.vars.id }}',
+    };
+
+    const frame = document.getElementById('preview-frame');
+    const badge = document.getElementById('preview-badge');
+    const title = document.getElementById('preview-title');
+    const line1 = document.getElementById('preview-line1');
+    const line2 = document.getElementById('preview-line2');
+    const line3 = document.getElementById('preview-line3');
+    const footer = document.getElementById('preview-footer');
+
+    function val(id) {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    }
+
+    function updatePreview() {
+        const bg = val(ids.backgroundType) || 'black';
+        const align = val(ids.textAlign) || 'center';
+        const accent = val(ids.accentColor) || '#f59e0b';
+
+        frame.className = 'preview-frame';
+        frame.classList.add('bg-' + bg);
+        frame.classList.add(align === 'left' ? 'preview-left' : 'preview-center');
+
+        badge.textContent = val(ids.badge);
+        badge.style.display = badge.textContent.trim() ? 'inline-block' : 'none';
+
+        title.textContent = val(ids.title) || '';
+        line1.textContent = val(ids.line1) || '';
+        line2.textContent = val(ids.line2) || '';
+        line3.textContent = val(ids.line3) || '';
+        footer.textContent = val(ids.footer) || '';
+
+        title.style.color = accent;
+        badge.style.color = accent;
+        badge.style.borderColor = accent;
+    }
+
+    Object.values(ids).forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updatePreview);
+            el.addEventListener('change', updatePreview);
+        }
+    });
+
+    updatePreview();
+})();
+</script>
