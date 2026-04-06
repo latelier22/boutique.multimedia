@@ -240,4 +240,18 @@
             }
         }) }}
     </details>
+    <div class="ui segment" style="margin-top:10px; background:#f9fafb;">
+    <div class="field" style="margin:0;">
+        <div class="ui checkbox">
+            {{ form_widget(itemForm.convertToHib) }}
+            <label for="{{ itemForm.convertToHib.vars.id }}">
+                Créer produit Hiboutik à la signature
+            </label>
+        </div>
+
+        <div style="margin-top:6px; font-size:12px; color:#6b7280;">
+            Coché par défaut. Si décoché, cet item sera conservé dans le dossier mais ne sera pas créé dans Hiboutik.
+        </div>
+    </div>
+</div>
 </div>

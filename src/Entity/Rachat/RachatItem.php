@@ -11,6 +11,12 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class RachatItem
 {
+
+    public function __construct()
+    {
+        // Valeurs par défaut si besoin
+        $this->convertToHib = true;
+    }
     /**
      * @ORM\Id
      * @ORM\GeneratedValue(strategy="AUTO")
@@ -237,7 +243,7 @@ class RachatItem
         return $this;
     }
 
-    
+
 
 
     /** @ORM\PrePersist */

@@ -9,6 +9,7 @@ use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 
 class RachatDossierType extends AbstractType
 {
@@ -47,9 +48,16 @@ class RachatDossierType extends AbstractType
                 'required' => false,
                 'label' => 'Client Hiboutik',
             ])
-            ->add('paidMethod', TextType::class, [
+            ->add('paidMethod', ChoiceType::class, [
                 'required' => false,
                 'label' => 'Mode de paiement',
+                'placeholder' => 'Choisir',
+                'choices' => [
+                    'Espèces' => 'ESP',
+                    'Carte bancaire' => 'CB',
+                    'Virement' => 'VIR',
+                    'Chèque' => 'CHQ',
+                ],
             ])
             ->add('dateCession', DateTimeType::class, [
                 'required' => false,

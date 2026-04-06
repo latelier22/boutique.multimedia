@@ -532,10 +532,12 @@ public function signDossier(int $id, Request $req): Response
     }
 
     return $this->render('tablet/sign_dossier.html.twig', [
-        'dossier' => $dossier,
-        'token' => $token,
-        'generated_at' => new \DateTimeImmutable(),
-    ]);
+    'dossier' => $dossier,
+    'token' => $token,
+    'generated_at' => new \DateTimeImmutable(),
+    'rachatConditionsTablet' => (string) $this->getParameter('app.rachat_conditions_tablet'),
+    'rachatConditionsAcceptLabel' => (string) $this->getParameter('app.rachat_conditions_accept_label'),
+]);
 }
 
 #[Route('/tablet/sign-dossier/{id}/submit', name: 'tablet_sign_dossier_submit', requirements: ['id' => '\d+'], methods: ['POST'])]

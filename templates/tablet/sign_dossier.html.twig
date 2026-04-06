@@ -66,6 +66,21 @@
                 </div>
             </div>
 
+            <div class="tablet-section">
+    <h2 class="tablet-section-title">Acceptation</h2>
+
+    <div class="tablet-panel-white" style="padding:14px;">
+        <div style="font-size:13px; line-height:1.35; color:#333; margin-bottom:12px;">
+            {{ rachatConditionsTablet|nl2br }}
+        </div>
+
+        <label style="display:flex; gap:10px; align-items:flex-start; font-size:14px; font-weight:600; color:#111;">
+            <input type="checkbox" id="accept_rachat_conditions" style="margin-top:2px;">
+            <span>{{ rachatConditionsAcceptLabel }}</span>
+        </label>
+    </div>
+</div>
+
             <div class="tablet-content">
                 <div id="err" class="tablet-flash tablet-flash-error hidden">
                     Signature vide : dessine puis valide.
@@ -79,6 +94,8 @@
                 >
                     <input type="hidden" name="token" value="{{ token }}">
                     <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+
+                    <input type="hidden" name="accept_rachat_conditions" id="accept_rachat_conditions_hidden" value="0">
 
                     <div class="tablet-section">
                         <h2 class="tablet-section-title">Signature</h2>
@@ -102,6 +119,10 @@
                         </button>
                     </div>
                 </form>
+              <div id="sig-success" class="tablet-flash tablet-flash-success hidden" style="margin-top:14px;">
+    Signature enregistrée.
+    Retour automatique dans <strong id="sig-countdown">5</strong> seconde(s)…
+</div>
             </div>
         </div>
     </div>
@@ -113,6 +134,8 @@
     const err = document.getElementById('err');
     const form = document.getElementById('sig-form');
     const hidden = document.getElementById('signature_dataurl');
+    const accept = document.getElementById('accept_rachat_conditions');
+    const acceptHidden = document.getElementById('accept_rachat_conditions_hidden');
 
     if (!canvas || !form || !hidden) return;
 
@@ -161,11 +184,23 @@
     form.addEventListener('submit', function (e) {
         if (pad.isEmpty()) {
             e.preventDefault();
+            err.textContent = 'Signature vide : dessine puis valide.';
+            err.classList.remove('hidden');
+            return;
+        }
+
+        if (accept && !accept.checked) {
+            e.preventDefault();
+            err.textContent = 'Tu dois accepter les conditions avant de signer.';
             err.classList.remove('hidden');
             return;
         }
 
         hidden.value = pad.toDataURL('image/png');
+
+        if (acceptHidden) {
+            acceptHidden.value = accept && accept.checked ? '1' : '0';
+        }
     });
 })();
 </script>

@@ -1,34 +1,237 @@
-{# templates/tablet/after_sign.html.twig #}
-<!doctype html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Signature enregistrée</title>
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px}
-    .box{max-width:700px;margin:0 auto;border:1px solid #ddd;border-radius:12px;padding:18px}
-    a.btn{display:inline-block;padding:12px 14px;border-radius:10px;text-decoration:none;border:1px solid #111}
-  </style>
-</head>
-<body>
-{% set titleId = dossier is defined and dossier ? dossier.id : (r is defined and r ? r.id : '') %}
-  <div class="box">
-    <h1>✅ Signature enregistrée</h1>
+{% extends 'base.html.twig' %}
 
-    <p>Rachat n° <strong>{{ titleId }}</strong></p>
+{% block stylesheets %}
+    {{ parent() }}
+    {% include 'tablet/tablet/tablet_css.html.twig' %}
 
-    {% if pdf_url %}
-      <p>
-        <a class="btn" href="{{ pdf_url }}" target="_blank" rel="noopener">Ouvrir le PDF</a>
-      </p>
-    {% else %}
-      <p>PDF non disponible.</p>
-    {% endif %}
+    <style>
+        .tablet-after-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
 
-    <p style="margin-top:20px;">
-      <a class="btn" href="{{ path('tablet_wait') }}">Retour écran tablette</a>
-    </p>
-  </div>
-</body>
-</html>
+        .tablet-success-hero {
+            background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+            border: 2px solid #86efac;
+            border-radius: 22px;
+            padding: 22px 20px;
+            text-align: center;
+            box-shadow: 0 10px 24px rgba(0,0,0,.08);
+        }
+
+        .tablet-success-icon {
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 14px auto;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #16a34a;
+            color: #fff;
+            font-size: 42px;
+            font-weight: 900;
+            box-shadow: 0 10px 24px rgba(22,163,74,.22);
+        }
+
+        .tablet-success-title {
+            font-size: 1.55rem;
+            line-height: 1.15;
+            font-weight: 800;
+            color: #14532d;
+            margin-bottom: 8px;
+        }
+
+        .tablet-success-subtitle {
+            font-size: 1rem;
+            color: #166534;
+            line-height: 1.45;
+            margin-bottom: 18px;
+        }
+
+        .tablet-countdown-box {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 160px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid rgba(20,83,45,.12);
+        }
+
+        .tablet-countdown-value {
+            font-size: 3.4rem;
+            line-height: 1;
+            font-weight: 900;
+            color: #2563eb;
+            margin-bottom: 6px;
+        }
+
+        .tablet-countdown-label {
+            font-size: .98rem;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .tablet-after-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 24px rgba(0,0,0,.08);
+        }
+
+        .tablet-after-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .tablet-after-meta-item {
+            background: #f8fafc;
+            border: 1px solid rgba(15,23,42,.06);
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .tablet-after-meta-label {
+            display: block;
+            font-size: .82rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+
+        .tablet-after-meta-value {
+            display: block;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            word-break: break-word;
+        }
+
+        .tablet-after-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        @media (max-width: 640px) {
+            .tablet-after-meta {
+                grid-template-columns: 1fr;
+            }
+
+            .tablet-countdown-value {
+                font-size: 2.8rem;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="tablet-page">
+    <div class="tablet-shell">
+        <div class="tablet-card">
+            <div class="tablet-header">
+                <div class="tablet-header-top">
+                    <div class="tablet-logo-box">
+                        <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
+                    </div>
+
+                    <div class="tablet-title-wrap">
+                        <div class="tablet-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                        <div class="tablet-subtitle">Achat - Vente - Réparation</div>
+                        <span class="tablet-chip">Signature enregistrée</span>
+                        <span class="tablet-chip">Dossier #{{ dossier.id }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tablet-content">
+                <div class="tablet-after-wrap">
+                    <div class="tablet-success-hero">
+                        <div class="tablet-success-icon">✓</div>
+
+                        <div class="tablet-success-title">
+                            Signature enregistrée
+                        </div>
+
+                        <div class="tablet-success-subtitle">
+                            Le bon de cession a bien été validé.
+                        </div>
+
+                        <div class="tablet-countdown-box">
+                            <div class="tablet-countdown-value" id="countdown">5</div>
+                            <div class="tablet-countdown-label">retour automatique</div>
+                        </div>
+                    </div>
+
+                    <div class="tablet-after-card">
+                        <div class="tablet-after-meta">
+                            <div class="tablet-after-meta-item">
+                                <span class="tablet-after-meta-label">Dossier</span>
+                                <span class="tablet-after-meta-value">#{{ dossier.id }}</span>
+                            </div>
+
+                            <div class="tablet-after-meta-item">
+                                <span class="tablet-after-meta-label">Vendeur</span>
+                                <span class="tablet-after-meta-value">
+                                    {{ (dossier.nomSnapshot ~ ' ' ~ dossier.prenomSnapshot)|trim ?: '—' }}
+                                </span>
+                            </div>
+
+                            <div class="tablet-after-meta-item">
+                                <span class="tablet-after-meta-label">Téléphone</span>
+                                <span class="tablet-after-meta-value">{{ dossier.telephoneSnapshot ?: '—' }}</span>
+                            </div>
+
+                            <div class="tablet-after-meta-item">
+                                <span class="tablet-after-meta-label">Total rachat</span>
+                                <span class="tablet-after-meta-value">{{ dossier.totalAchat ?: '—' }} €</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tablet-after-actions">
+                        {% if pdf_url %}
+                            <a href="{{ pdf_url }}" target="_blank" class="tablet-btn tablet-btn-secondary">
+                                Ouvrir le PDF
+                            </a>
+                        {% endif %}
+
+                        <a href="{{ wait_url }}" class="tablet-btn tablet-btn-primary">
+                            Retour immédiat
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const waitUrl = {{ wait_url|json_encode|raw }};
+    const countdownNode = document.getElementById('countdown');
+    let remaining = 5;
+
+    const timer = setInterval(function () {
+        remaining--;
+
+        if (countdownNode) {
+            countdownNode.textContent = String(Math.max(remaining, 0));
+        }
+
+        if (remaining <= 0) {
+            clearInterval(timer);
+            window.location.href = waitUrl;
+        }
+    }, 1000);
+})();
+</script>
+{% endblock %}

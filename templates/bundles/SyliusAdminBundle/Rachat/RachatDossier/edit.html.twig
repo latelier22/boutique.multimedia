@@ -293,6 +293,11 @@ if (! root) {
 root = document;
 }
 
+if (window.$ && $.fn.checkbox) {
+    $(root || document).find('.ui.checkbox').checkbox();
+}
+
+
 if (window.$ && $.fn.dropdown) {
 $(root).find('.ui.dropdown').each(function () {
 const $el = $(this);
@@ -1007,6 +1012,20 @@ return;
 }
 
 collection.appendChild(itemNode);
+
+const convertCheckbox = itemNode.querySelector('input[type="checkbox"][name$="[convertToHib]"]');
+
+if (convertCheckbox) {
+    convertCheckbox.checked = true;
+
+    if (window.$ && $.fn.checkbox) {
+        const uiCheckbox = convertCheckbox.closest('.ui.checkbox');
+        if (uiCheckbox) {
+            $(uiCheckbox).checkbox('set checked');
+        }
+    }
+}
+
 bindItem(itemNode);
 
 const details = itemNode.querySelector('.js-item-attributes-details');

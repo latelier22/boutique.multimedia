@@ -33,6 +33,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
 use App\Service\HiboutikReferentialService;
+use App\Service\Rachat\RachatDossierFinalizeService;
 
 
 #[Route('/admin/rachats-v2', name: 'admin_rachats_v2_')]
@@ -637,7 +638,9 @@ private function handleForm(Request $request, RachatDossier $dossier, bool $isNe
             'id' => $dossier->getId(),
         ]);
     }
-   
+   if (!$dossier->getPaidMethod()) {
+    $dossier->setPaidMethod('ESP');
+}
     $brands = $this->hibReferential->getBrandsRows();
 $categoryMeta = $this->hibReferential->buildCategoryChoicesAndDisabled();
 
@@ -1010,7 +1013,7 @@ public function uploadItemPhoto(
 public function uploadSignature(
     Request $request,
     RachatDossier $dossier,
-    RachatDossierSignatureManager $signatureManager
+    RachatDossierFinalizeService $finalizer
 ): JsonResponse {
     $token = (string) $request->request->get('_token', '');
 
@@ -1029,13 +1032,18 @@ public function uploadSignature(
         ], 400);
     }
 
+    $accepted = (string) $request->request->get('accept_rachat_conditions', '0') === '1';
+
     try {
-        $url = $signatureManager->storeSignatureDataUrl($dossier, $dataUrl);
-        $this->em->flush();
+        $result = $finalizer->finalizeFromTabletSignature($dossier, $dataUrl, $accepted);
 
         return new JsonResponse([
             'ok' => true,
-            'url' => $url,
+            'url' => $result['signature_url'] ?? null,
+            'pdfUrl' => $result['pdf_url'] ?? null,
+            'redirect' => $this->generateUrl('admin_rachats_v2_pdf_preview', [
+                'id' => $dossier->getId(),
+            ]),
         ]);
     } catch (\Throwable $e) {
         return new JsonResponse([

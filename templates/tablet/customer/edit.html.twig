@@ -4,6 +4,35 @@
     {{ parent() }}
     {% include 'tablet/tablet/tablet_css.html.twig' %}
 
+    <style>
+        .tablet-auto-return {
+            background: #eff6ff;
+            border: 2px solid #93c5fd;
+            color: #1e3a8a;
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+
+        .tablet-auto-return-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .tablet-auto-return-count {
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 900;
+            margin: 8px 0;
+        }
+
+        .tablet-auto-return-text {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -28,6 +57,18 @@
             </div>
 
             <div class="tablet-content">
+
+                {% if saved %}
+                    <div class="tablet-auto-return">
+                        <div class="tablet-auto-return-title">Enregistrement effectué</div>
+                        <div class="tablet-auto-return-count">
+                            <span id="returnCountdown">5</span>
+                        </div>
+                        <div class="tablet-auto-return-text">
+                            Retour automatique en cours…
+                        </div>
+                    </div>
+                {% endif %}
 
                 {% for message in app.flashes('success') %}
                     <div class="tablet-flash tablet-flash-success">{{ message }}</div>
@@ -106,15 +147,13 @@
                     </div>
 
                     <div class="tablet-actions">
-                        <button type="submit" id="saveBtn" class="tablet-btn tablet-btn-primary">
-                            ENREGISTRER
+                        <button type="submit" id="saveBtn" class="tablet-btn tablet-btn-primary" {% if saved %}disabled{% endif %}>
+                            {% if saved %}ENREGISTRÉ{% else %}ENREGISTRER{% endif %}
                         </button>
 
-                        {% if saved %}
-                            <a href="{{ path('tablet_wait', {device: 'TAB1'}) }}" class="tablet-btn tablet-btn-accent">
-                                QUITTER
-                            </a>
-                        {% endif %}
+                        <a href="{{ path('tablet_wait', {device: 'TAB1'}) }}" class="tablet-btn tablet-btn-accent">
+                            QUITTER
+                        </a>
                     </div>
                 </form>
 
@@ -223,5 +262,28 @@
     form.addEventListener('submit', () => publish('saving'));
 })();
 </script>
+
+{% if saved %}
+<script>
+(function () {
+    const countdownNode = document.getElementById('returnCountdown');
+    const waitUrl = "{{ path('tablet_wait', {device: 'TAB1'})|e('js') }}";
+    let remaining = 5;
+
+    const timer = setInterval(function () {
+        remaining--;
+
+        if (countdownNode) {
+            countdownNode.textContent = String(Math.max(remaining, 0));
+        }
+
+        if (remaining <= 0) {
+            clearInterval(timer);
+            window.location.href = waitUrl;
+        }
+    }, 1000);
+})();
+</script>
+{% endif %}
 
 {% endblock %}
