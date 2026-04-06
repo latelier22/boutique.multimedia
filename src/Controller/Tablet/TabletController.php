@@ -15,16 +15,22 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
+use App\Entity\Rachat\RachatDossier;
+use App\Service\Rachat\RachatDossierPdfGenerator;
+use App\Service\Rachat\RachatDossierSignatureManager;
+
 
 final class TabletController extends AbstractController
 {
     private const COOKIE_NAME = 'kiosk_ok';
 
     public function __construct(
-        private EntityManagerInterface $em,
-        private CacheItemPoolInterface $cache,
-        private RachatPdfGenerator $pdfGen,
-        private HiboutikClient $hib,
+         private EntityManagerInterface $em,
+    private CacheItemPoolInterface $cache,
+    private RachatPdfGenerator $pdfGen,
+    private HiboutikClient $hib,
+    private RachatDossierPdfGenerator $dossierPdfGen,
+    private RachatDossierSignatureManager $dossierSignatureManager,
     ) {}
 
     // ======================
@@ -489,5 +495,102 @@ private function enrichTabletProduct(array $product): array
     return $product;
 }
 
+private function assertDossierTokenValid(int $id, string $token): void
+{
+    if ($token === '') {
+        throw $this->createAccessDeniedException('bad token');
+    }
+
+    $key  = 'tablet_sign_dossier_' . $id . '_' . $token;
+    $item = $this->cache->getItem($key);
+
+    if (!$item->isHit()) {
+        throw $this->createAccessDeniedException('bad token');
+    }
+}
+
+private function consumeDossierToken(int $id, string $token): void
+{
+    $key = 'tablet_sign_dossier_' . $id . '_' . $token;
+    $this->cache->deleteItem($key);
+}
+
+
+#[Route('/tablet/sign-dossier/{id}', name: 'tablet_sign_dossier', requirements: ['id' => '\d+'], methods: ['GET'])]
+public function signDossier(int $id, Request $req): Response
+{
+    if (!$this->isUnlocked($req)) {
+        return $this->redirectToRoute('tablet_index');
+    }
+
+    $token = (string) $req->query->get('token', '');
+    $this->assertDossierTokenValid($id, $token);
+
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
+    if (!$dossier) {
+        return new Response('Dossier introuvable', 404);
+    }
+
+    return $this->render('tablet/sign_dossier.html.twig', [
+        'dossier' => $dossier,
+        'token' => $token,
+        'generated_at' => new \DateTimeImmutable(),
+    ]);
+}
+
+#[Route('/tablet/sign-dossier/{id}/submit', name: 'tablet_sign_dossier_submit', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function signDossierSubmit(int $id, Request $req): Response
+{
+    if (!$this->isUnlocked($req)) {
+        return $this->redirectToRoute('tablet_index');
+    }
+
+    $token = (string) $req->request->get('token', '');
+    $this->assertDossierTokenValid($id, $token);
+    $this->consumeDossierToken($id, $token);
+
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
+    if (!$dossier) {
+        return new Response('Dossier introuvable', 404);
+    }
+
+    $dataUrl = (string) $req->request->get('signature_dataurl', '');
+    if (!str_starts_with($dataUrl, 'data:image/png;base64,')) {
+        return new Response('SIGNATURE MANQUANTE', 400);
+    }
+
+    $this->dossierSignatureManager->storeSignatureDataUrl($dossier, $dataUrl);
+
+    $shop = [
+        'name' => 'Multimédia Services & Cash',
+        'address' => 'À compléter',
+        'zip' => '00000',
+        'city' => 'À compléter',
+        'country' => 'France',
+        'phone' => 'À compléter',
+        'email' => 'À compléter',
+        'site' => 'À compléter',
+        'tax_number' => '',
+        'company_number' => '',
+        'legal_status' => '',
+        'code_naf' => '',
+        'non_assujetti_tva' => '0',
+    ];
+
+    $res = $this->dossierPdfGen->generate($dossier, [
+        'shop' => $shop,
+        'generated_at' => new \DateTimeImmutable(),
+    ]);
+
+    $dossier->setPdfUrl((string) ($res['url'] ?? ''));
+    $this->em->flush();
+
+    return $this->render('tablet/after_sign.html.twig', [
+        'pdf_url'  => (string) ($res['url'] ?? ''),
+        'wait_url' => $this->generateUrl('tablet_wait', ['device' => 'TAB1'], UrlGeneratorInterface::ABSOLUTE_URL),
+        'r' => null,
+        'dossier' => $dossier,
+    ]);
+}
 
 }

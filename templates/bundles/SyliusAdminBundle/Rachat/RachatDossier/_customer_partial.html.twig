@@ -1,0 +1,44 @@
+<div class="ui segment" style="margin:0;">
+    {% if customer %}
+        <table class="ui very basic compact table">
+            <tbody>
+                <tr>
+                    <td><strong>ID Hiboutik</strong></td>
+                    <td>{{ customer.customers_id ?? customer.customer_id ?? customer.id ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Nom</strong></td>
+                    <td>{{ customer.customers_last_name ?? customer.last_name ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Prénom</strong></td>
+                    <td>{{ customer.customers_first_name ?? customer.first_name ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Société</strong></td>
+                    <td>{{ customer.customers_company ?? customer.company ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email</strong></td>
+                    <td>{{ customer.customers_email ?? customer.email ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Téléphone</strong></td>
+                    <td>{{ customer.customers_phone_number ?? customer.phone ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Pays</strong></td>
+                    <td>{{ customer.customers_country ?? customer.country ?? '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Réf. ext.</strong></td>
+                    <td>{{ customer.customers_ref_ext ?? customer.ref_ext ?? '—' }}</td>
+                </tr>
+            </tbody>
+        </table>
+    {% else %}
+        <div class="ui message">
+            Aucun client Hiboutik lié à ce dossier.
+        </div>
+    {% endif %}
+</div>

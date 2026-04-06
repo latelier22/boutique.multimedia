@@ -1,0 +1,171 @@
+<script>
+(function () {
+    function bootSignatureWidget(root) {
+        if (!root || root.dataset.booted === '1' || root.dataset.disabled === '1') {
+            return;
+        }
+        root.dataset.booted = '1';
+
+        const uploadUrl = root.dataset.uploadUrl;
+        const csrfToken = root.dataset.csrf;
+
+        const canvas = root.querySelector('.js-sw-pad');
+        const clearBtn = root.querySelector('.js-sw-clear');
+        const saveBtn = root.querySelector('.js-sw-save');
+        const statusBox = root.querySelector('.js-sw-status');
+        const preview = root.querySelector('.js-sw-preview');
+        const previewEmpty = root.querySelector('.js-sw-preview-empty');
+        const openLink = root.querySelector('.js-sw-open');
+
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let hasDrawn = false;
+
+        function showStatus(message, type) {
+            statusBox.className = 'ui message js-sw-status';
+            if (type === 'success') {
+                statusBox.classList.add('positive');
+            } else if (type === 'error') {
+                statusBox.classList.add('negative');
+            } else if (type === 'warning') {
+                statusBox.classList.add('warning');
+            } else {
+                statusBox.classList.add('info');
+            }
+            statusBox.textContent = message;
+            statusBox.classList.remove('sw-hidden');
+        }
+
+        function resizeCanvas() {
+            const ratio = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+
+            canvas.width = Math.round(rect.width * ratio);
+            canvas.height = Math.round(220 * ratio);
+
+            canvas.style.height = '220px';
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(ratio, ratio);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, rect.width, 220);
+
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        function pointFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            const source = e.touches && e.touches[0] ? e.touches[0] : e;
+            return {
+                x: source.clientX - rect.left,
+                y: source.clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            e.preventDefault();
+            drawing = true;
+            const p = pointFromEvent(e);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+        }
+
+        function moveDraw(e) {
+            if (!drawing) {
+                return;
+            }
+            e.preventDefault();
+            const p = pointFromEvent(e);
+            ctx.lineTo(p.x, p.y);
+            ctx.stroke();
+            hasDrawn = true;
+        }
+
+        function endDraw() {
+            drawing = false;
+        }
+
+        function clearPad() {
+            hasDrawn = false;
+            resizeCanvas();
+        }
+
+        function setPreview(url) {
+            const finalUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+            preview.src = finalUrl;
+            preview.classList.remove('sw-hidden');
+            previewEmpty.classList.add('sw-hidden');
+            openLink.href = url;
+            openLink.classList.remove('sw-hidden');
+        }
+
+        async function saveSignature() {
+            if (!hasDrawn) {
+                showStatus('Aucune signature à enregistrer.', 'warning');
+                return;
+            }
+
+            try {
+                showStatus('Enregistrement en cours...', 'info');
+
+                const dataUrl = canvas.toDataURL('image/png');
+
+                const fd = new FormData();
+                fd.append('_token', csrfToken);
+                fd.append('signature', dataUrl);
+
+                const response = await fetch(uploadUrl, {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const json = await response.json();
+
+                if (!response.ok || !json.ok) {
+                    throw new Error(json.error || 'Erreur enregistrement signature');
+                }
+
+                setPreview(json.url);
+                showStatus('Signature enregistrée.', 'success');
+            } catch (e) {
+                console.error(e);
+                showStatus(e.message || 'Erreur signature', 'error');
+            }
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', moveDraw);
+        window.addEventListener('mouseup', endDraw);
+
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+
+        clearBtn.addEventListener('click', clearPad);
+        saveBtn.addEventListener('click', saveSignature);
+    }
+
+    function bootAllSignatureWidgets() {
+        document.querySelectorAll('.js-signature-widget').forEach(bootSignatureWidget);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootAllSignatureWidgets, { once: true });
+    } else {
+        bootAllSignatureWidgets();
+    }
+
+    document.addEventListener('turbo:load', bootAllSignatureWidgets);
+})();
+</script>

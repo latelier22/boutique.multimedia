@@ -16,6 +16,16 @@ sylius_ui:
                     context:
                         cards:
                             -
+                                title: "Rachats v2 (Dossier)"
+                                text: "Gestion des rachats v2 par dossier, suivi et consultation."
+                                icon: "shop icon"
+                                color: "dashboard-card--gold"
+                                route: "admin_rachats_v2_index"
+                                button_label: "Ouvrir"
+                                secondary_label: "+ Créer un DOSSIER rachat"
+                                secondary_route: "admin_rachats_v2_new"
+
+                            -
                                 title: "Rachats"
                                 text: "Gestion des rachats, suivi et consultation."
                                 icon: "shop icon"
@@ -23,14 +33,6 @@ sylius_ui:
                                 route: "admin_rachats_index"
                                 button_label: "Ouvrir"
                                 secondary_label: "+ Créer un rachat"
-                            -
-                                title: "Vendeurs"
-                                text: "Fiches vendeurs et suivi administratif."
-                                icon: "users icon"
-                                color: "dashboard-card--blue"
-                                route: "admin_vendors_index"
-                                button_label: "Ouvrir"
-                                secondary_label: "+ Créer un vendeur"
                             -
                                 title: "Caisse"
                                 text: "Accès aux mouvements et à la caisse."

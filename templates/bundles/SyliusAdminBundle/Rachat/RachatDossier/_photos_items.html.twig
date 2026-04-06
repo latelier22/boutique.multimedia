@@ -1,0 +1,92 @@
+<div class="ui segment">
+    <h3 class="ui header">
+        <i class="images outline icon"></i>
+        <div class="content">
+            Photos des produits rachetés
+            <div class="sub header">Rattachées aux items</div>
+        </div>
+    </h3>
+
+    {% set hasPhotos = false %}
+
+    {% for item in dossier.items %}
+        {% set itemPhotos = [] %}
+
+        {# 1. photosJson prioritaire #}
+        {% if item.photosJson %}
+            {% set parsed = item.photosJson starts with '[' or item.photosJson starts with '{'
+                ? item.photosJson|json_decode
+                : [] %}
+
+            {% if parsed is iterable %}
+                {% for p in parsed %}
+                    {% if p %}
+                        {% set itemPhotos = itemPhotos|merge([p]) %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endif %}
+
+        {# 2. fallback photo1/photo2/photo3 #}
+        {% for p in [item.photo1, item.photo2, item.photo3] %}
+            {% if p and p not in itemPhotos %}
+                {% set itemPhotos = itemPhotos|merge([p]) %}
+            {% endif %}
+        {% endfor %}
+
+        {% if itemPhotos|length > 0 %}
+            {% set hasPhotos = true %}
+
+            <div class="ui segment">
+                <h4 class="ui header">
+                    {{ item.designation ?: item.label ?: ('Item #' ~ item.id) }}
+                </h4>
+
+                <div class="ui three stackable cards">
+                    {% for photo in itemPhotos %}
+                        {% set photoUrl = null %}
+
+                        {# Si c'est déjà une URL complète #}
+                        {% if photo starts with 'http://' or photo starts with 'https://' %}
+                            {% set photoUrl = photo %}
+                        {% elseif dossier.legacyRachatId %}
+                            {# Sinon on reconstruit l'URL via la route legacy #}
+                            {% set photoUrl = path('admin_rachats_photo', {
+                                id: dossier.legacyRachatId,
+                                file: photo|split('/')|last
+                            }) %}
+                        {% endif %}
+
+                        {% if photoUrl %}
+                            <div class="card">
+                                <div class="image" style="background:#f7f7f7; padding:10px;">
+                                    <a href="{{ photoUrl }}" target="_blank">
+                                        <img
+                                            src="{{ photoUrl }}"
+                                            alt="Photo {{ loop.index }}"
+                                            style="width:100%; height:260px; object-fit:contain;"
+                                        >
+                                    </a>
+                                </div>
+                                <div class="content">
+                                    <div class="description">
+                                        Photo {{ loop.index }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% if not hasPhotos %}
+        <div class="ui placeholder segment" style="min-height:160px;">
+            <div class="ui icon header">
+                <i class="images outline icon"></i>
+                Aucune photo
+            </div>
+        </div>
+    {% endif %}
+</div>

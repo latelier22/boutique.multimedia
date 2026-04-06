@@ -1,5 +1,5 @@
 <?php
-namespace App\Form;
+namespace App\Form\Rachat;
 
 use App\Entity\Rachat\Rachat;
 use Symfony\Component\Form\AbstractType;

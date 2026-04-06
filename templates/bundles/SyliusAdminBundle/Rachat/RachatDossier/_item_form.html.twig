@@ -1,0 +1,243 @@
+<div class="ui segment js-rachat-item" style="margin-top:12px;">
+    <div
+        class="js-item-referential-config"
+        data-brand-create-url="{{ path('admin_hiboutik_referential_brands_create') }}"
+        data-category-create-url="{{ path('admin_hiboutik_referential_categories_create') }}"
+        data-category-tree-url="{{ path('admin_hiboutik_referential_categories_tree') }}"
+    ></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h4 class="ui header" style="margin:0;">
+            <i class="cube icon"></i>
+            Item <span class="js-item-number">1</span>
+        </h4>
+
+        {% if not dossier.lockedAt %}
+            <button type="button" class="ui tiny basic red button js-remove-item">
+                <i class="trash icon"></i>
+                Supprimer
+            </button>
+        {% else %}
+            <button type="button" class="ui tiny basic button disabled">
+                <i class="lock icon"></i>
+                Verrouillé
+            </button>
+        {% endif %}
+    </div>
+
+    <div class="two fields" style="margin-top:1rem;">
+        <div class="field">{{ form_row(itemForm.designation) }}</div>
+        <div class="field">{{ form_row(itemForm.marqueModele) }}</div>
+    </div>
+
+    <div class="four fields">
+        <div class="field">{{ form_row(itemForm.imei) }}</div>
+        <div class="field">{{ form_row(itemForm.prixAchat) }}</div>
+
+        {# ===================== MARQUE ===================== #}
+        <div class="field">
+            <label>Marque</label>
+
+            <div style="display:none;">
+                {{ form_widget(itemForm.hibBrandId, {
+                    attr: { class: 'js-item-brand-real' }
+                }) }}
+            </div>
+
+            <select class="ui fluid search selection dropdown js-item-brand-ui">
+                <option value="">Choisir une marque</option>
+                
+
+                {% for b in brands|default([]) %}
+                    {% set bid = b.brand_id ?? b.id ?? null %}
+                    {% set bname = b.brand_name ?? b.name ?? null %}
+
+                    {% if bid and bname %}
+                        <option
+                            value="{{ bid }}"
+                            {% if (itemForm.hibBrandId.vars.value ?? '') == bid %}selected{% endif %}
+                        >
+                            {{ bname }}
+                        </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+
+            <input
+                type="hidden"
+                class="js-item-brand-ui-value"
+                name="item_brand_ui_value[{{ itemForm.vars.name }}]"
+                value="{{ itemForm.hibBrandId.vars.value ?? '' }}"
+            >
+
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="ui tiny button js-create-brand-inline">
+                    + Marque
+                </button>
+            </div>
+
+            <div class="js-inline-brand-box" style="display:none;margin-top:10px;">
+                <div class="ui action input" style="width:100%;">
+                    <input
+                        type="text"
+                        class="js-inline-brand-name"
+                        placeholder="Nouvelle marque"
+                    >
+                    <button type="button" class="ui button primary js-inline-brand-save">
+                        Créer
+                    </button>
+                </div>
+                <div class="js-inline-brand-state" style="margin-top:6px;font-size:12px;"></div>
+            </div>
+
+            
+
+            {{ form_errors(itemForm.hibBrandId) }}
+        </div>
+
+        {# ===================== CATÉGORIE ===================== #}
+        <div class="field">
+            <label>{{ itemForm.hibCategoryId.vars.label|default('Catégorie') }}</label>
+
+            {{ form_widget(itemForm.hibCategoryId, {
+                attr: { class: 'ui fluid search selection dropdown js-item-category-select' }
+            }) }}
+
+            <div style="margin-top:6px;font-size:12px;color:#666;">
+                Les parents sont visibles pour le contexte, seuls les enfants doivent être choisis.
+            </div>
+
+            <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="ui tiny button js-create-category-inline">
+                    + Catégorie
+                </button>
+                <button type="button" class="ui tiny button js-create-subcategory-inline">
+                    + Sous-catégorie
+                </button>
+            </div>
+
+            <div class="js-inline-category-box" style="display:none;margin-top:10px;">
+                <div class="ui form">
+                    <div class="fields" style="margin-bottom:8px;">
+                        <div class="ten wide field">
+                            <input
+                                type="text"
+                                class="js-inline-category-name"
+                                placeholder="Nouvelle catégorie"
+                            >
+                        </div>
+                        <div class="six wide field js-inline-category-parent-wrap" style="display:none;">
+                            <input
+                                type="text"
+                                class="js-inline-category-parent-label"
+                                disabled
+                            >
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        <button type="button" class="ui button primary js-inline-category-save">
+                            Créer
+                        </button>
+                        <span class="js-inline-category-state" style="font-size:12px;"></span>
+                    </div>
+                </div>
+            </div>
+
+            {{ form_errors(itemForm.hibCategoryId) }}
+        </div>
+    </div>
+
+    <div style="display:none;">
+        {{ form_widget(itemForm.attributes, {
+            attr: { class: 'js-item-attributes-json' }
+        }) }}
+    </div>
+
+    <div class="ui divider"></div>
+
+    {# ===================== ATTRIBUTS ===================== #}
+    <details class="js-item-attributes-details">
+        <summary style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px;outline:none;">
+            <i class="dropdown icon"></i>
+            <span class="js-item-attributes-summary-text">Attributs de l’item</span>
+        </summary>
+
+        <div style="margin-top:12px;">
+            <div
+                class="ui form js-item-attributes-box"
+                data-defs-url-template="{{ path('admin_rachats_attributes_definitions', { category: '__CATEGORY__' }) }}"
+                data-create-def-url="{{ path('admin_rachats_create_attribute_definition') }}"
+            >
+                <div class="ui message">Ouvre ce bloc pour charger les attributs.</div>
+            </div>
+
+            <div class="ui divider"></div>
+
+            <div class="ui form js-item-quick-attr-box">
+                <h5 class="ui header" style="margin-top:0;">
+                    <i class="plus circle icon"></i>
+                    Ajouter un attribut à cette catégorie
+                </h5>
+
+                <div class="three fields">
+                    <div class="field">
+                        <label>Label</label>
+                        <input type="text" class="js-quick-attr-label" placeholder="Ex : Batterie">
+                    </div>
+
+                    <div class="field">
+                        <label>Type</label>
+                        <select class="ui dropdown js-quick-attr-type">
+                            <option value="text">Texte</option>
+                            <option value="select">Liste</option>
+                        </select>
+                    </div>
+
+                    <div class="field js-quick-attr-options-field" style="display:none;">
+                        <label>Options</label>
+                        <input type="text" class="js-quick-attr-options" placeholder="Ex : Oui,Non">
+                    </div>
+                </div>
+
+                <button type="button" class="ui button js-btn-quick-create-attr">
+                    <i class="plus icon"></i>
+                    Ajouter l’attribut
+                </button>
+
+                <span class="js-quick-attr-state" style="margin-left:8px;"></span>
+            </div>
+        </div>
+    </details>
+
+    <div class="ui divider"></div>
+
+    {% set itemEntity = itemForm.vars.value %}
+
+    {# ===================== PHOTOS ===================== #}
+    <details class="js-item-photos-details">
+        <summary style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px;outline:none;">
+            <i class="dropdown icon"></i>
+            <span>Photos de l’item</span>
+        </summary>
+
+        {{ include('@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget.html.twig', {
+            widgetId: 'item-photos-' ~ (itemEntity.id ?: itemForm.vars.id),
+            title: 'Photos du produit racheté',
+            uploadUrl: itemEntity.id ? path('admin_rachats_v2_item_upload_photo', { id: itemEntity.id }) : '',
+            deleteUrl: itemEntity.id ? path('admin_rachats_v2_item_delete_photo', { id: itemEntity.id }) : '',
+            csrfToken: itemEntity.id ? csrf_token('rachat_item_photo_' ~ itemEntity.id) : '',
+            disabled: not itemEntity.id,
+            slots: {
+                photo1: itemEntity.photo1|default(''),
+                photo2: itemEntity.photo2|default(''),
+                photo3: itemEntity.photo3|default('')
+            },
+            labels: {
+                photo1: 'Photo 1',
+                photo2: 'Photo 2',
+                photo3: 'Photo 3'
+            }
+        }) }}
+    </details>
+</div>

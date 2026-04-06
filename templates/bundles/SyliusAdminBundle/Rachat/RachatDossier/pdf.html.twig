@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dossier rachat {{ dossier.reference ?: ('#' ~ dossier.id) }}</title>
+    <style>
+        @page {
+            margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: DejaVu Sans, Arial, sans-serif;
+            color: #111;
+            font-size: 11px;
+            line-height: 1.28;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .pdf-page {
+            position: relative;
+            height: 350mm;
+            page-break-after: always;
+            overflow: hidden;
+            padding: 8mm 10mm 0 10mm;
+        }
+
+        .pdf-page:last-child {
+            page-break-after: auto;
+        }
+
+        .page-content {
+            padding-bottom: 52mm;
+        }
+
+        .page-header {
+            border-bottom: 2px solid #222;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+        }
+
+        .header-table,
+        .info-grid,
+        .summary-table,
+        .product-meta,
+        .attributes-table,
+        .ci-images,
+        .photos-table,
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table td {
+            vertical-align: top;
+        }
+
+        .header-left {
+            width: 66.66%;
+        }
+
+        .header-right {
+            width: 33.33%;
+            text-align: right;
+        }
+
+        .brand-wrap {
+            width: 100%;
+        }
+
+        .brand-logo {
+            width: 33.33%;
+            margin-bottom: 6px;
+        }
+
+        .brand-logo img {
+            display: block;
+            max-width: 100%;
+            max-height: 42px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.05;
+            margin-bottom: 3px;
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: #555;
+            margin-top: 2px;
+        }
+
+        .seller-box {
+            display: inline-block;
+            min-width: 270px;
+            border: 1px solid #222;
+            padding: 9px 11px;
+            text-align: left;
+        }
+
+        .seller-box-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .section-block {
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 1px solid #222;
+            padding-bottom: 3px;
+            margin: 0 0 9px 0;
+        }
+
+        .conditions-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #000;
+            text-transform: uppercase;
+            margin: 0 0 5px 0;
+        }
+
+        .conditions-text {
+            font-size: 7px;
+            line-height: 1.15;
+            color: #000;
+            margin-top: 2mm;
+        }
+
+        .info-grid td,
+        .summary-table td,
+        .product-meta td,
+        .attributes-table td,
+        .ci-images td,
+        .photos-table td {
+            border: 1px solid #cfcfcf;
+            padding: 5px 7px;
+            vertical-align: top;
+        }
+
+        .label {
+            font-weight: 700;
+            color: #333;
+        }
+
+        .muted {
+            color: #666;
+        }
+
+        .summary-table {
+            margin-bottom: 0;
+        }
+
+        .ci-block {
+            margin-top: 14px;
+        }
+
+        .ci-images td {
+            width: 50%;
+            text-align: center;
+            vertical-align: middle;
+            height: 138px;
+        }
+
+        .ci-images img {
+            max-width: 100%;
+            max-height: 122px;
+        }
+
+        .product-card {
+            border: 1px solid #cfcfcf;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        .product-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .attributes-table {
+            margin-top: 8px;
+        }
+
+        .photos-row {
+            margin-top: 8px;
+        }
+
+        .photos-table td {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: middle;
+            height: 98px;
+        }
+
+        .photos-table img {
+            max-width: 100%;
+            max-height: 86px;
+        }
+
+        .page-footer {
+            position: absolute;
+            left: 10mm;
+            right: 10mm;
+            bottom: 1mm;
+            border-top: 2px solid #222;
+            padding-top: 3px;
+        }
+
+        .signatures-table {
+            table-layout: fixed;
+        }
+
+        .signatures-table td {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0 8px;
+        }
+
+        .signature-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .signature-box {
+            height: 138px;
+            border: 1px solid #cfcfcf;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .signature-box img {
+            max-width: 100%;
+            max-height: 122px;
+        }
+
+        .signature-line {
+            margin-top: 2px;
+            border-top: 1px solid #555;
+            padding-top: 2px;
+            font-size: 10px;
+        }
+
+        .footer-ref {
+            text-align: center;
+            margin-top: 2px;
+            font-size: 10px;
+            color: #555;
+            line-height: 1.05;
+        }
+    </style>
+</head>
+<body>
+{% set totalPages = 1 + (items|length) %}
+
+    {# PAGE 1 #}
+    <div class="pdf-page">
+        <div class="page-content">
+            <div class="page-header">
+                <table class="header-table">
+                    <tr>
+                        <td class="header-left">
+                            <div class="brand-wrap">
+                                {% if company_logo_data_uri %}
+                                    <div class="brand-logo">
+                                        <img src="{{ company_logo_data_uri }}" alt="Logo">
+                                    </div>
+                                {% endif %}
+
+                                <div class="brand-title">Multimédia Services &amp; Cash</div>
+
+                                <div class="brand-sub">
+                                    {{ shop.address|default('') }}
+                                    {% if shop.zip is defined or shop.city is defined %}
+                                        — {{ shop.zip|default('') }} {{ shop.city|default('') }}
+                                    {% endif %}
+                                    {% if shop.phone is defined and shop.phone %}
+                                        — {{ shop.phone }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="header-right">
+                            <div class="seller-box">
+                                <div class="seller-box-title">Vendeur</div>
+                                <div><strong>{{ dossier.prenomSnapshot ?: '' }} {{ dossier.nomSnapshot ?: '' }}</strong></div>
+                                <div>{{ dossier.telephoneSnapshot ?: '—' }}</div>
+                                <div>{{ dossier.emailSnapshot ?: '—' }}</div>
+                                <div>{{ dossier.adresseSnapshot ?: '—' }}</div>
+                                <div>{{ dossier.codePostalSnapshot ?: '' }} {{ dossier.villeSnapshot ?: '' }}</div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section-block">
+                <div class="section-title">Dossier de rachat</div>
+
+                <table class="info-grid">
+                    <tr>
+                        <td><span class="label">Référence</span><br>{{ dossier.reference ?: '—' }}</td>
+                        <td><span class="label">Date de cession</span><br>{% if dossier.dateCession %}{{ dossier.dateCession|date('d/m/Y H:i') }}{% else %}—{% endif %}</td>
+                        <td><span class="label">Statut</span><br>{{ dossier.status ?: 'draft' }}</td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">Client Hiboutik</span><br>{{ dossier.hibCustomerId ?: '—' }}</td>
+                        <td><span class="label">Mode de paiement</span><br>{{ dossier.paidMethod ?: '—' }}</td>
+                        <td><span class="label">Total rachat</span><br><strong>{{ dossier.totalAchat ?: '0.00' }} €</strong></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            <span class="label">Numéro de pièce d’identité</span><br>
+                            {{ dossier.numeroCiSnapshot ?: '—' }}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section-block">
+                <div class="section-title">Produits repris</div>
+
+                <table class="summary-table">
+                    <tr>
+                        <td class="label" style="width:6%;">#</td>
+                        <td class="label" style="width:34%;">Produit</td>
+                        <td class="label" style="width:20%;">IMEI</td>
+                        <td class="label" style="width:20%;">Désignation</td>
+                        <td class="label" style="width:20%;">Prix achat</td>
+                    </tr>
+                    {% for row in items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ row.item.marqueModele ?: '—' }}</td>
+                            <td>{{ row.item.imei ?: '—' }}</td>
+                            <td>{{ row.item.designation ?: '—' }}</td>
+                            <td>{{ row.item.prixAchat ?: '0.00' }} €</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="muted">Aucun produit.</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+            <div class="section-block ci-block">
+                <div class="section-title">Pièce d’identité</div>
+
+                <table class="ci-images">
+                    <tr>
+                        <td>
+                            <div class="label" style="margin-bottom:4px;">Recto</div>
+                            {% if pieces_identite_data[0] is defined %}
+                                <img src="{{ pieces_identite_data[0] }}" alt="Recto">
+                            {% else %}
+                                <span class="muted">Aucun recto</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="label" style="margin-bottom:4px;">Verso</div>
+                            {% if pieces_identite_data[1] is defined %}
+                                <img src="{{ pieces_identite_data[1] }}" alt="Verso">
+                            {% else %}
+                                <span class="muted">Aucun verso</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="section-block">
+                <div class="conditions-title">Conditions générales acceptées</div>
+                <div class="conditions-text">
+                    {{ rachat_conditions_pdf|nl2br|raw }}
+                </div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <table class="signatures-table">
+                <tr>
+                    <td>
+                        <div class="signature-title">Signature Multimédia</div>
+                        <div class="signature-box">
+                            {% if company_sign_data_uri %}
+                                <img src="{{ company_sign_data_uri }}" alt="Signature Multimédia">
+                            {% endif %}
+                        </div>
+                        <div class="signature-line">Multimédia Services &amp; Cash</div>
+                    </td>
+                    <td>
+                        <div class="signature-title">Signature vendeur</div>
+                        <div class="signature-box">
+                            {% if seller_sign_data_uri %}
+                                <img src="{{ seller_sign_data_uri }}" alt="Signature vendeur">
+                            {% endif %}
+                        </div>
+                        <div class="signature-line">{{ dossier.prenomSnapshot ?: '' }} {{ dossier.nomSnapshot ?: '' }}</div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="footer-ref">
+                Dossier {{ dossier.reference ?: ('#' ~ dossier.id) }} — Page 1 / {{ totalPages }}
+            </div>
+        </div>
+    </div>
+
+    {# PAGES PRODUITS : 1 PRODUIT PAR PAGE #}
+    {% for row in items %}
+        <div class="pdf-page">
+            <div class="page-content">
+                <div class="page-header">
+                    <table class="header-table">
+                        <tr>
+                            <td class="header-left">
+                                <div class="brand-wrap">
+                                    {% if company_logo_data_uri %}
+                                        <div class="brand-logo">
+                                            <img src="{{ company_logo_data_uri }}" alt="Logo">
+                                        </div>
+                                    {% endif %}
+
+                                    <div class="brand-title">Multimédia Services &amp; Cash</div>
+
+                                    <div class="brand-sub">
+                                        {{ shop.address|default('') }}
+                                        {% if shop.zip is defined or shop.city is defined %}
+                                            — {{ shop.zip|default('') }} {{ shop.city|default('') }}
+                                        {% endif %}
+                                        {% if shop.phone is defined and shop.phone %}
+                                            — {{ shop.phone }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="header-right">
+                                <div class="seller-box">
+                                    <div class="seller-box-title">Vendeur</div>
+                                    <div><strong>{{ dossier.prenomSnapshot ?: '' }} {{ dossier.nomSnapshot ?: '' }}</strong></div>
+                                    <div>{{ dossier.telephoneSnapshot ?: '—' }}</div>
+                                    <div>{{ dossier.emailSnapshot ?: '—' }}</div>
+                                    <div>{{ dossier.adresseSnapshot ?: '—' }}</div>
+                                    <div>{{ dossier.codePostalSnapshot ?: '' }} {{ dossier.villeSnapshot ?: '' }}</div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="section-block">
+                    <div class="section-title">Détail produit</div>
+
+                    <div class="product-card">
+                        <div class="product-title">
+                            Produit {{ loop.index }} — {{ row.item.marqueModele ?: row.item.designation ?: 'Produit' }}
+                        </div>
+
+                        <table class="product-meta">
+                            <tr>
+                                <td><span class="label">Désignation</span><br>{{ row.item.designation ?: '—' }}</td>
+                                <td><span class="label">Marque / modèle</span><br>{{ row.item.marqueModele ?: '—' }}</td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">IMEI</span><br>{{ row.item.imei ?: '—' }}</td>
+                                <td><span class="label">Prix achat</span><br>{{ row.item.prixAchat ?: '0.00' }} €</td>
+                            </tr>
+                            <tr>
+                                <td><span class="label">Catégorie Hiboutik</span><br>{{ row.item.hibCategoryId ?: '—' }}</td>
+                                <td><span class="label">Marque Hiboutik</span><br>{{ row.item.hibBrandId ?: '—' }}</td>
+                            </tr>
+                        </table>
+
+                        {% if row.attributes is not empty %}
+                            <table class="attributes-table">
+                                {% for key, value in row.attributes %}
+                                    <tr>
+                                        <td style="width:35%;"><strong>{{ key }}</strong></td>
+                                        <td>
+                                            {% if value is iterable and value is not same as(false) and value is not same as(null) %}
+                                                {{ value|join(', ') }}
+                                            {% else %}
+                                                {{ value is same as('') ? '—' : value }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endif %}
+
+                        {% set photoCount = row.photos_data_uris|length %}
+                        {% if photoCount > 0 %}
+                            <div class="photos-row">
+                                <table class="photos-table">
+                                    <tr>
+                                        {% for photo in row.photos_data_uris|slice(0, 3) %}
+                                            <td>
+                                                <img src="{{ photo }}" alt="Photo produit">
+                                            </td>
+                                        {% endfor %}
+
+                                        {% if photoCount == 1 %}
+                                            <td></td>
+                                            <td></td>
+                                        {% elseif photoCount == 2 %}
+                                            <td></td>
+                                        {% endif %}
+                                    </tr>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-footer">
+                <table class="signatures-table">
+                    <tr>
+                        <td>
+                            <div class="signature-title">Signature Multimédia</div>
+                            <div class="signature-box">
+                                {% if company_sign_data_uri %}
+                                    <img src="{{ company_sign_data_uri }}" alt="Signature Multimédia">
+                                {% endif %}
+                            </div>
+                            <div class="signature-line">Multimédia Services &amp; Cash</div>
+                        </td>
+                        <td>
+                            <div class="signature-title">Signature vendeur</div>
+                            <div class="signature-box">
+                                {% if seller_sign_data_uri %}
+                                    <img src="{{ seller_sign_data_uri }}" alt="Signature vendeur">
+                                {% endif %}
+                            </div>
+                            <div class="signature-line">{{ dossier.prenomSnapshot ?: '' }} {{ dossier.nomSnapshot ?: '' }}</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="footer-ref">
+                    Dossier {{ dossier.reference ?: ('#' ~ dossier.id) }} — Page {{ loop.index + 1 }} / {{ totalPages }}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>

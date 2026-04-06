@@ -1,0 +1,1419 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}
+	{% if dossier.id %}
+		Éditer dossier V2 #{{ dossier.id }}
+	{% else %}
+		Nouveau dossier V2
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+
+	<style>
+		.js-item-attributes-box select,
+		.js-item-attributes-box input {
+			width: 100%;
+		}
+
+		.js-item-attributes-details summary {
+			list-style: none;
+		}
+
+		.js-item-attributes-details summary::-webkit-details-marker {
+			display: none;
+		}
+
+		.js-item-attributes-details[open] .dropdown.icon {
+			transform: rotate(90deg);
+		}
+
+		.js-item-attributes-details .dropdown.icon {
+			transition: transform 0.15s ease;
+		}
+	</style>
+		{% if dossier.lockedAt %}
+			<style>
+				#rachat-dossier-form input,
+				#rachat-dossier-form select,
+				#rachat-dossier-form textarea {
+					pointer-events: none;
+					background: #f3f4f6 !important;
+					color: #6b7280 !important;
+				}
+			</style>
+		{% endif %}
+
+		<div class="ui breadcrumb" style="margin-bottom:1rem;">
+			<h1 class="ui header" style="margin:0;">
+				<i class="folder open icon"></i>
+				{% if dossier.id %}
+					Éditer dossier V2 #{{ dossier.id }}
+				{% else %}
+					Nouveau dossier V2
+				{% endif %}
+			</h1>
+			<div class="ui segment">
+				<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+					{% if not dossier.lockedAt %}
+						<button class="ui primary button" type="submit" form="rachat-dossier-form">
+							<i class="save icon"></i>
+							Enregistrer
+						</button>
+					{% else %}
+						<button class="ui button disabled" type="button">
+							<i class="lock icon"></i>
+							Dossier verrouillé
+						</button>
+					{% endif %}
+
+					{% if dossier.id and not dossier.lockedAt %}
+						<button class="ui orange button" type="submit" form="lock-dossier-form" onclick="return confirm('Verrouiller ce dossier ? Toute modification sera ensuite bloquée.');">
+							<i class="lock icon"></i>
+							Verrouiller
+						</button>
+
+					{% endif %}
+					{% if dossier.id and dossier.lockedAt %}
+						<button class="ui red button" type="submit" form="unlock-dossier-form" onclick="return confirm('Déverrouiller ce dossier ? Les modifications redeviendront possibles.');">
+							<i class="unlock icon"></i>
+							Déverrouiller
+						</button>
+					{% endif %}
+
+					{% if dossier.id %}
+						<a class="ui button" href="{{ path('admin_rachats_v2_show', { id: dossier.id }) }}">
+							<i class="folder open icon"></i>
+							Ouvrir
+						</a>
+					{% endif %}
+
+					{% if dossier.id %}
+						<button class="ui teal button" type="submit" form="generate-pdf-form">
+							<i class="file pdf icon"></i>
+							Générer PDF
+						</button>
+
+						{% if dossier.pdfUrl %}
+							<a class="ui button" href="{{ dossier.pdfUrl }}" target="_blank">
+								<i class="external alternate icon"></i>
+								Ouvrir PDF
+							</a>
+						{% endif %}
+					{% endif %}
+
+					<a class="ui button" href="{{ path('admin_rachats_v2_index') }}">
+						Retour liste
+					</a>
+				</div>
+			</div>
+		</div>
+
+		{% set status = dossier.status ?: 'draft' %}
+
+	{{ form_start(form, { attr: { class: 'ui form', id: 'rachat-dossier-form' } }) }}
+
+<div class="ui stackable grid">
+	<div class="eight wide column">
+
+		<div class="ui segment">
+			<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+				<h3 class="ui header" style="margin:0;">
+					<i class="user icon"></i>
+					Dossier / vendeur
+				</h3>
+
+				<div>
+					{% if dossier.isLocked %}
+						<span class="ui red label">
+							<i class="lock icon"></i>
+							Verrouillé
+						</span>
+					{% elseif status == 'signed' %}
+						<span class="ui green label">Signé</span>
+					{% elseif status == 'cancelled' %}
+						<span class="ui red label">Annulé</span>
+					{% elseif status == 'ready' %}
+						<span class="ui blue label">Prêt</span>
+					{% else %}
+						<span class="ui grey label">Brouillon</span>
+					{% endif %}
+
+					{% if dossier.reference %}
+						<span class="ui basic label">{{ dossier.reference }}</span>
+					{% endif %}
+				</div>
+			</div>
+
+			<div class="three fields" style="margin-top:1rem;">
+				<div class="field">{{ form_row(form.nomSnapshot) }}</div>
+				<div class="field">{{ form_row(form.prenomSnapshot) }}</div>
+				<div class="field">{{ form_row(form.telephoneSnapshot) }}</div>
+			</div>
+
+			<div class="three fields">
+				<div class="field">{{ form_row(form.emailSnapshot) }}</div>
+				<div class="field">{{ form_row(form.codePostalSnapshot) }}</div>
+				<div class="field">{{ form_row(form.numeroCiSnapshot) }}</div>
+			</div>
+
+			<div class="field">
+				{{ form_row(form.adresseSnapshot) }}
+			</div>
+
+			<div class="three fields">
+				<div class="field">{{ form_row(form.hibCustomerId) }}</div>
+				<div class="field">{{ form_row(form.paidMethod) }}</div>
+				<div class="field">{{ form_row(form.dateCession) }}</div>
+			</div>
+		</div>
+
+		<div class="ui segment">
+			<h3 class="ui header">
+				<i class="calculator icon"></i>
+				Total dossier
+			</h3>
+
+			<div style="font-size:1.2rem;font-weight:700;">
+				{{ dossier.totalAchat ?: '0.00' }} €
+			</div>
+
+			<div style="margin-top:6px;color:#6b7280;">
+				Recalculé automatiquement à l’enregistrement.
+			</div>
+
+			{% if dossier.id %}
+				{{ include('@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget.html.twig', {
+					widgetId: 'ci-dossier-' ~ dossier.id,
+					title: 'Pièce d’identité dossier',
+					uploadUrl: path('admin_rachats_v2_upload_ci', { id: dossier.id }),
+					deleteUrl: path('admin_rachats_v2_delete_ci', { id: dossier.id }),
+					csrfToken: csrf_token('rachat_dossier_ci_' ~ dossier.id),
+					slotField: 'kind',
+					fileField: 'ci',
+					slots: {
+						recto: pieceIdentite.recto|default(''),
+						verso: pieceIdentite.verso|default('')
+					},
+					labels: {
+						recto: 'Recto',
+						verso: 'Verso'
+					}
+				}) }}
+			{% else %}
+				<div class="ui warning message">
+					Enregistre d’abord le dossier pour activer la pièce d’identité.
+				</div>
+			{% endif %}
+		</div>
+
+	</div>
+
+	<div class="eight wide column">
+
+		<div class="ui segment">
+			<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+				<h3 class="ui header" style="margin:0;">
+					<i class="boxes icon"></i>
+					Items rachetés
+				</h3>
+
+				{% if not dossier.lockedAt %}
+					<button type="button" class="ui primary button" id="btn-add-item">
+						<i class="plus icon"></i>
+						Ajouter un item
+					</button>
+				{% else %}
+					<button type="button" class="ui button disabled">
+						<i class="lock icon"></i>
+						Ajout bloqué
+					</button>
+				{% endif %}
+			</div>
+
+			<div class="ui message" style="margin-top:12px;">
+				Un dossier = un vendeur + plusieurs items.
+			</div>
+
+			<div id="items-collection" data-locked="{{ dossier.lockedAt ? '1' : '0' }}" data-index="{{ form.items|length }}">
+				{% for itemForm in form.items %}
+					{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
+						itemForm: itemForm,
+						dossier: dossier,
+						brands: brands|default([])
+					}) }}
+				{% endfor %}
+			</div>
+
+			<template id="item-prototype-template">
+				{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
+					itemForm: form.items.vars.prototype,
+					dossier: dossier,
+					brands: brands|default([])
+				}) }}
+			</template>
+		</div>
+
+	</div>
+</div>
+
+{{ form_end(form) }}
+
+			{% if dossier.id and not dossier.lockedAt %}
+				<form id="lock-dossier-form" method="post" action="{{ path('admin_rachats_v2_lock', { id: dossier.id }) }}" style="display:none;">
+					<input type="hidden" name="_token" value="{{ csrf_token('lock_dossier_' ~ dossier.id) }}">
+				</form>
+			{% endif %}
+
+			{% if dossier.id and dossier.lockedAt %}
+				<form id="unlock-dossier-form" method="post" action="{{ path('admin_rachats_v2_unlock', { id: dossier.id }) }}" style="display:none;">
+					<input type="hidden" name="_token" value="{{ csrf_token('unlock_dossier_' ~ dossier.id) }}">
+				</form>
+			{% endif %}
+
+			{% if dossier.id %}
+				<form id="generate-pdf-form" method="post" action="{{ path('admin_rachats_v2_generate_pdf', { id: dossier.id }) }}" style="display:none;">
+					<input type="hidden" name="_token" value="{{ csrf_token('generate_pdf_dossier_' ~ dossier.id) }}">
+				</form>
+			{% endif %}
+			<script>
+				(function () {
+function bootRachatDossierV2() {
+const collection = document.getElementById('items-collection');
+const addBtn = document.getElementById('btn-add-item');
+const prototypeTemplate = document.getElementById('item-prototype-template');
+
+if (! collection || collection.dataset.booted === '1') {
+return;
+}
+collection.dataset.booted = '1';
+
+function initSemanticUi(root) {
+if (! root) {
+root = document;
+}
+
+if (window.$ && $.fn.dropdown) {
+$(root).find('.ui.dropdown').each(function () {
+const $el = $(this);
+
+if ($el.data('msDropdownBooted')) {
+return;
+}
+
+$el.data('msDropdownBooted', 1);
+$el.dropdown();
+});
+}
+}
+
+function safeParseJson(value) {
+if (! value) {
+return {};
+}
+
+try {
+const parsed = JSON.parse(value);
+return parsed && typeof parsed === 'object' ? parsed : {};
+} catch (e) {
+return {};
+}
+}
+
+function syncItemNumbers() {
+collection.querySelectorAll('.js-rachat-item').forEach(function (node, index) {
+const n = node.querySelector('.js-item-number');
+if (n) {
+n.textContent = String(index + 1);
+}
+});
+}
+
+function updateAttributesSummary(summaryText, values) {
+if (! summaryText) {
+return;
+}
+
+const data = values && typeof values === 'object' ? values : {};
+let filled = 0;
+
+Object.values(data).forEach(function (value) {
+if (Array.isArray(value)) {
+if (value.length > 0) {
+filled++;
+}
+return;
+}
+
+if (value !== null && value !== undefined && String(value).trim() !== '') {
+filled++;
+}
+});
+
+summaryText.textContent = filled > 0 ? 'Attributs de l’item (' + filled + ' rempli' + (
+filled > 1 ? 's' : ''
+) + ')' : 'Attributs de l’item';
+}
+
+function bindItem(itemNode) {
+if (! itemNode || itemNode.dataset.bound === '1') {
+return;
+}
+itemNode.dataset.bound = '1';
+
+const removeBtn = itemNode.querySelector('.js-remove-item');
+
+const referentialConfig = itemNode.querySelector('.js-item-referential-config');
+const createBrandUrl = referentialConfig ? (referentialConfig.dataset.brandCreateUrl || '') : '';
+const createCategoryUrl = referentialConfig ? (referentialConfig.dataset.categoryCreateUrl || '') : '';
+
+const categoryField = itemNode.querySelector('.js-item-category-select');
+
+const hiddenAttributes = itemNode.querySelector('.js-item-attributes-json');
+const attributesBox = itemNode.querySelector('.js-item-attributes-box');
+const defsUrlTemplate = attributesBox ? (attributesBox.dataset.defsUrlTemplate || '') : '';
+const summaryText = itemNode.querySelector('.js-item-attributes-summary-text');
+const detailsEl = itemNode.querySelector('.js-item-attributes-details');
+
+const realBrandField = itemNode.querySelector('.js-item-brand-real');
+const brandUi = itemNode.querySelector('.js-item-brand-ui');
+const brandUiValue = itemNode.querySelector('.js-item-brand-ui-value');
+
+const btnCreateBrandInline = itemNode.querySelector('.js-create-brand-inline');
+const inlineBrandBox = itemNode.querySelector('.js-inline-brand-box');
+const inlineBrandName = itemNode.querySelector('.js-inline-brand-name');
+const inlineBrandSave = itemNode.querySelector('.js-inline-brand-save');
+const inlineBrandState = itemNode.querySelector('.js-inline-brand-state');
+
+const btnCreateCategoryInline = itemNode.querySelector('.js-create-category-inline');
+const btnCreateSubcategoryInline = itemNode.querySelector('.js-create-subcategory-inline');
+const inlineCategoryBox = itemNode.querySelector('.js-inline-category-box');
+const inlineCategoryName = itemNode.querySelector('.js-inline-category-name');
+const inlineCategorySave = itemNode.querySelector('.js-inline-category-save');
+const inlineCategoryState = itemNode.querySelector('.js-inline-category-state');
+const inlineCategoryParentWrap = itemNode.querySelector('.js-inline-category-parent-wrap');
+const inlineCategoryParentLabel = itemNode.querySelector('.js-inline-category-parent-label');
+
+const quickAttrLabel = itemNode.querySelector('.js-quick-attr-label');
+const quickAttrType = itemNode.querySelector('.js-quick-attr-type');
+const quickAttrOptions = itemNode.querySelector('.js-quick-attr-options');
+const quickAttrOptionsField = itemNode.querySelector('.js-quick-attr-options-field');
+const quickAttrBtn = itemNode.querySelector('.js-btn-quick-create-attr');
+const quickAttrState = itemNode.querySelector('.js-quick-attr-state');
+
+let inlineCategoryParentId = null;
+
+function slugifyCode(str) {
+return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function syncBrandUi() {
+if (! brandUi || ! realBrandField || ! brandUiValue) {
+return;
+}
+
+const val = String(brandUi.value || '');
+brandUiValue.value = val;
+realBrandField.value = val || '';
+}
+
+function appendOptionIfMissing(select, value, label) {
+if (! select) {
+return;
+}
+
+const exists = Array.from(select.options).some(function (opt) {
+return String(opt.value) === String(value);
+});
+
+if (exists) {
+return;
+}
+
+const option = document.createElement('option');
+option.value = String(value);
+option.textContent = String(label);
+select.appendChild(option);
+}
+
+function refreshSelect(select, selectedValue) {
+if (! select) {
+return;
+}
+
+if (window.$ && $.fn.dropdown) {
+const $el = $(select);
+$el.dropdown('refresh');
+
+if (selectedValue !== undefined && selectedValue !== null) {
+$el.dropdown('set selected', String(selectedValue));
+}
+} else if (selectedValue !== undefined && selectedValue !== null) {
+select.value = String(selectedValue);
+}
+}
+
+function rebuildCategorySelect(select, choices, disabledMap, selectedValue) {
+if (! select) {
+return;
+}
+
+const current = String(selectedValue || '');
+select.innerHTML = '';
+
+const placeholder = document.createElement('option');
+placeholder.value = '';
+placeholder.textContent = 'Choisir une catégorie';
+select.appendChild(placeholder);
+
+Object.entries(choices || {}).forEach(function (entry) {
+const label = entry[0];
+const value = entry[1];
+
+const option = document.createElement('option');
+option.value = String(value);
+option.textContent = String(label);
+
+if (disabledMap && disabledMap[String(value)]) {
+option.disabled = true;
+}
+
+if (String(value) === current) {
+option.selected = true;
+}
+
+select.appendChild(option);
+});
+
+refreshSelect(select, current);
+}
+
+function saveAttributes(values) {
+if (! hiddenAttributes) {
+return;
+}
+
+const normalizedValues = values || {};
+hiddenAttributes.value = JSON.stringify(normalizedValues);
+updateAttributesSummary(summaryText, normalizedValues);
+}
+
+function syncValuesFromUi() {
+if (! attributesBox) {
+return;
+}
+
+const values = {};
+attributesBox.querySelectorAll('[data-attr-code]').forEach(function (input) {
+const code = input.getAttribute('data-attr-code');
+if (! code) {
+return;
+}
+
+values[code] = input.value;
+});
+
+saveAttributes(values);
+}
+
+function setAttributesPlaceholder(message) {
+if (! attributesBox) {
+return;
+}
+
+attributesBox.innerHTML = '<div class="ui message">' + message + '</div>';
+}
+
+function renderAttributeInputs(defs) {
+if (! attributesBox || ! hiddenAttributes) {
+return;
+}
+
+const currentValues = safeParseJson(hiddenAttributes.value);
+
+if (!Array.isArray(defs) || defs.length === 0) {
+attributesBox.innerHTML = '<div class="ui message">Aucun attribut défini pour cette catégorie.</div>';
+updateAttributesSummary(summaryText, currentValues);
+return;
+}
+
+attributesBox.innerHTML = '';
+
+defs.forEach(function (def) {
+const wrapper = document.createElement('div');
+wrapper.className = 'field';
+
+const code = String(def.code || '');
+const label = String(def.label || def.code || '');
+const type = String(def.type || 'text');
+const current = currentValues[code] !== undefined ? currentValues[code] : '';
+
+const labelNode = document.createElement('label');
+labelNode.textContent = label;
+wrapper.appendChild(labelNode);
+
+let input;
+
+if (type === 'select') {
+input = document.createElement('select');
+input.className = 'ui dropdown';
+input.innerHTML = '<option value="">-- choisir --</option>';
+
+(Array.isArray(def.options) ? def.options : []).forEach(function (opt) {
+const option = document.createElement('option');
+option.value = String(opt);
+option.textContent = String(opt);
+
+if (String(opt) === String(current)) {
+option.selected = true;
+}
+
+input.appendChild(option);
+});
+} else {
+input = document.createElement('input');
+input.type = 'text';
+input.value = String(current);
+} input.setAttribute('data-attr-code', code);
+input.addEventListener('input', syncValuesFromUi);
+input.addEventListener('change', syncValuesFromUi);
+
+wrapper.appendChild(input);
+attributesBox.appendChild(wrapper);
+});
+
+initSemanticUi(attributesBox);
+syncValuesFromUi();
+}
+
+async function loadAttributesForCategory(forceReload) {
+if (! categoryField || ! attributesBox || ! defsUrlTemplate) {
+return;
+}
+
+const categoryId = String(categoryField.value || '').trim();
+
+if (! categoryId) {
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+setAttributesPlaceholder('Choisis une catégorie pour afficher les attributs.');
+return;
+}
+
+if (! forceReload && attributesBox.dataset.loaded === '1' && attributesBox.dataset.loadedFor === categoryId) {
+return;
+}
+
+attributesBox.innerHTML = '<div class="ui active inline loader"></div> Chargement...';
+
+try {
+const url = defsUrlTemplate.replace('__CATEGORY__', encodeURIComponent(categoryId));
+
+const response = await fetch(url, {
+headers: {
+'X-Requested-With': 'XMLHttpRequest'
+},
+credentials: 'same-origin'
+});
+
+if (! response.ok) {
+attributesBox.innerHTML = '<div class="ui negative message">Erreur chargement attributs.</div>';
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+return;
+}
+
+const defs = await response.json();
+renderAttributeInputs(defs);
+attributesBox.dataset.loaded = '1';
+attributesBox.dataset.loadedFor = categoryId;
+} catch (e) {
+console.error(e);
+attributesBox.innerHTML = '<div class="ui negative message">Erreur JS chargement attributs.</div>';
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+}
+}
+
+function refreshQuickAttrVisibility() {
+if (! quickAttrType || ! quickAttrOptionsField) {
+return;
+}
+
+quickAttrOptionsField.style.display = quickAttrType.value === 'select' ? '' : 'none';
+}
+
+if (brandUi) {
+brandUi.addEventListener('change', syncBrandUi);
+syncBrandUi();
+}
+
+if (btnCreateBrandInline) {
+btnCreateBrandInline.addEventListener('click', function () {
+if (! inlineBrandBox) {
+return;
+}
+
+inlineBrandBox.style.display = inlineBrandBox.style.display === 'none' ? '' : 'none';
+
+if (inlineBrandState) {
+inlineBrandState.textContent = '';
+}
+});
+}
+
+if (inlineBrandSave) {
+inlineBrandSave.addEventListener('click', async function () {
+const name = String(inlineBrandName ? inlineBrandName.value : '').trim();
+
+if (! name) {
+if (inlineBrandState) {
+inlineBrandState.textContent = 'Nom requis';
+}
+return;
+}
+
+if (inlineBrandState) {
+inlineBrandState.textContent = 'Création...';
+}
+
+try {
+const response = await fetch(createBrandUrl, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'X-Requested-With': 'XMLHttpRequest'
+},
+body: JSON.stringify(
+{name: name}
+),
+credentials: 'same-origin'
+});
+
+const json = await response.json();
+
+if (! response.ok || ! json.ok || ! json.item) {
+if (inlineBrandState) {
+inlineBrandState.textContent = json.error || 'Erreur';
+}
+return;
+}
+
+appendOptionIfMissing(brandUi, json.item.id, json.item.label);
+refreshSelect(brandUi, json.item.id);
+syncBrandUi();
+
+if (inlineBrandName) {
+inlineBrandName.value = '';
+}
+
+if (inlineBrandState) {
+inlineBrandState.textContent = 'Marque créée';
+}
+
+if (inlineBrandBox) {
+inlineBrandBox.style.display = 'none';
+}
+} catch (e) {
+console.error(e);
+if (inlineBrandState) {
+inlineBrandState.textContent = 'Erreur JS';
+}
+}
+});
+}
+
+if (btnCreateCategoryInline) {
+btnCreateCategoryInline.addEventListener('click', function () {
+inlineCategoryParentId = null;
+
+if (inlineCategoryBox) {
+inlineCategoryBox.style.display = inlineCategoryBox.style.display === 'none' ? '' : 'none';
+}
+
+if (inlineCategoryParentWrap) {
+inlineCategoryParentWrap.style.display = 'none';
+}
+
+if (inlineCategoryParentLabel) {
+inlineCategoryParentLabel.value = '';
+}
+
+if (inlineCategoryState) {
+inlineCategoryState.textContent = '';
+}
+});
+}
+
+if (btnCreateSubcategoryInline) {
+btnCreateSubcategoryInline.addEventListener('click', function () {
+const selectedValue = String(categoryField ? categoryField.value : '').trim();
+const selectedText = (categoryField && categoryField.options && categoryField.options[categoryField.selectedIndex]) ? categoryField.options[categoryField.selectedIndex].text : '';
+
+if (! selectedValue) {
+if (inlineCategoryState) {
+inlineCategoryState.textContent = 'Choisis d’abord une catégorie parente';
+}
+if (inlineCategoryBox) {
+inlineCategoryBox.style.display = '';
+}
+return;
+}
+
+inlineCategoryParentId = Number(selectedValue);
+
+if (inlineCategoryBox) {
+inlineCategoryBox.style.display = '';
+}
+
+if (inlineCategoryParentWrap) {
+inlineCategoryParentWrap.style.display = '';
+}
+
+if (inlineCategoryParentLabel) {
+inlineCategoryParentLabel.value = selectedText;
+}
+
+if (inlineCategoryState) {
+inlineCategoryState.textContent = '';
+}
+});
+}
+
+if (inlineCategorySave) {
+inlineCategorySave.addEventListener('click', async function () {
+const name = String(inlineCategoryName ? inlineCategoryName.value : '').trim();
+
+if (! name) {
+if (inlineCategoryState) {
+inlineCategoryState.textContent = 'Nom requis';
+}
+return;
+}
+
+if (inlineCategoryState) {
+inlineCategoryState.textContent = 'Création...';
+}
+
+try {
+const response = await fetch(createCategoryUrl, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'X-Requested-With': 'XMLHttpRequest'
+},
+body: JSON.stringify(
+{name: name, parent_id: inlineCategoryParentId}
+),
+credentials: 'same-origin'
+});
+
+const json = await response.json();
+
+if (! response.ok || ! json.ok || ! json.item) {
+if (inlineCategoryState) {
+inlineCategoryState.textContent = json.error || 'Erreur';
+}
+return;
+}
+
+rebuildCategorySelect(categoryField, json.choices || {}, json.disabled || {}, json.item.id);
+
+if (attributesBox) {
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+}
+
+if (inlineCategoryName) {
+inlineCategoryName.value = '';
+}
+
+if (inlineCategoryState) {
+inlineCategoryState.textContent = 'Catégorie créée';
+}
+
+if (inlineCategoryBox) {
+inlineCategoryBox.style.display = 'none';
+}
+
+if (inlineCategoryParentWrap) {
+inlineCategoryParentWrap.style.display = 'none';
+}
+
+if (inlineCategoryParentLabel) {
+inlineCategoryParentLabel.value = '';
+}
+
+inlineCategoryParentId = null;
+} catch (e) {
+console.error(e);
+if (inlineCategoryState) {
+inlineCategoryState.textContent = 'Erreur JS';
+}
+}
+});
+}
+
+if (quickAttrType) {
+quickAttrType.addEventListener('change', refreshQuickAttrVisibility);
+refreshQuickAttrVisibility();
+}
+
+if (quickAttrBtn) {
+quickAttrBtn.addEventListener('click', async function () {
+const categoryId = String(categoryField ? categoryField.value : '').trim();
+const label = String(quickAttrLabel ? quickAttrLabel.value : '').trim();
+const type = String(quickAttrType ? quickAttrType.value : 'text');
+const options = String(quickAttrOptions ? quickAttrOptions.value : '').trim();
+const createUrl = attributesBox ? (attributesBox.dataset.createDefUrl || '') : '';
+
+if (! categoryId) {
+if (quickAttrState) {
+quickAttrState.textContent = 'Choisis une catégorie';
+}
+return;
+}
+
+if (! label) {
+if (quickAttrState) {
+quickAttrState.textContent = 'Label obligatoire';
+}
+return;
+}
+
+if (quickAttrState) {
+quickAttrState.textContent = 'Création...';
+}
+
+try {
+const response = await fetch(createUrl, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'X-Requested-With': 'XMLHttpRequest'
+},
+body: JSON.stringify(
+{
+category_id: categoryId,
+category: categoryId,
+code: slugifyCode(label),
+label: label,
+type: type,
+options: options
+}
+),
+credentials: 'same-origin'
+});
+
+const json = await response.json();
+
+if (! response.ok || ! json.ok) {
+if (quickAttrState) {
+quickAttrState.textContent = json.error || 'Erreur';
+}
+return;
+}
+
+if (quickAttrLabel) {
+quickAttrLabel.value = '';
+}
+if (quickAttrType) {
+quickAttrType.value = 'text';
+}
+if (quickAttrOptions) {
+quickAttrOptions.value = '';
+}
+
+refreshQuickAttrVisibility();
+
+if (attributesBox) {
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+}
+
+if (quickAttrState) {
+quickAttrState.textContent = 'Attribut créé';
+}
+
+await loadAttributesForCategory(true);
+} catch (e) {
+console.error(e);
+if (quickAttrState) {
+quickAttrState.textContent = 'Erreur JS';
+}
+}
+});
+}
+
+if (removeBtn) {
+removeBtn.addEventListener('click', function () {
+itemNode.remove();
+syncItemNumbers();
+});
+}
+
+if (categoryField) {
+categoryField.addEventListener('change', function () {
+if (attributesBox) {
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+}
+
+saveAttributes({});
+
+if (detailsEl && detailsEl.open) {
+loadAttributesForCategory(true);
+} else {
+setAttributesPlaceholder('Ouvre ce bloc pour charger les attributs de la catégorie.');
+}
+});
+}
+
+if (detailsEl) {
+detailsEl.addEventListener('toggle', function () {
+if (detailsEl.open) {
+loadAttributesForCategory(false);
+}
+});
+}
+
+updateAttributesSummary(summaryText, safeParseJson(hiddenAttributes ? hiddenAttributes.value : '{}'));
+
+if (attributesBox) {
+attributesBox.dataset.loaded = '0';
+attributesBox.dataset.loadedFor = '';
+}
+
+initSemanticUi(itemNode);
+syncItemNumbers();
+}
+
+function addItem() {
+if (! collection || collection.dataset.locked === '1' || ! prototypeTemplate) {
+return;
+}
+
+const index = Number(collection.dataset.index || 0);
+const html = prototypeTemplate.innerHTML.replace(/__name__/g, index);
+
+collection.dataset.index = String(index + 1);
+
+const temp = document.createElement('div');
+temp.innerHTML = html.trim();
+
+const itemNode = temp.firstElementChild;
+if (! itemNode) {
+return;
+}
+
+collection.appendChild(itemNode);
+bindItem(itemNode);
+
+const details = itemNode.querySelector('.js-item-attributes-details');
+if (details) {
+details.removeAttribute('open');
+}
+}
+
+collection.querySelectorAll('.js-rachat-item').forEach(bindItem);
+
+if (addBtn) {
+addBtn.addEventListener('click', addItem);
+}
+
+syncItemNumbers();
+}
+
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', bootRachatDossierV2, {once: true});
+} else {
+bootRachatDossierV2();
+}
+
+document.addEventListener('turbo:load', bootRachatDossierV2);
+})();
+			</script>
+
+			<script>
+				(function () {
+const root = document.getElementById('ciDossierBox');
+if (! root || root.dataset.booted === '1') {
+return;
+}
+root.dataset.booted = '1';
+
+const uploadUrl = root.dataset.uploadUrl;
+const csrfToken = root.dataset.csrf;
+
+const video = document.getElementById('ciVideo');
+const canvas = document.getElementById('ciCanvas');
+const cameraSelect = document.getElementById('ciCameraSelect');
+const btnStart = document.getElementById('btnStartCamera');
+const btnStop = document.getElementById('btnStopCamera');
+const statusBox = document.getElementById('ciDossierStatus');
+
+const previewRecto = document.getElementById('ciPreviewRecto');
+const previewVerso = document.getElementById('ciPreviewVerso');
+const previewRectoEmpty = document.getElementById('ciPreviewRectoEmpty');
+const previewVersoEmpty = document.getElementById('ciPreviewVersoEmpty');
+const previewRectoLink = document.getElementById('ciPreviewRectoLink');
+const previewVersoLink = document.getElementById('ciPreviewVersoLink');
+
+const manualRecto = document.getElementById('ciManualRecto');
+const manualVerso = document.getElementById('ciManualVerso');
+const cameraRecto = document.getElementById('ciCameraRecto');
+const cameraVerso = document.getElementById('ciCameraVerso');
+
+let stream = null;
+
+function showStatus(message, type) {
+statusBox.className = 'ui message';
+
+if (type === 'success') {
+statusBox.classList.add('positive');
+} else if (type === 'error') {
+statusBox.classList.add('negative');
+} else if (type === 'warning') {
+statusBox.classList.add('warning');
+} else {
+statusBox.classList.add('info');
+} statusBox.textContent = message;
+}
+
+function hideStatus() {
+statusBox.className = 'ui message ci-hidden';
+statusBox.textContent = '';
+}
+
+function setPreview(kind, url) {
+const finalUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+
+if (kind === 'recto') {
+previewRecto.src = finalUrl;
+previewRecto.classList.remove('ci-hidden');
+previewRectoEmpty.classList.add('ci-hidden');
+previewRectoLink.href = url;
+previewRectoLink.classList.remove('ci-hidden');
+}
+
+if (kind === 'verso') {
+previewVerso.src = finalUrl;
+previewVerso.classList.remove('ci-hidden');
+previewVersoEmpty.classList.add('ci-hidden');
+previewVersoLink.href = url;
+previewVersoLink.classList.remove('ci-hidden');
+}
+}
+
+function stopCamera() {
+if (stream) {
+stream.getTracks().forEach(function (track) {
+track.stop();
+});
+stream = null;
+}
+
+if (video) {
+video.srcObject = null;
+}
+}
+
+async function loadCameras() {
+if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+return;
+}
+
+const devices = await navigator.mediaDevices.enumerateDevices();
+const cameras = devices.filter(function (d) {
+return d.kind === 'videoinput';
+});
+
+cameraSelect.innerHTML = '<option value="">Caméra par défaut</option>';
+
+cameras.forEach(function (camera, index) {
+const option = document.createElement('option');
+option.value = camera.deviceId;
+option.textContent = camera.label || ('Caméra ' + (
+index + 1
+));
+cameraSelect.appendChild(option);
+});
+}
+
+async function startCamera(deviceId) {
+hideStatus();
+stopCamera();
+
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+showStatus("Ce navigateur ne supporte pas l'accès webcam.", 'error');
+return;
+}
+
+try {
+const constraints = {
+audio: false,
+video: deviceId ? {
+deviceId: {
+exact: deviceId
+},
+width: {
+ideal: 1920
+},
+height: {
+ideal: 1080
+}
+} : {
+facingMode: {
+ideal: 'environment'
+},
+width: {
+ideal: 1920
+},
+height: {
+ideal: 1080
+}
+}
+};
+
+stream = await navigator.mediaDevices.getUserMedia(constraints);
+video.srcObject = stream;
+await video.play();
+
+await loadCameras();
+
+const track = stream.getVideoTracks()[0];
+if (track && track.getSettings) {
+const settings = track.getSettings();
+if (settings.deviceId) {
+cameraSelect.value = settings.deviceId;
+}
+}
+
+showStatus('Caméra active.', 'success');
+} catch (e) {
+console.error(e);
+showStatus("Impossible d'ouvrir la caméra : " + (
+e.message || 'erreur inconnue'
+), 'error');
+}
+}
+
+function captureBlobFromVideo() {
+return new Promise(function (resolve, reject) {
+const w = video.videoWidth || 0;
+const h = video.videoHeight || 0;
+
+if (! w || ! h) {
+reject(new Error('Flux vidéo non prêt.'));
+return;
+}
+
+canvas.width = w;
+canvas.height = h;
+
+const ctx = canvas.getContext('2d');
+ctx.drawImage(video, 0, 0, w, h);
+
+canvas.toBlob(function (blob) {
+if (! blob) {
+reject(new Error("Impossible de générer l'image."));
+return;
+}
+
+resolve(blob);
+}, 'image/jpeg', 0.92);
+});
+}
+
+function normalizeImageFile(file) {
+return new Promise(function (resolve) {
+if (! file || ! file.type || ! file.type.startsWith('image/')) {
+resolve(file);
+return;
+}
+
+const reader = new FileReader();
+
+reader.onload = function (e) {
+const img = new Image();
+
+img.onload = function () {
+const maxW = 1800;
+const maxH = 1800;
+
+let w = img.width;
+let h = img.height;
+
+const ratio = Math.min(maxW / w, maxH / h, 1);
+w = Math.round(w * ratio);
+h = Math.round(h * ratio);
+
+const c = document.createElement('canvas');
+c.width = w;
+c.height = h;
+
+const ctx = c.getContext('2d');
+ctx.drawImage(img, 0, 0, w, h);
+
+c.toBlob(function (blob) {
+if (! blob) {
+resolve(file);
+return;
+}
+
+resolve(new File([blob], (file.name || 'image') + '.jpg', {type: 'image/jpeg'}));
+}, 'image/jpeg', 0.9);
+};
+
+img.onerror = function () {
+resolve(file);
+};
+
+img.src = e.target.result;
+};
+
+reader.onerror = function () {
+resolve(file);
+};
+
+reader.readAsDataURL(file);
+});
+}
+
+async function uploadCi(kind, blobOrFile, filename) {
+const fd = new FormData();
+fd.append('_token', csrfToken);
+fd.append('kind', kind);
+fd.append('ci', blobOrFile, filename || ('ci-' + kind + '.jpg'));
+
+const response = await fetch(uploadUrl, {
+method: 'POST',
+body: fd,
+headers: {
+'X-Requested-With': 'XMLHttpRequest'
+},
+credentials: 'same-origin'
+});
+
+const json = await response.json();
+
+if (! response.ok || ! json.ok) {
+throw new Error(json.error || 'Erreur upload');
+}
+
+setPreview(kind, json.url);
+
+return json;
+}
+
+async function captureAndUpload(kind) {
+try {
+if (! stream) {
+await startCamera(cameraSelect.value);
+if (! stream) {
+return;
+}
+}
+
+showStatus('Capture en cours...', 'info');
+const blob = await captureBlobFromVideo();
+await uploadCi(kind, blob, 'webcam-' + kind + '.jpg');
+showStatus('Photo ' + kind + ' enregistrée.', 'success');
+} catch (e) {
+console.error(e);
+showStatus('Erreur capture/upload : ' + (
+e.message || 'erreur inconnue'
+), 'error');
+}
+}
+
+async function handleFileUpload(kind, input) {
+try {
+const file = input.files && input.files[0] ? input.files[0] : null;
+if (! file) {
+return;
+}
+
+showStatus('Préparation du fichier ' + kind + '...', 'info');
+
+const normalized = await normalizeImageFile(file);
+
+showStatus('Envoi du fichier ' + kind + '...', 'info');
+await uploadCi(kind, normalized, normalized.name || ('upload-' + kind + '.jpg'));
+
+showStatus('Fichier ' + kind + ' enregistré.', 'success');
+input.value = '';
+} catch (e) {
+console.error(e);
+showStatus('Erreur upload : ' + (
+e.message || 'erreur inconnue'
+), 'error');
+}
+}
+
+btnStart.addEventListener('click', function () {
+startCamera(cameraSelect.value);
+});
+
+btnStop.addEventListener('click', function () {
+stopCamera();
+showStatus('Caméra fermée.', 'warning');
+});
+
+cameraSelect.addEventListener('change', function () {
+if (stream) {
+startCamera(cameraSelect.value);
+}
+});
+
+document.querySelectorAll('[data-capture-kind]').forEach(function (btn) {
+btn.addEventListener('click', function () {
+const kind = btn.getAttribute('data-capture-kind');
+if (kind === 'recto' || kind === 'verso') {
+captureAndUpload(kind);
+}
+});
+});
+
+manualRecto.addEventListener('change', function () {
+handleFileUpload('recto', manualRecto);
+});
+
+manualVerso.addEventListener('change', function () {
+handleFileUpload('verso', manualVerso);
+});
+
+cameraRecto.addEventListener('change', function () {
+handleFileUpload('recto', cameraRecto);
+});
+
+cameraVerso.addEventListener('change', function () {
+handleFileUpload('verso', cameraVerso);
+});
+
+window.addEventListener('beforeunload', function () {
+stopCamera();
+});
+
+if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+loadCameras().catch(function (e) {
+console.warn(e);
+});
+}
+
+if (root.dataset.recto) {
+setPreview('recto', root.dataset.recto);
+}
+
+if (root.dataset.verso) {
+setPreview('verso', root.dataset.verso);
+}
+})();
+			</script>
+			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+			{% if dossier.id %}
+				{% include '@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget_js.html.twig' with { dossier: dossier } %}
+			{% endif %}
+		{% endblock %}

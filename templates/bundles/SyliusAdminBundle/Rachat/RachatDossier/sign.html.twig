@@ -1,0 +1,94 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Signature dossier #{{ dossier.id }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="pencil alternate icon"></i>
+            Signature — dossier #{{ dossier.id }}
+        </h1>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ path('admin_rachats_v2_pdf_preview', { id: dossier.id }) }}" class="ui button">
+                <i class="file pdf outline icon"></i>
+                Retour aperçu PDF
+            </a>
+
+            <a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}" class="ui button">
+                <i class="folder open icon"></i>
+                Retour dossier
+            </a>
+
+            <a href="{{ path('admin_rachats_v2_index') }}" class="ui button">
+                <i class="list icon"></i>
+                Retour liste
+            </a>
+        </div>
+    </div>
+
+    <div class="ui info message">
+        Signe ci-dessous puis régénère le PDF pour intégrer la signature dans le document.
+    </div>
+
+    {{ include('@SyliusAdmin/Rachat/RachatDossier/_signature_widget.html.twig', {
+        widgetId: 'signature-dossier-' ~ dossier.id,
+        title: 'Signature vendeur',
+        uploadUrl: path('admin_rachats_v2_upload_signature', { id: dossier.id }),
+        csrfToken: csrf_token('rachat_dossier_signature_' ~ dossier.id),
+        signatureUrl: dossier.signatureUrl ?: '',
+        disabled: not dossier.id,
+        tabletUrl: path('tablet_sign', { id: dossier.id })
+    }) }}
+
+    <div class="ui segment" style="margin-top:1rem;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <form
+                method="post"
+                action="{{ path('admin_rachats_v2_generate_pdf', { id: dossier.id }) }}"
+                style="margin:0;"
+            >
+                <input type="hidden" name="_token" value="{{ csrf_token('generate_pdf_dossier_' ~ dossier.id) }}">
+                <button class="ui teal button" type="submit">
+                    <i class="file pdf icon"></i>
+                    Régénérer le PDF
+                </button>
+            </form>
+
+            {% if dossier.pdfUrl %}
+                <a href="{{ path('admin_rachats_v2_pdf_preview', { id: dossier.id }) }}" class="ui primary button">
+                    <i class="eye icon"></i>
+                    Voir l’aperçu PDF
+                </a>
+
+                <a href="{{ dossier.pdfUrl }}" target="_blank" class="ui button">
+                    <i class="external alternate icon"></i>
+                    Ouvrir le PDF actuel
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% include '@SyliusAdmin/Rachat/RachatDossier/_signature_widget_js.html.twig' with { dossier: dossier } %}
+
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+
+    <script>
+        (function() {
+            const openLinkButtons = document.querySelectorAll('.js-sw-open');
+
+            openLinkButtons.forEach(button => {
+                button.addEventListener('click', function(event) {
+                    if (!this.href || this.href === '#') {
+                        event.preventDefault();
+                    }
+                });
+            }); 
+
+
+{% endblock %}

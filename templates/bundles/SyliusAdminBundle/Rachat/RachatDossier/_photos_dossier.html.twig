@@ -1,0 +1,51 @@
+<div class="ui segment">
+    <h3 class="ui header">
+        <i class="images outline icon"></i>
+        <div class="content">
+            Photos des produits
+        </div>
+    </h3>
+
+    {% set hasPhotos = false %}
+
+    {% for item in dossier.items %}
+        {% set itemHasPhotos = item.photo1 or item.photo2 or item.photo3 %}
+
+        {% if itemHasPhotos %}
+            {% set hasPhotos = true %}
+
+            <div class="ui segment">
+                <h4 class="ui header">
+                    {{ item.designation ?: item.label ?: ('Item #' ~ item.id) }}
+                </h4>
+
+                <div class="ui three stackable cards">
+                    {% for photo in [item.photo1, item.photo2, item.photo3] %}
+                        {% if photo %}
+                            <div class="card">
+                                <div class="image" style="background:#f7f7f7; padding:10px;">
+                                    <a href="{{ photo }}" target="_blank">
+                                        <img
+                                            src="{{ photo }}"
+                                            alt="Photo"
+                                            style="width:100%; height:260px; object-fit:contain;"
+                                        >
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+
+    {% if not hasPhotos %}
+        <div class="ui placeholder segment" style="min-height:160px;">
+            <div class="ui icon header">
+                <i class="images outline icon"></i>
+                Aucune photo
+            </div>
+        </div>
+    {% endif %}
+</div>

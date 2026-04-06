@@ -1,1134 +1,1052 @@
-{# templates/bundles/SyliusAdminBundle/Rachat/index.html.twig #}
 {% extends '@!SyliusAdmin/layout.html.twig' %}
-{% block title %}Rachats{% endblock %}
+{% block title %}Rachats
+{% endblock %}
 
 {% block content %}
-
-{% set colsDef = colsCfg.columns|default({}) %}
-{% set presets = colsCfg.presets|default({}) %}
-
-{# preset optionnel uniquement si passé explicitement #}
-{% set preset = app.request.query.get('preset', '') %}
-{% if preset not in ['desktop', 'tablet', 'mobile'] %}
-  {% set preset = '' %}
-{% endif %}
-
-{% set selectedCols = app.request.query.all('cols') %}
-{% set hasSelectedCols = selectedCols is iterable and selectedCols|length > 0 %}
-
-{% set activeCols = [] %}
-
-{# priorité :
-   1) cols[] explicites
-   2) preset explicite
-   3) defaults de colsCfg.columns #}
-{% if hasSelectedCols %}
-  {% for c in selectedCols %}
-    {% if attribute(colsDef, c) is defined %}
-      {% set activeCols = activeCols|merge([c]) %}
-    {% endif %}
-  {% endfor %}
-{% elseif preset != '' and attribute(presets, preset) is defined %}
-  {% set activeCols = attribute(presets, preset) %}
-{% else %}
-  {% for key, conf in colsDef %}
-    {% if conf.default|default(false) %}
-      {% set activeCols = activeCols|merge([key]) %}
-    {% endif %}
-  {% endfor %}
-{% endif %}
-
-{# en mobile, on affiche aussi les colonnes actives réelles #}
-{% set mobileCols = activeCols %}
-{% set showMonthNav = filters.ym != 'all' %}
-
-<style>
-  :root{
-    --sylius-topbar-h: 0px;
-    --rachats-bar-h: 0px;
-    --rachats-offset: 0px;
-
-    --r-bg:#f6f8fb;
-    --r-card:#ffffff;
-    --r-line:#e5e7eb;
-    --r-line-2:#dbe3ec;
-    --r-text:#1f2937;
-    --r-muted:#6b7280;
-    --r-primary:#2563eb;
-    --r-primary-dark:#1d4ed8;
-    --r-success:#10b981;
-    --r-success-dark:#059669;
-    --r-soft:#f8fafc;
-    --r-soft-2:#eef2f7;
-    --r-danger:#ef4444;
-    --r-danger-soft:#fff1f2;
-    --r-radius:18px;
-    --r-shadow:0 8px 28px rgba(15,23,42,.06);
-  }
-
-  .rachatsPage{
-    color:var(--r-text);
-  }
-
-  .muted{ color:var(--r-muted); }
-  .nowrap{ white-space:nowrap; }
-
-  /* ===================== FILTRES ===================== */
-  .filtersPanel{
-    background:var(--r-card);
-    border:1px solid var(--r-line);
-    border-radius:18px;
-    box-shadow:var(--r-shadow);
-    margin-bottom:14px;
-    overflow:hidden;
-  }
-
-  .filtersDetails{
-    display:block;
-  }
-
-  .filtersSummary{
-    list-style:none;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    padding:14px 16px;
-    font-weight:800;
-    user-select:none;
-    background:#fff;
-  }
-
-  .filtersSummary::-webkit-details-marker{
-    display:none;
-  }
-
-  .filtersSummaryLeft{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-
-  .filtersSummary::after{
-    content:"▾";
-    color:#64748b;
-    font-size:1rem;
-    margin-left:auto;
-  }
-
-  .filtersDetails[open] .filtersSummary::after{
-    content:"▴";
-  }
-
-  .filtersInner{
-    padding:0 16px 16px 16px;
-    border-top:1px solid #eef2f7;
-  }
-
-  .monthNav{
-    display:grid;
-    grid-template-columns:140px 1fr 140px;
-    gap:10px;
-    align-items:center;
-    margin:14px 0;
-  }
-
-  .monthBtn{
-    min-height:44px;
-    border-radius:14px;
-    border:1px solid var(--r-line-2);
-    background:#f8fafc;
-    color:#334155;
-    text-decoration:none;
-    font-weight:700;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:0 10px;
-  }
-
-  .monthBtn:hover{
-    background:#f1f5f9;
-  }
-
-  .monthNavCenter{
-    min-height:44px;
-    border:1px solid var(--r-line);
-    border-radius:14px;
-    background:var(--r-soft);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:800;
-  }
-
-  .filtersGrid{
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0,1fr));
-    gap:12px;
-    align-items:end;
-  }
-
-  .fieldBlock label{
-    display:block;
-    font-size:.82rem;
-    font-weight:700;
-    color:var(--r-muted);
-    margin-bottom:6px;
-  }
-
-  .fieldBlock input[type="text"],
-  .fieldBlock input[type="month"],
-  .fieldBlock select{
-    width:100%;
-    min-width:0;
-    min-height:44px;
-    border:1px solid #d7dee8;
-    border-radius:12px;
-    padding:0 12px;
-    background:#fff;
-    box-sizing:border-box;
-  }
-
-  .checkboxLine{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    min-height:44px;
-    padding:0 4px;
-  }
-
-  .checkboxLine label{
-    margin:0;
-    font-size:.95rem;
-    font-weight:600;
-    color:#1f2937;
-  }
-
-  .filtersActions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top:14px;
-  }
-
-  .advancedCols{
-    margin-top:14px;
-    border-top:1px dashed #d7dee8;
-    padding-top:14px;
-  }
-
-  .advancedCols details{
-    background:#fafcff;
-    border:1px solid #e6edf5;
-    border-radius:14px;
-    padding:12px 14px;
-  }
-
-  .advancedCols summary{
-    cursor:pointer;
-    list-style:none;
-    font-weight:800;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-
-  .advancedCols summary::-webkit-details-marker{
-    display:none;
-  }
-
-  .advancedCols summary::after{
-    content:"▾";
-    color:#64748b;
-  }
-
-  .advancedCols details[open] summary::after{
-    content:"▴";
-  }
-
-  .columnsGrid{
-    display:grid;
-    grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:10px 14px;
-    margin-top:12px;
-  }
-
-  .columnsGrid label{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:.92rem;
-    color:#1f2937;
-    margin:0;
-  }
-
-  /* ===================== BOUTONS ===================== */
-  .rbtn{
-    min-height:42px;
-    border:none;
-    border-radius:12px;
-    padding:10px 12px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    font-weight:700;
-    text-decoration:none;
-    cursor:pointer;
-    transition:.18s ease;
-    box-shadow:0 1px 0 rgba(255,255,255,.4) inset;
-  }
-  .rbtn:hover{ transform:translateY(-1px); }
-  .rbtn:active{ transform:translateY(0); }
-
-  .rbtn-primary{ background:var(--r-primary); color:#fff; }
-  .rbtn-primary:hover{ background:var(--r-primary-dark); }
-
-  .rbtn-success{ background:var(--r-success); color:#fff; }
-  .rbtn-success:hover{ background:var(--r-success-dark); }
-
-  .rbtn-soft{ background:var(--r-soft-2); color:#334155; border:1px solid #dbe2ea; }
-  .rbtn-danger-soft{ background:var(--r-danger-soft); color:#b91c1c; border:1px solid #fecdd3; }
-  .rbtn-disabled{ opacity:.45; pointer-events:none; }
-
-  /* ===================== BARRE ACTIONS ===================== */
-  #bar{
-    position:sticky;
-    top:var(--sylius-topbar-h);
-    z-index:1000;
-    background:rgba(255,255,255,.96);
-    backdrop-filter:blur(10px);
-    border:1px solid rgba(229,231,235,.95);
-    border-radius:18px;
-    box-shadow:0 10px 30px rgba(15,23,42,.08);
-    padding:12px;
-    margin:14px 0;
-  }
-
-  .batchGrid{
-    display:grid;
-    grid-template-columns:1.2fr 1fr;
-    gap:12px;
-    align-items:stretch;
-  }
-
-  .batchCard{
-    background:linear-gradient(180deg,#fff 0%,#fbfdff 100%);
-    border:1px solid var(--r-line);
-    border-radius:14px;
-    padding:12px;
-  }
-
-  .batchTitle{
-    font-size:.85rem;
-    font-weight:800;
-    color:var(--r-muted);
-    margin-bottom:10px;
-    text-transform:uppercase;
-    letter-spacing:.03em;
-  }
-
-  .btnRow{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0,1fr));
-    gap:10px;
-  }
-
-  .btnRow + .btnRow{
-    margin-top:10px;
-  }
-
-  .payGrid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-bottom:10px;
-  }
-
-  .payGrid select,
-  .payGrid input{
-    width:100%;
-    min-width:0;
-    min-height:42px;
-    border:1px solid #d7dee8;
-    border-radius:12px;
-    padding:0 12px;
-    background:#fff;
-    box-sizing:border-box;
-  }
-
-  /* ===================== TABLE ===================== */
-  .tableWrap{
-    overflow:auto;
-    background:#fff;
-    border:1px solid var(--r-line);
-    border-radius:18px;
-    box-shadow:var(--r-shadow);
-  }
-
-  table#rachatsTable{
-    width:100%;
-    border-collapse:collapse;
-    background:#fff;
-  }
-
-  table#rachatsTable th,
-  table#rachatsTable td{
-    padding:12px 10px;
-    border-bottom:1px solid #edf1f5;
-    text-align:left;
-    vertical-align:middle;
-  }
-
- 
-
-  th.select-col, td.select-col{
-    width:44px;
-    text-align:center;
-  }
-
-  tr[id^="rachat-"]{
-    scroll-margin-top:var(--rachats-offset);
-  }
-
-  .iconbtn{
-    width:38px;
-    height:38px;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    border-radius:11px;
-    text-decoration:none;
-    border:1px solid #d7dee8;
-    background:#fff;
-    color:#334155;
-    margin-right:6px;
-  }
-
-  .iconbtn-blue{ background:#eff6ff; border-color:#bfdbfe; color:#2563eb; }
-  .iconbtn-amber{ background:#fffbeb; border-color:#fde68a; color:#d97706; }
-  .iconbtn-violet{ background:#f5f3ff; border-color:#ddd6fe; color:#7c3aed; }
-
-  .pill{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:4px 10px;
-    border-radius:999px;
-    font-size:.84rem;
-    white-space:nowrap;
-    font-weight:700;
-  }
-  .pill-ok{ background:#dcfce7; color:#166534; }
-  .pill-off{ background:#fee2e2; color:#991b1b; }
-
-  .priceTag{
-    font-weight:800;
-  }
-
-  /* ===================== CARDS MOBILE ===================== */
-  .cardsWrap{ display:none; }
-
-  .cardRow{
-    display:grid;
-    grid-template-columns:auto 1fr auto;
-    gap:12px;
-    align-items:start;
-    background:#fff;
-    border:1px solid var(--r-line);
-    border-radius:18px;
-    box-shadow:var(--r-shadow);
-    padding:14px;
-    margin-bottom:12px;
-  }
-
-  .cardCheck{
-    padding-top:4px;
-  }
-
-  .cardMain{
-    min-width:0;
-  }
-
-  .cardTitle{
-    font-size:1.05rem;
-    font-weight:900;
-    line-height:1.2;
-    margin-bottom:8px;
-  }
-
-  .cardMeta{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-  }
-
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 10px;
-    border-radius:999px;
-    background:#f1f5f9;
-    border:1px solid #e2e8f0;
-    color:#0f172a;
-    font-size:.87rem;
-  }
-
-  .cardActions{
-    display:grid;
-    grid-template-columns:repeat(2, 42px);
-    gap:8px;
-    justify-content:end;
-  }
-
-  .cardActions .iconbtn{
-    width:42px;
-    height:42px;
-    margin-right:0;
-  }
-
-  /* ===================== RESPONSIVE ===================== */
-  @media (max-width: 1100px){
-    .filtersGrid{
-      grid-template-columns:1fr 1fr;
-    }
-
-    .columnsGrid{
-      grid-template-columns:repeat(3,minmax(0,1fr));
-    }
-
-    .batchGrid{
-      grid-template-columns:1fr;
-    }
-  }
-
-  @media (max-width: 768px){
-    .monthNav{
-      grid-template-columns:1fr 1fr 1fr;
-      gap:8px;
-      margin:12px 0;
-    }
-
-    .monthBtn,
-    .monthNavCenter{
-      min-height:42px;
-      font-size:.92rem;
-      padding:0 8px;
-    }
-
-    .filtersGrid{
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-
-    .filtersActions{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .filtersActions > *{
-      width:100%;
-      justify-content:center;
-    }
-
-    .columnsGrid{
-      grid-template-columns:1fr 1fr;
-    }
-
-    .btnRow{
-      grid-template-columns:1fr 1fr;
-    }
-
-    .payGrid{
-      grid-template-columns:1fr 1fr;
-    }
-
-    .tableWrap{
-      display:none;
-    }
-
-    .cardsWrap{
-      display:block;
-    }
-  }
-
-  @media (max-width: 520px){
-    .monthBtn span.hide-xs{
-      display:none;
-    }
-
-    .columnsGrid{
-      grid-template-columns:1fr;
-    }
-
-    .cardRow{
-      grid-template-columns:auto 1fr;
-    }
-
-    .cardActions{
-      grid-column:2;
-      margin-top:10px;
-      justify-content:start;
-      grid-template-columns:repeat(4, 42px);
-    }
-
-    .tableWrap{
-  overflow:auto;
-  background:#fff;
-  border:1px solid var(--r-line);
-  border-radius:18px;
-  box-shadow:var(--r-shadow);
-  position:relative;
-}
-
-table#rachatsTable thead th{
-  position: sticky;
-  top: calc(var(--sylius-topbar-h) + var(--rachats-bar-h) + 8px);
-  background: #f8fbff;
-  color: #334155;
-  z-index: 20;
-  font-weight: 800;
-  border-bottom: 1px solid #dbe5ef;
-  box-shadow: 0 2px 0 #dbe5ef;
-}
-
-@media (max-width: 1100px){
-  table#rachatsTable thead th{
-    position: static;
-    top: auto;
-    box-shadow: none;
-  }
-}
-  }
+	{% set showMonthNav = filters.ym != 'all' and prevUrl and nextUrl %}
+
+	<style>:root
+	{
+		--sylius-topbar-h: 0;
+		--rachats-bar-h: 0;
+		--rachats-offset: 0;
+
+		--r-bg: #f6f8fb;
+		--r-card: #ffffff;
+		--r-line: #e5e7eb;
+		--r-line-2: #dbe3ec;
+		--r-text: #1f2937;
+		--r-muted: #6b7280;
+		--r-primary: #2563eb;
+		--r-primary-dark: #1d4ed8;
+		--r-success: #10b981;
+		--r-success-dark: #059669;
+		--r-soft: #f8fafc;
+		--r-soft-2: #eef2f7;
+		--r-danger-soft: #fff1f2;
+		--r-radius: 18px;
+		--r-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+	}
+
+	.rachatsPage {
+		color: var(--r-text);
+	}
+
+	.muted {
+		color: var(--r-muted);
+	}
+
+	.nowrap {
+		white-space: nowrap;
+	}
+
+	.filtersPanel {
+		background: var(--r-card);
+		border: 1px solid var(--r-line);
+		border-radius: 18px;
+		box-shadow: var(--r-shadow);
+		margin-bottom: 14px;
+		overflow: hidden;
+	}
+
+	.filtersDetails {
+		display: block;
+	}
+
+	.filtersSummary {
+		list-style: none;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 14px 16px;
+		font-weight: 800;
+		user-select: none;
+		background: #fff;
+	}
+
+	.filtersSummary::-webkit-details-marker {
+		display: none;
+	}
+
+	.filtersSummaryLeft {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.filtersSummary::after {
+		content: "▾";
+		color: #64748b;
+		font-size: 1rem;
+		margin-left: auto;
+	}
+
+	.filtersDetails[open] .filtersSummary::after {
+		content: "▴";
+	}
+
+	.filtersInner {
+		padding: 0 16px 16px;
+		border-top: 1px solid #eef2f7;
+	}
+
+	.monthNav {
+		display: grid;
+		grid-template-columns: 140px 1fr 140px;
+		gap: 10px;
+		align-items: center;
+		margin: 14px 0;
+	}
+
+	.monthBtn {
+		min-height: 44px;
+		border-radius: 14px;
+		border: 1px solid var(--r-line-2);
+		background: #f8fafc;
+		color: #334155;
+		text-decoration: none;
+		font-weight: 700;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		padding: 0 10px;
+	}
+
+	.monthBtn:hover {
+		background: #f1f5f9;
+	}
+
+	.monthNavCenter {
+		min-height: 44px;
+		border: 1px solid var(--r-line);
+		border-radius: 14px;
+		background: var(--r-soft);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 800;
+	}
+
+	.filtersGrid {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 12px;
+		align-items: end;
+	}
+
+	.fieldBlock label {
+		display: block;
+		font-size: 0.82rem;
+		font-weight: 700;
+		color: var(--r-muted);
+		margin-bottom: 6px;
+	}
+
+	.fieldBlock input[type="text"],
+	.fieldBlock input[type="month"],
+	.fieldBlock select {
+		width: 100%;
+		min-width: 0;
+		min-height: 44px;
+		border: 1px solid #d7dee8;
+		border-radius: 12px;
+		padding: 0 12px;
+		background: #fff;
+		box-sizing: border-box;
+	}
+
+	.checkboxLine {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 44px;
+		padding: 0 4px;
+	}
+
+	.checkboxLine label {
+		margin: 0;
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: #1f2937;
+	}
+
+	.filtersActions {
+		display: flex;
+		gap: 10px;
+		flex-wrap: wrap;
+		margin-top: 14px;
+	}
+
+	.rbtn {
+		min-height: 42px;
+		border: none;
+		border-radius: 12px;
+		padding: 10px 12px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		font-weight: 700;
+		text-decoration: none;
+		cursor: pointer;
+		transition: 0.18s ease;
+		box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+	}
+
+	.rbtn:hover {
+		transform: translateY(-1px);
+	}
+
+	.rbtn:active {
+		transform: translateY(0);
+	}
+
+	.rbtn-primary {
+		background: var(--r-primary);
+		color: #fff;
+	}
+
+	.rbtn-primary:hover {
+		background: var(--r-primary-dark);
+	}
+
+	.rbtn-success {
+		background: var(--r-success);
+		color: #fff;
+	}
+
+	.rbtn-success:hover {
+		background: var(--r-success-dark);
+	}
+
+	.rbtn-soft {
+		background: var(--r-soft-2);
+		color: #334155;
+		border: 1px solid #dbe2ea;
+	}
+
+	.rbtn-danger-soft {
+		background: var(--r-danger-soft);
+		color: #b91c1c;
+		border: 1px solid #fecdd3;
+	}
+
+	.rbtn-disabled {
+		opacity: .45;
+		pointer-events: none;
+	}
+
+	#bar {
+		position: sticky;
+		top: var(--sylius-topbar-h);
+		z-index: 1000;
+		background: rgba(255, 255, 255, 0.96);
+		backdrop-filter: blur(10px);
+		border: 1px solid rgba(229, 231, 235, 0.95);
+		border-radius: 18px;
+		box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+		padding: 12px;
+		margin: 14px 0;
+	}
+
+	.batchGrid {
+		display: grid;
+		grid-template-columns: 1.2fr 1fr;
+		gap: 12px;
+		align-items: stretch;
+	}
+
+	.batchCard {
+		background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+		border: 1px solid var(--r-line);
+		border-radius: 14px;
+		padding: 12px;
+	}
+
+	.batchTitle {
+		font-size: 0.85rem;
+		font-weight: 800;
+		color: var(--r-muted);
+		margin-bottom: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.btnRow {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px;
+	}
+
+	.btnRow + .btnRow {
+		margin-top: 10px;
+	}
+
+	.payGrid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 10px;
+		margin-bottom: 10px;
+	}
+
+	.payGrid select,
+	.payGrid input {
+		width: 100%;
+		min-width: 0;
+		min-height: 42px;
+		border: 1px solid #d7dee8;
+		border-radius: 12px;
+		padding: 0 12px;
+		background: #fff;
+		box-sizing: border-box;
+	}
+
+	.tableWrap {
+		overflow: auto;
+		background: #fff;
+		border: 1px solid var(--r-line);
+		border-radius: 18px;
+		box-shadow: var(--r-shadow);
+	}
+
+	table#rachatsTable {
+		width: 100%;
+		border-collapse: collapse;
+		background: #fff;
+	}
+
+	table#rachatsTable th,
+	table#rachatsTable td {
+		padding: 12px 10px;
+		border-bottom: 1px solid #edf1f5;
+		text-align: left;
+		vertical-align: middle;
+	}
+
+	table#rachatsTable thead th {
+		position: sticky;
+		top: 0;
+		background: #f8fbff;
+		color: #334155;
+		z-index: 20;
+		font-weight: 800;
+		border-bottom: 1px solid #dbe5ef;
+		box-shadow: 0 2px 0 #dbe5ef;
+	}
+
+	th.select-col,
+	td.select-col {
+		width: 44px;
+		text-align: center;
+	}
+
+	tr[id^="rachat-"] {
+		scroll-margin-top: var(--rachats-offset);
+	}
+
+	.iconbtn {
+		width: 38px;
+		height: 38px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 11px;
+		text-decoration: none;
+		border: 1px solid #d7dee8;
+		background: #fff;
+		color: #334155;
+		margin-right: 6px;
+	}
+
+	.iconbtn-blue {
+		background: #eff6ff;
+		border-color: #bfdbfe;
+		color: #2563eb;
+	}
+
+	.iconbtn-amber {
+		background: #fffbeb;
+		border-color: #fde68a;
+		color: #d97706;
+	}
+
+	.iconbtn-violet {
+		background: #f5f3ff;
+		border-color: #ddd6fe;
+		color: #7c3aed;
+	}
+
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 10px;
+		border-radius: 999px;
+		font-size: 0.84rem;
+		white-space: nowrap;
+		font-weight: 700;
+	}
+
+	.pill-ok {
+		background: #dcfce7;
+		color: #166534;
+	}
+
+	.pill-off {
+		background: #fee2e2;
+		color: #991b1b;
+	}
+
+	.priceTag {
+		font-weight: 800;
+	}
+
+	@media(max-width: 1100px) {
+		.filtersGrid {
+			grid-template-columns: 1fr 1fr;
+		}
+
+		.batchGrid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media(max-width: 768px) {
+		.monthNav {
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 8px;
+			margin: 12px 0;
+		}
+
+		.monthBtn,
+		.monthNavCenter {
+			min-height: 42px;
+			font-size: 0.92rem;
+			padding: 0 8px;
+		}
+
+		.filtersGrid {
+			grid-template-columns: 1fr;
+			gap: 10px;
+		}
+
+		.filtersActions {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+		}
+
+		.filtersActions > * {
+			width: 100%;
+			justify-content: center;
+		}
+
+		.btnRow,
+		.payGrid {
+			grid-template-columns: 1fr;
+		}
+
+		table#rachatsTable thead th {
+			position: static;
+			top: auto;
+			box-shadow: none;
+		}
+	}
 </style>
 
 <script>
-  function computeRachatsOffsets() {
-    const topbar = document.querySelector('.admin-layout__topbar');
-    const bar = document.getElementById('bar');
-    const topbarH = topbar ? topbar.offsetHeight : 0;
-    const barH = bar ? bar.offsetHeight : 0;
+	function computeRachatsOffsets() {
+const topbar = document.querySelector('.admin-layout__topbar');
+const bar = document.getElementById('bar');
+const topbarH = topbar ? topbar.offsetHeight : 0;
+const barH = bar ? bar.offsetHeight : 0;
 
-    document.documentElement.style.setProperty('--sylius-topbar-h', topbarH + 'px');
-    document.documentElement.style.setProperty('--rachats-bar-h', barH + 'px');
-    document.documentElement.style.setProperty('--rachats-offset', (topbarH + barH + 16) + 'px');
-  }
+document.documentElement.style.setProperty('--sylius-topbar-h', topbarH + 'px');
+document.documentElement.style.setProperty('--rachats-bar-h', barH + 'px');
+document.documentElement.style.setProperty('--rachats-offset', (topbarH + barH + 16) + 'px');
+}
 
-  function scrollToHashRachat() {
-    const hash = location.hash || '';
-    if (!hash.startsWith('#rachat-')) return;
-    const el = document.querySelector(hash);
-    if (!el) return;
+function scrollToHashRachat() {
+const hash = location.hash || '';
+if (! hash.startsWith('#rachat-')) 
+return;
 
-    const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rachats-offset')) || 0;
-    const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-    window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 
-    el.style.outline = '3px solid rgba(37,99,235,.25)';
-    el.style.borderRadius = '12px';
-    setTimeout(() => el.style.outline = '', 1200);
-  }
+const el = document.querySelector(hash);
+if (! el) 
+return;
 
-  window.addEventListener('load', () => { computeRachatsOffsets(); scrollToHashRachat(); });
-  window.addEventListener('resize', computeRachatsOffsets);
-  window.addEventListener('hashchange', () => { computeRachatsOffsets(); scrollToHashRachat(); });
+
+const offset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rachats-offset')) || 0;
+const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+
+window.scrollTo({
+top: Math.max(0, y),
+behavior: 'smooth'
+});
+
+el.style.outline = '3px solid rgba(37,99,235,.25)';
+el.style.borderRadius = '12px';
+setTimeout(() => el.style.outline = '', 1200);
+}
+
+window.addEventListener('load', () => {
+computeRachatsOffsets();
+scrollToHashRachat();
+});
+
+window.addEventListener('resize', computeRachatsOffsets);
+window.addEventListener('hashchange', () => {
+computeRachatsOffsets();
+scrollToHashRachat();
+});
 </script>
 
 <div class="rachatsPage">
-  {# Top menu dans le pre_content du Layout Admin #}
 
-  <div class="filtersPanel">
-    <details class="filtersDetails">
-      <summary class="filtersSummary">
-        <div class="filtersSummaryLeft">
-          <i class="filter icon"></i>
-          <span>Filtres et affichage</span>
-        </div>
-        <div class="muted">
-          {{ rows|length }} résultat{{ rows|length > 1 ? 's' : '' }}
-        </div>
-      </summary>
 
-      <div class="filtersInner">
-        {% if showMonthNav %}
-          <div class="monthNav">
-            <a class="monthBtn" href="{{ prevUrl }}">
-              <i class="chevron left icon"></i>
-              <span class="hide-xs">{{ prevYm }}</span>
-            </a>
+	{% if legacy_rachats_enabled %}
+		<a class="rbtn rbtn-success" href="{{ path('admin_rachats_create') }}">
+			<i class="plus icon"></i>
+			Créer
+		</a>
+	{% else %}
+		<a class="rbtn rbtn-primary" href="{{ path('admin_rachats_v2_new') }}">
+			<i class="folder open icon"></i>
+			Nouveau dossier V2
+		</a>
+	{% endif %}
 
-            <div class="monthNavCenter">
-              <i class="calendar alternate outline icon"></i>&nbsp;{{ monthLabel }}
-            </div>
+	<div class="filtersPanel">
+		<details class="filtersDetails">
+			<summary class="filtersSummary">
+				<div class="filtersSummaryLeft">
+					<i class="filter icon"></i>
+					<span>Filtres</span>
+				</div>
+				<div class="muted">
+					{{ rows|length }}
+					résultat{{ rows|length > 1 ? 's' : '' }}
+				</div>
+			</summary>
 
-            <a class="monthBtn" href="{{ nextUrl }}">
-              <span class="hide-xs">{{ nextYm }}</span>
-              <i class="chevron right icon"></i>
-            </a>
-          </div>
-        {% endif %}
+			<div class="filtersInner">
+				{% if showMonthNav %}
+					<div class="monthNav">
+						<a class="monthBtn" href="{{ prevUrl }}">
+							<i class="chevron left icon"></i>
+							<span>{{ prevYm }}</span>
+						</a>
 
-        <form method="get" action="{{ path('admin_rachats_index') }}" class="ui form">
-          <input type="hidden" name="enabled" value="{{ enabled }}"/>
+						<div class="monthNavCenter">
+							<i class="calendar alternate outline icon"></i>&nbsp;{{ monthLabel }}
+						</div>
 
-          <div class="filtersGrid">
-            <div class="fieldBlock">
-              <label>Période</label>
-              <div class="checkboxLine">
-                <input type="checkbox" id="ym_all" {{ filters.ym == 'all' ? 'checked' : '' }}>
-                <label for="ym_all">Tous les mois</label>
-              </div>
-              <input type="hidden" name="ym" id="ym_hidden" value="{{ filters.ym }}">
-            </div>
+						<a class="monthBtn" href="{{ nextUrl }}">
+							<span>{{ nextYm }}</span>
+							<i class="chevron right icon"></i>
+						</a>
+					</div>
+				{% endif %}
 
-            <div class="fieldBlock">
-              <label>Mois</label>
-              <input
-                type="month"
-                id="ym_month"
-                value="{{ filters.ym != 'all' ? filters.ym : '' }}"
-                {{ filters.ym == 'all' ? 'disabled' : '' }}
-              >
-            </div>
+				<form method="get" action="{{ path('admin_rachats_index') }}" class="ui form">
+					<input type="hidden" name="enabled" value="{{ enabled }}"/>
 
-            <div class="fieldBlock">
-              <label>Recherche</label>
-              <input type="text" name="q" placeholder="Nom, modèle, téléphone, IMEI…" value="{{ filters.q }}">
-            </div>
+					<div class="filtersGrid">
+						<div class="fieldBlock">
+							<label>Période</label>
+							<div class="checkboxLine">
+								<input type="checkbox" id="ym_all" {{ filters.ym == 'all' ? 'checked' : '' }}>
+								<label for="ym_all">Tous les mois</label>
+							</div>
+							<input type="hidden" name="ym" id="ym_hidden" value="{{ filters.ym }}">
+						</div>
 
-            <div class="fieldBlock">
-              <label>Arrivage</label>
-              <select name="arrivage">
-                <option value=""  {{ filters.arrivage=='' ? 'selected' : '' }}>Tous</option>
-                <option value="0" {{ filters.arrivage=='0' ? 'selected' : '' }}>Pas en arrivage</option>
-                <option value="1" {{ filters.arrivage=='1' ? 'selected' : '' }}>Déjà en arrivage</option>
-              </select>
-            </div>
+						<div class="fieldBlock">
+							<label>Mois</label>
+							<input type="month" id="ym_month" value="{{ filters.ym != 'all' ? filters.ym : '' }}" {{ filters.ym == 'all' ? 'disabled' : '' }}>
+						</div>
 
-            <div class="fieldBlock">
-              <label>Paiement</label>
-              <select name="paid">
-                <option value=""  {{ filters.paid=='' ? 'selected' : '' }}>Tous</option>
-                <option value="0" {{ filters.paid=='0' ? 'selected' : '' }}>Non payé</option>
-                <option value="1" {{ filters.paid=='1' ? 'selected' : '' }}>Payé</option>
-              </select>
-            </div>
+						<div class="fieldBlock">
+							<label>Recherche</label>
+							<input type="text" name="q" placeholder="Nom, modèle, téléphone, IMEI…" value="{{ filters.q }}">
+						</div>
 
-            <div class="fieldBlock">
-              <label>Revendeur</label>
-              <select name="revendeur">
-                <option value=""  {{ filters.revendeur=='' ? 'selected' : '' }}>Tous</option>
-                <option value="0" {{ filters.revendeur=='0' ? 'selected' : '' }}>Sans revendeur</option>
-                <option value="1" {{ filters.revendeur=='1' ? 'selected' : '' }}>Avec revendeur</option>
-              </select>
-            </div>
+						<div class="fieldBlock">
+							<label>Arrivage</label>
+							<select name="arrivage">
+								<option value="" {{ filters.arrivage == '' ? 'selected' : '' }}>Tous</option>
+								<option value="0" {{ filters.arrivage == '0' ? 'selected' : '' }}>Pas en arrivage</option>
+								<option value="1" {{ filters.arrivage == '1' ? 'selected' : '' }}>Déjà en arrivage</option>
+							</select>
+						</div>
 
-            <div class="fieldBlock">
-              <label>Preset d’affichage</label>
-              <select name="preset">
-                <option value="" {{ preset == '' ? 'selected' : '' }}>Par défaut</option>
-                <option value="desktop" {{ preset == 'desktop' ? 'selected' : '' }}>Desktop</option>
-                <option value="tablet"  {{ preset == 'tablet' ? 'selected' : '' }}>Tablette</option>
-                <option value="mobile"  {{ preset == 'mobile' ? 'selected' : '' }}>Mobile</option>
-              </select>
-            </div>
-          </div>
+						<div class="fieldBlock">
+							<label>Paiement</label>
+							<select name="paid">
+								<option value="" {{ filters.paid == '' ? 'selected' : '' }}>Tous</option>
+								<option value="0" {{ filters.paid == '0' ? 'selected' : '' }}>Non payé</option>
+								<option value="1" {{ filters.paid == '1' ? 'selected' : '' }}>Payé</option>
+							</select>
+						</div>
 
-          <div class="filtersActions">
-            <button class="rbtn rbtn-primary" type="submit">
-              <i class="filter icon"></i> Appliquer
-            </button>
-            <a class="rbtn rbtn-soft" href="{{ path('admin_rachats_index', { enabled: enabled }) }}">
-              <i class="undo icon"></i> Reset
-            </a>
-          </div>
+						<div class="fieldBlock">
+							<label>Revendeur</label>
+							<select name="revendeur">
+								<option value="" {{ filters.revendeur == '' ? 'selected' : '' }}>Tous</option>
+								<option value="0" {{ filters.revendeur == '0' ? 'selected' : '' }}>Sans revendeur</option>
+								<option value="1" {{ filters.revendeur == '1' ? 'selected' : '' }}>Avec revendeur</option>
+							</select>
+						</div>
 
-          <div class="advancedCols">
-            <details>
-              <summary>Réglages avancés des colonnes</summary>
-              <div class="columnsGrid">
-                {% for key, conf in colsDef %}
-                  <label>
-                    <input type="checkbox" name="cols[]" value="{{ key }}" {{ key in activeCols ? 'checked' : '' }}>
-                    <span>{{ conf.label|default(key) }}</span>
-                  </label>
-                {% endfor %}
-              </div>
-            </details>
-          </div>
+						<div class="fieldBlock">
+							<label>Dossier V2</label>
+							<select name="dossier">
+								<option value="" {{ filters.dossier|default('') == '' ? 'selected' : '' }}>Tous</option>
+								<option value="0" {{ filters.dossier|default('') == '0' ? 'selected' : '' }}>Sans dossier</option>
+								<option value="1" {{ filters.dossier|default('') == '1' ? 'selected' : '' }}>Avec dossier</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="filtersActions">
+						<button class="rbtn rbtn-primary" type="submit">
+							<i class="filter icon"></i>
+							Appliquer
+						</button>
+
+						<a class="rbtn rbtn-soft" href="{{ path('admin_rachats_index', { enabled: enabled }) }}">
+							<i class="undo icon"></i>
+							Reset
+						</a>
+					</div>
+				</form>
+			</div>
+		</details>
+	</div>
+
+	<form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
+		<input type="hidden" name="_back_enabled" value="{{ enabled }}">
+		<input type="hidden" name="_back_q" value="{{ filters.q }}">
+		<input type="hidden" name="_back_ym" value="{{ filters.ym }}">
+		<input type="hidden" name="_back_paid" value="{{ filters.paid }}">
+		<input type="hidden" name="_back_revendeur" value="{{ filters.revendeur }}">
+		<input type="hidden" name="_back_arrivage" value="{{ filters.arrivage }}">
+		<input type="hidden" name="_back_dossier" value="{{ filters.dossier|default('') }}">
+		<input type="hidden" name="_redirect" value="{{ app.request.uri }}">
+		<input type="hidden" name="_token_batch" value="{{ csrf_token('rachats_batch') }}">
+
+		<div id="bar">
+			<div class="batchGrid">
+				<div class="batchCard">
+					<div class="batchTitle">Actions sur la sélection</div>
+
+					<div class="btnRow" style="margin-bottom:10px;">
+						<button type="submit" formaction="{{ path('admin_rachats_create_dossiers_batch') }}" class="rbtn rbtn-primary" id="btnCreateDossiersBatch">
+							<i class="folder open icon"></i>
+							Créer dossiers V2
+						</button>
+
+					</div>
+
+					<div class="btnRow">
+						<a class="rbtn {{ enabled == 0 ? 'rbtn-soft' : 'rbtn-primary' }}" href="{{ path('admin_rachats_index', { enabled: 1, q: filters.q, ym: filters.ym, paid: filters.paid, revendeur: filters.revendeur, arrivage: filters.arrivage, dossier: filters.dossier|default('') }) }}">
+							<i class="eye icon"></i>
+							Actifs
+						</a>
+
+						<a class="rbtn {{ enabled == 0 ? 'rbtn-primary' : 'rbtn-soft' }}" href="{{ path('admin_rachats_index', { enabled: 0, q: filters.q, ym: filters.ym, paid: filters.paid, revendeur: filters.revendeur, arrivage: filters.arrivage, dossier: filters.dossier|default('') }) }}">
+							<i class="eye slash icon"></i>
+							Masqués
+						</a>
+					</div>
+
+					<div class="btnRow">
+						<button type="submit" name="val" value="0" class="rbtn rbtn-danger-soft">
+							<i class="ban icon"></i>
+							Masquer
+						</button>
+
+						<button type="submit" name="val" value="1" class="rbtn rbtn-primary">
+							<i class="check icon"></i>
+							Réactiver
+						</button>
+					</div>
+				</div>
+
+				<div class="batchCard">
+					<div class="batchTitle">Paiement</div>
+
+					<div class="payGrid">
+						<select name="method" id="method_select">
+							<option value="ESP" selected>ESP</option>
+							<option value="CB">CB</option>
+							<option value="VIR">VIR</option>
+							<option value="CHQ">CHQ</option>
+							<option value="AUTRE">AUTRE</option>
+						</select>
+
+						<input type="text" name="other_label" placeholder="Libellé si AUTRE">
+					</div>
+
+					<div class="btnRow">
+						<button type="submit" formaction="{{ path('admin_rachats_encaissement_batch') }}" class="rbtn rbtn-soft">
+							<i class="euro sign icon"></i>
+							Encaisser
+						</button>
+
+						<a class="rbtn rbtn-success" href="{{ path('admin_till_index') }}">
+							<i class="cash register icon"></i>
+							Voir caisse
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="tableWrap">
+			<table id="rachatsTable">
+				<thead>
+					<tr>
+						<th class="select-col">
+							<input type="checkbox" id="check_all">
+						</th>
+						<th class="nowrap">#</th>
+						<th>Modèle</th>
+						<th>Prix</th>
+						<th class="nowrap">Date</th>
+						<th>Nom</th>
+						<th>Prénom</th>
+						<th>Téléphone</th>
+						<th>Email</th>
+						<th class="nowrap">PDF</th>
+						<th class="nowrap">Pièce ID</th>
+						<th>Paiement</th>
+						<th class="nowrap">Revendeur</th>
+						<th>Actions</th>
+						<th>Dossier</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in rows %}
+						{% set revId = (row.revendeurId|default(0)) + 0 %}
+						{% set hasRevendeur = revId > 0 %}
+						{% set paid = row.paidAt ? 1 : 0 %}
+
+						<tr id="rachat-{{ row.id }}">
+							<td class="select-col">
+								<input type="checkbox" class="js-rachat-row-check" name="ids[]" value="{{ row.id }}">
+							</td>
+
+							<td class="nowrap">
+								<strong>#{{ row.id }}</strong>
+							</td>
+
+							<td>{{ row.marqueModele ?: '—' }}</td>
+							<td class="priceTag">{{ row.prixAchat ?: '—' }}</td>
+							<td class="nowrap">{{ row.dateCession ?: '—' }}</td>
+							<td>{{ row.nom ?: '—' }}</td>
+							<td>{{ row.prenom ?: '—' }}</td>
+							<td class="nowrap">{{ row.telephone ?: '—' }}</td>
+							<td>{{ row.email ?: '—' }}</td>
+
+							<td class="nowrap">
+								{% if row.pdfUrl %}
+									<a class="iconbtn iconbtn-blue" href="{{ row.pdfUrl }}" target="_blank" title="PDF">
+										<i class="file pdf outline icon"></i>
+									</a>
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td class="nowrap">
+								{% if row.ciRecto %}
+									<a class="iconbtn iconbtn-violet" href="{{ row.ciRecto }}" target="_blank" title="Recto">
+										<i class="id card outline icon"></i>
+									</a>
+								{% endif %}
+
+								{% if row.ciVerso %}
+									<a class="iconbtn iconbtn-violet" href="{{ row.ciVerso }}" target="_blank" title="Verso">
+										<i class="clone outline icon"></i>
+									</a>
+								{% endif %}
+
+								{% if not row.ciRecto and not row.ciVerso %}
+									—
+								{% endif %}
+							</td>
+
+							<td>
+								{% if paid %}
+									<span class="pill pill-ok">
+										<i class="check circle icon"></i>
+										{{ row.paidMethod ?: 'Payé' }}
+									</span>
+								{% else %}
+									<span class="pill pill-off">
+										<i class="clock outline icon"></i>
+										Non payé
+									</span>
+								{% endif %}
+							</td>
+
+							<td class="nowrap">
+								{% if hasRevendeur %}
+									<span class="pill pill-ok">
+										<i class="user check icon"></i>
+										#{{ revId }}
+									</span>
+								{% else %}
+									<span class="pill pill-off">
+										<i class="user times icon"></i>
+										Non
+									</span>
+								{% endif %}
+							</td>
+
+							<td class="nowrap">
+    {% if row.dossierV2Existe and row.dossierV2Id %}
+        <a
+            class="iconbtn iconbtn-blue"
+            href="{{ path('admin_rachats_v2_display', { id: row.dossierV2Id }) }}"
+            title="Voir le dossier V2"
+            data-turbo="false"
+        >
+            <i class="eye icon"></i>
+        </a>
+
+        <a
+            class="iconbtn iconbtn-amber"
+            href="{{ path('admin_rachats_v2_edit', { id: row.dossierV2Id }) }}"
+            title="Éditer le dossier V2"
+            data-turbo="false"
+        >
+            <i class="edit icon"></i>
+        </a>
+    {% else %}
+        <a class="iconbtn iconbtn-blue" href="{{ row.showUrl }}" title="Voir">
+            <i class="eye icon"></i>
+        </a>
+
+        <span
+            class="iconbtn"
+            style="opacity:.45;pointer-events:none;"
+            title="Créer d’abord le dossier V2"
+        >
+            <i class="lock icon"></i>
+        </span>
+    {% endif %}
+</td>
+
+<td>
+    {% if row.dossierV2Existe and row.dossierV2Id %}
+        <a href="{{ path('admin_rachats_v2_display', { id: row.dossierV2Id }) }}" class="ui tiny button">
+            Ouvrir dossier
+        </a>
+    {% elseif row.id is not empty %}
+        <button
+            type="submit"
+            class="ui tiny primary button"
+            form="create-dossier-form-{{ row.id }}"
+            onclick="return confirm('Créer dossier V2 pour ce rachat ?');"
+        >
+            Créer dossier
+        </button>
+    {% else %}
+        <span class="ui tiny disabled button">Créer dossier</span>
+    {% endif %}
+</td>
+						</tr>
+					{% else %}
+						<tr>
+							<td colspan="15" class="muted">Aucun rachat.</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</form>
+
+
+ {% for row in rows %}
+    {% if row.id is not empty and not row.dossierV2Existe %}
+        <form
+            id="create-dossier-form-{{ row.id }}"
+            method="post"
+            action="{{ path('admin_rachats_create_dossier', { id: row.id }) }}"
+            style="display:none;"
+        >
+            <input type="hidden" name="_token" value="{{ csrf_token('create_dossier_' ~ row.id) }}">
+            <input type="hidden" name="_redirect" value="{{ app.request.uri }}">
         </form>
-      </div>
-    </details>
-  </div>
-
-  <script>
-  (function(){
-    const all  = document.getElementById('ym_all');
-    const hid  = document.getElementById('ym_hidden');
-    const mon  = document.getElementById('ym_month');
-    if (!all || !hid || !mon) return;
-
-    function syncYmOnly(){
-      if (all.checked) {
-        hid.value = 'all';
-        mon.disabled = true;
-      } else {
-        mon.disabled = false;
-        hid.value = mon.value || '';
-      }
-    }
-
-    syncYmOnly();
-    all.addEventListener('change', syncYmOnly);
-    mon.addEventListener('change', syncYmOnly);
-  })();
-  </script>
-
-  <form id="rachats_form" method="post" action="{{ path('admin_rachats_toggle_enabled_batch') }}">
-    <input type="hidden" name="_back_enabled" value="{{ enabled }}"/>
-    <input type="hidden" name="_back_q" value="{{ filters.q }}">
-    <input type="hidden" name="_back_ym" value="{{ filters.ym }}">
-    <input type="hidden" name="_back_paid" value="{{ filters.paid }}">
-    <input type="hidden" name="_back_revendeur" value="{{ filters.revendeur }}">
-    <input type="hidden" name="_back_arrivage" value="{{ filters.arrivage }}">
-    <input type="hidden" name="_back_preset" value="{{ preset }}">
-    {% for c in activeCols %}
-      <input type="hidden" name="_back_cols[]" value="{{ c }}">
-    {% endfor %}
-
-    <div id="bar">
-      <div class="batchGrid">
-        <div class="batchCard">
-          <div class="batchTitle">Actions sur la sélection</div>
-
-          <div class="btnRow">
-            <a class="rbtn rbtn-success" href="{{ path('admin_rachats_create') }}">
-              <i class="plus icon"></i> Créer
-            </a>
-
-            {% set viewingDisabled = enabled == 0 %}
-            <a class="rbtn {{ viewingDisabled ? 'rbtn-soft' : 'rbtn-primary' }}"
-               href="{{ path('admin_rachats_index', {
-                 enabled: 1,
-                 q: filters.q,
-                 ym: filters.ym,
-                 paid: filters.paid,
-                 revendeur: filters.revendeur,
-                 arrivage: filters.arrivage,
-                 preset: preset,
-                 cols: activeCols
-               }) }}">
-              <i class="eye icon"></i> Actifs
-            </a>
-          </div>
-
-          <div class="btnRow">
-            <a class="rbtn {{ viewingDisabled ? 'rbtn-primary' : 'rbtn-soft' }}"
-               href="{{ path('admin_rachats_index', {
-                 enabled: 0,
-                 q: filters.q,
-                 ym: filters.ym,
-                 paid: filters.paid,
-                 revendeur: filters.revendeur,
-                 arrivage: filters.arrivage,
-                 preset: preset,
-                 cols: activeCols
-               }) }}">
-              <i class="eye slash icon"></i> Masqués
-            </a>
-
-            <button type="submit" name="val" value="0" class="rbtn rbtn-danger-soft">
-              <i class="ban icon"></i> Masquer
-            </button>
-          </div>
-
-          <div class="btnRow">
-            <button type="submit" name="val" value="1" class="rbtn rbtn-primary">
-              <i class="check icon"></i> Réactiver
-            </button>
-            <div></div>
-          </div>
-        </div>
-
-        <div class="batchCard">
-          <div class="batchTitle">Paiement</div>
-
-          <div class="payGrid">
-            <select name="method" id="method_select">
-              <option value="ESP" selected>ESP</option>
-              <option value="CB">CB</option>
-              <option value="VIR">VIR</option>
-              <option value="CHQ">CHQ</option>
-              <option value="AUTRE">AUTRE</option>
-            </select>
-
-            <input type="text" name="other_label" placeholder="Libellé si AUTRE">
-          </div>
-
-          <div class="btnRow">
-            <button type="submit" formaction="{{ path('admin_rachats_encaissement_batch') }}" class="rbtn rbtn-soft">
-              <i class="euro sign icon"></i> Encaisser
-            </button>
-
-            <a class="rbtn rbtn-success" href="{{ path('admin_till_index') }}">
-              <i class="cash register icon"></i> Voir caisse
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tableWrap">
-      <table id="rachatsTable">
-        <thead>
-          <tr>
-            {% if 'select' in activeCols %}<th class="select-col"><input type="checkbox" id="check_all"></th>{% endif %}
-            {% if 'id' in activeCols %}<th class="nowrap">#</th>{% endif %}
-            {% if 'modele' in activeCols %}<th>Modèle</th>{% endif %}
-            {% if 'prix' in activeCols %}<th>Prix</th>{% endif %}
-            {% if 'date' in activeCols %}<th class="nowrap">Date</th>{% endif %}
-            {% if 'nom' in activeCols %}<th>Nom</th>{% endif %}
-            {% if 'prenom' in activeCols %}<th>Prénom</th>{% endif %}
-            {% if 'tel' in activeCols %}<th>Téléphone</th>{% endif %}
-            {% if 'email' in activeCols %}<th>Email</th>{% endif %}
-            {% if 'pdf' in activeCols %}<th class="nowrap">PDF</th>{% endif %}
-            {% if 'ci' in activeCols %}<th class="nowrap">Pièce ID</th>{% endif %}
-            {% if 'paiement' in activeCols %}<th>Paiement</th>{% endif %}
-            {% if 'revendeur' in activeCols %}<th class="nowrap">Revendeur</th>{% endif %}
-            {% if 'actions' in activeCols %}<th>Actions</th>{% endif %}
-          </tr>
-        </thead>
-        <tbody>
-        {% for row in rows %}
-          {% set revId = (row.revendeurId|default(0)) + 0 %}
-          {% set hasRevendeur = revId > 0 %}
-          {% set paid = row.paidAt ? 1 : 0 %}
-
-          <tr id="rachat-{{ row.id }}">
-            {% if 'select' in activeCols %}
-              <td class="select-col"><input type="checkbox" name="ids[]" value="{{ row.id }}"></td>
-            {% endif %}
-            {% if 'id' in activeCols %}
-              <td class="nowrap"><strong>#{{ row.id }}</strong></td>
-            {% endif %}
-            {% if 'modele' in activeCols %}
-              <td>{{ row.marqueModele ?: '—' }}</td>
-            {% endif %}
-            {% if 'prix' in activeCols %}
-              <td class="priceTag">{{ row.prixAchat ?: '—' }}</td>
-            {% endif %}
-            {% if 'date' in activeCols %}
-              <td class="nowrap">{{ row.dateCession ?: '—' }}</td>
-            {% endif %}
-            {% if 'nom' in activeCols %}
-              <td>{{ row.nom ?: '—' }}</td>
-            {% endif %}
-            {% if 'prenom' in activeCols %}
-              <td>{{ row.prenom ?: '—' }}</td>
-            {% endif %}
-            {% if 'tel' in activeCols %}
-              <td class="nowrap">{{ row.telephone ?: '—' }}</td>
-            {% endif %}
-            {% if 'email' in activeCols %}
-              <td>{{ row.email ?: '—' }}</td>
-            {% endif %}
-            {% if 'pdf' in activeCols %}
-              <td class="nowrap">
-                {% if row.pdfUrl %}
-                  <a class="iconbtn iconbtn-blue" href="{{ row.pdfUrl }}" target="_blank" title="PDF">
-                    <i class="file pdf outline icon"></i>
-                  </a>
-                {% else %}—{% endif %}
-              </td>
-            {% endif %}
-        {% if 'ci' in activeCols %}
-  <td class="nowrap">
-    {% if row.ciRecto %}
-      <a class="iconbtn iconbtn-violet" href="{{ row.ciRecto }}" target="_blank" title="Recto">
-        <i class="id card outline icon"></i>
-      </a>
     {% endif %}
-
-    {% if row.ciVerso %}
-      <a class="iconbtn iconbtn-violet" href="{{ row.ciVerso }}" target="_blank" title="Verso">
-        <i class="clone outline icon"></i>
-      </a>
-    {% endif %}
-
-    {% if not row.ciRecto and not row.ciVerso %}
-      —
-    {% endif %}
-  </td>
-{% endif %}
-            {% if 'paiement' in activeCols %}
-              <td>
-                {% if paid %}
-                  <span class="pill pill-ok"><i class="check circle icon"></i> {{ row.paidMethod ?: 'Payé' }}</span>
-                {% else %}
-                  <span class="pill pill-off"><i class="clock outline icon"></i> Non payé</span>
-                {% endif %}
-              </td>
-            {% endif %}
-            {% if 'revendeur' in activeCols %}
-              <td class="nowrap">
-                {% if hasRevendeur %}
-                  <span class="pill pill-ok"><i class="user check icon"></i> #{{ revId }}</span>
-                {% else %}
-                  <span class="pill pill-off"><i class="user times icon"></i> Non</span>
-                {% endif %}
-              </td>
-            {% endif %}
-            {% if 'actions' in activeCols %}
-              <td class="nowrap">
-                <a class="iconbtn iconbtn-blue" href="{{ path('admin_rachats_show', { id: row.id }) }}" title="Voir">
-                  <i class="eye icon"></i>
-                </a>
-                <a class="iconbtn iconbtn-amber" href="{{ row.editUrl }}" title="Éditer">
-                  <i class="edit icon"></i>
-                </a>
-              </td>
-            {% endif %}
-          </tr>
-        {% else %}
-          <tr>
-            <td colspan="{{ activeCols|length > 0 ? activeCols|length : 10 }}" class="muted">Aucun rachat.</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="cardsWrap">
-      {% for row in rows %}
-        {% set revId = (row.revendeurId|default(0)) + 0 %}
-        {% set hasRevendeur = revId > 0 %}
-        {% set paid = row.paidAt ? 1 : 0 %}
-
-        <div class="cardRow" id="rachat-{{ row.id }}">
-          {% if 'select' in mobileCols %}
-            <div class="cardCheck">
-              <input type="checkbox" name="ids[]" value="{{ row.id }}">
-            </div>
-          {% endif %}
-
-          <div class="cardMain">
-            <div class="cardTitle">
-              {% if 'id' in mobileCols %}#{{ row.id }} — {% endif %}{{ row.marqueModele ?: '—' }}
-            </div>
-
-            <div class="cardMeta">
-              {% if 'prix' in mobileCols %}
-                <span class="badge"><i class="euro sign icon"></i> {{ row.prixAchat ?: '—' }}</span>
-              {% endif %}
-              {% if 'date' in mobileCols %}
-                <span class="badge"><i class="calendar icon"></i> {{ row.dateCession ?: '—' }}</span>
-              {% endif %}
-              {% if 'nom' in mobileCols %}
-                <span class="badge"><i class="user icon"></i> {{ row.nom ?: '—' }}</span>
-              {% endif %}
-              {% if 'tel' in mobileCols %}
-                <span class="badge"><i class="phone icon"></i> {{ row.telephone ?: '—' }}</span>
-              {% endif %}
-
-              {% if 'paiement' in mobileCols %}
-                {% if paid %}
-                  <span class="pill pill-ok"><i class="check circle icon"></i> {{ row.paidMethod ?: 'Payé' }}</span>
-                {% else %}
-                  <span class="pill pill-off"><i class="clock outline icon"></i> Non payé</span>
-                {% endif %}
-              {% endif %}
-
-              {% if 'revendeur' in mobileCols %}
-                {% if hasRevendeur %}
-                  <span class="pill pill-ok"><i class="user check icon"></i> Revendeur #{{ revId }}</span>
-                {% else %}
-                  <span class="pill pill-off"><i class="user times icon"></i> Sans revendeur</span>
-                {% endif %}
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="cardActions">
-            {% if 'actions' in mobileCols %}
-              <a class="iconbtn iconbtn-blue" href="{{ path('admin_rachats_show', { id: row.id }) }}" title="Voir">
-                <i class="eye icon"></i>
-              </a>
-              <a class="iconbtn iconbtn-amber" href="{{ row.editUrl }}" title="Éditer">
-                <i class="edit icon"></i>
-              </a>
-            {% endif %}
-
-            {% if 'pdf' in mobileCols and row.pdfUrl %}
-              <a class="iconbtn iconbtn-blue" href="{{ row.pdfUrl }}" target="_blank" title="PDF">
-                <i class="file pdf outline icon"></i>
-              </a>
-            {% endif %}
-
-            {% if 'ci' in mobileCols and row.pieceIdentiteUrl %}
-              <a class="iconbtn iconbtn-violet" href="{{ row.pieceIdentiteUrl }}" target="_blank" title="Pièce ID">
-                <i class="id card outline icon"></i>
-              </a>
-            {% endif %}
-          </div>
-        </div>
-      {% else %}
-        <div class="filtersPanel muted" style="padding:16px;">Aucun rachat.</div>
-      {% endfor %}
-    </div>
-  </form>
+{% endfor %}   
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const checkAll = document.getElementById('check_all');
-  if (!checkAll) return;
+	(function () {
+function bootYmFilter() {
+const all = document.getElementById('ym_all');
+const hid = document.getElementById('ym_hidden');
+const mon = document.getElementById('ym_month');
 
-  checkAll.addEventListener('change', function (e) {
-    const checked = e.target.checked;
-    document.querySelectorAll('input[name="ids[]"]').forEach(cb => { cb.checked = checked; });
-  });
-});
+if (! all || ! hid || ! mon) 
+return;
+
+
+function syncYmOnly() {
+if (all.checked) {
+hid.value = 'all';
+mon.disabled = true;
+} else {
+mon.disabled = false;
+hid.value = mon.value || '';
+}
+}
+
+syncYmOnly();
+
+if (! all.dataset.bound) {
+all.dataset.bound = '1';
+all.addEventListener('change', syncYmOnly);
+}
+
+if (! mon.dataset.bound) {
+mon.dataset.bound = '1';
+mon.addEventListener('change', syncYmOnly);
+}
+}
+
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', bootYmFilter, {once: true});
+} else {
+bootYmFilter();
+}
+
+document.addEventListener('turbo:load', bootYmFilter);
+})();
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  const form = document.getElementById('rachats_form');
-  if (!form) return;
+	(function () {
+function bootRachatSelect() {
+const form = document.getElementById('rachats_form');
+if (! form) 
+return;
 
-  const btnMasquer = form.querySelector('button[name="val"][value="0"]');
-  const btnReveler = form.querySelector('button[name="val"][value="1"]');
-  const btnEncaisser = form.querySelector('button[formaction*="encaissement_batch"]');
 
-  function getSelected(){
-    return [...form.querySelectorAll('input[name="ids[]"]:checked')];
-  }
+const checkAll = form.querySelector('#check_all');
+const getRowChecks = () => Array.from(form.querySelectorAll('tbody .js-rachat-row-check'));
 
-  function setDisabled(el, disabled){
-    if (!el) return;
-    el.disabled = disabled;
-    el.classList.toggle('rbtn-disabled', disabled);
-  }
+function refreshMaster() {
+if (! checkAll) 
+return;
 
-  function refresh(){
-    const any = getSelected().length > 0;
-    setDisabled(btnMasquer, !any);
-    setDisabled(btnReveler, !any);
-    setDisabled(btnEncaisser, !any);
-  }
 
-  form.addEventListener('change', function(e){
-    if (e.target && e.target.matches('input[name="ids[]"], #check_all')) {
-      refresh();
-    }
-  });
+const checks = getRowChecks();
+const total = checks.length;
+const checked = checks.filter(cb => cb.checked).length;
 
-  refresh();
+checkAll.checked = total > 0 && checked === total;
+checkAll.indeterminate = checked > 0 && checked < total;
+}
+
+if (checkAll && ! checkAll.dataset.bound) {
+checkAll.dataset.bound = '1';
+
+checkAll.addEventListener('change', function () {
+const checked = checkAll.checked;
+getRowChecks().forEach(function (cb) {
+cb.checked = checked;
 });
+refreshMaster();
+});
+}
+
+if (! form.dataset.boundRowChecks) {
+form.dataset.boundRowChecks = '1';
+
+form.addEventListener('change', function (e) {
+if (e.target && e.target.classList.contains('js-rachat-row-check')) {
+refreshMaster();
+}
+});
+}
+
+refreshMaster();
+}
+
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', bootRachatSelect, {once: true});
+} else {
+bootRachatSelect();
+}
+
+document.addEventListener('turbo:load', bootRachatSelect);
+})();
 </script>
 
-{% endblock %}
+<script>
+	(function () {
+function bootBatchButtons() {
+const form = document.getElementById('rachats_form');
+if (! form) 
+return;
+
+
+const btnMasquer = form.querySelector('button[name="val"][value="0"]');
+const btnReveler = form.querySelector('button[name="val"][value="1"]');
+const btnEncaisser = form.querySelector('button[formaction*="encaissement_batch"]');
+const btnCreateDossiersBatch = document.getElementById('btnCreateDossiersBatch');
+
+function getSelected() {
+const values = new Set();
+form.querySelectorAll('.js-rachat-row-check:checked').forEach(function (cb) {
+values.add(cb.value);
+});
+return Array.from(values);
+}
+
+function setDisabled(el, disabled) {
+if (! el) 
+return;
+
+el.disabled = disabled;
+el.classList.toggle('rbtn-disabled', disabled);
+}
+
+function refresh() {
+const any = getSelected().length > 0;
+setDisabled(btnMasquer, ! any);
+setDisabled(btnReveler, ! any);
+setDisabled(btnEncaisser, ! any);
+setDisabled(btnCreateDossiersBatch, ! any);
+}
+
+if (! form.dataset.boundBatch) {
+form.dataset.boundBatch = '1';
+
+form.addEventListener('change', function (e) {
+if (e.target && (e.target.matches('.js-rachat-row-check') || e.target.matches('#check_all'))) {
+refresh();
+}
+});
+}
+
+refresh();
+}
+
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', bootBatchButtons, {once: true});
+} else {
+bootBatchButtons();
+}
+
+document.addEventListener('turbo:load', bootBatchButtons);
+})();
+</script>{% endblock %}

@@ -1,0 +1,39 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Client Hiboutik{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="user icon"></i>
+            <div class="content">
+                Client Hiboutik
+                <div class="sub header">
+                    Dossier {{ dossier.reference ?: ('#' ~ dossier.id) }}
+                </div>
+            </div>
+        </h1>
+
+        <a href="{{ path('admin_rachats_v2_show', { id: dossier.id }) }}" class="ui button">
+            <i class="arrow left icon"></i>
+            Retour dossier
+        </a>
+    </div>
+</div>
+
+<div class="ui segment">
+    <table class="ui celled compact table">
+        <tbody>
+            <tr><th>ID</th><td>{{ customer.customers_id ?? customer.customer_id ?? customer.id ?? '—' }}</td></tr>
+            <tr><th>Nom</th><td>{{ customer.customers_last_name ?? customer.last_name ?? '—' }}</td></tr>
+            <tr><th>Prénom</th><td>{{ customer.customers_first_name ?? customer.first_name ?? '—' }}</td></tr>
+            <tr><th>Société</th><td>{{ customer.customers_company ?? customer.company ?? '—' }}</td></tr>
+            <tr><th>Email</th><td>{{ customer.customers_email ?? customer.email ?? '—' }}</td></tr>
+            <tr><th>Téléphone</th><td>{{ customer.customers_phone_number ?? customer.phone ?? '—' }}</td></tr>
+            <tr><th>Pays</th><td>{{ customer.customers_country ?? customer.country ?? '—' }}</td></tr>
+            <tr><th>Réf. ext.</th><td>{{ customer.customers_ref_ext ?? customer.ref_ext ?? '—' }}</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}

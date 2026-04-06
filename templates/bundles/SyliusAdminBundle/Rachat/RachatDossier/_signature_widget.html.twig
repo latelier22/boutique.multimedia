@@ -1,0 +1,117 @@
+{% set widgetId = widgetId ?? ('signature-widget-' ~ random()) %}
+{% set title = title ?? 'Signature' %}
+{% set uploadUrl = uploadUrl ?? '' %}
+{% set csrfToken = csrfToken ?? '' %}
+{% set signatureUrl = signatureUrl ?? '' %}
+{% set disabled = disabled ?? false %}
+{% set tabletUrl = tabletUrl ?? '' %}
+
+<div
+    id="{{ widgetId }}"
+    class="ui segment js-signature-widget"
+    data-upload-url="{{ uploadUrl }}"
+    data-csrf="{{ csrfToken }}"
+    data-disabled="{{ disabled ? '1' : '0' }}"
+>
+    <style>
+        #{{ widgetId }} .sw-hidden { display:none !important; }
+        #{{ widgetId }} .sw-pad-wrap {
+            background:#fff;
+            border:1px solid rgba(34,36,38,.15);
+            border-radius:12px;
+            overflow:hidden;
+        }
+        #{{ widgetId }} .sw-pad {
+            width:100%;
+            height:220px;
+            display:block;
+            background:
+                linear-gradient(to bottom, transparent 97%, rgba(0,0,0,.05) 100%);
+            touch-action:none;
+            cursor:crosshair;
+        }
+        #{{ widgetId }} .sw-preview-box {
+            background:#f8f8f8;
+            border:1px solid rgba(34,36,38,.12);
+            border-radius:12px;
+            padding:10px;
+            min-height:160px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        #{{ widgetId }} .sw-preview-box img {
+            max-width:100%;
+            max-height:130px;
+            object-fit:contain;
+            display:block;
+        }
+    </style>
+
+    <h4 class="ui dividing header" id="signature">{{ title }}</h4>
+
+    {% if disabled %}
+        <div class="ui warning message">
+            Enregistre d’abord le dossier pour activer la signature.
+        </div>
+    {% else %}
+        <div class="ui stackable two column grid">
+            <div class="column">
+                <div class="sw-pad-wrap">
+                    <canvas class="sw-pad js-sw-pad"></canvas>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    <button type="button" class="ui button js-sw-clear">
+                        <i class="eraser icon"></i>
+                        Effacer
+                    </button>
+
+                    <button type="button" class="ui primary button js-sw-save">
+                        <i class="save icon"></i>
+                        Enregistrer signature
+                    </button>
+
+                    {% if tabletUrl %}
+                        <a href="{{ tabletUrl }}" class="ui orange button">
+                            <i class="tablet alternate icon"></i>
+                            Signer sur tablette
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="ui small info message" style="margin-top:12px;">
+                    Signe dans la zone puis clique sur “Enregistrer signature”.
+                </div>
+
+                <div class="ui message sw-hidden js-sw-status"></div>
+            </div>
+
+            <div class="column">
+                <div class="ui header" style="font-size:1rem;">Signature enregistrée</div>
+
+                <div class="sw-preview-box">
+                    <img
+                        class="js-sw-preview {% if not signatureUrl %}sw-hidden{% endif %}"
+                        src="{{ signatureUrl ?: '' }}"
+                        alt="Signature"
+                    >
+                    <div class="js-sw-preview-empty {% if signatureUrl %}sw-hidden{% endif %}" style="color:#888;font-style:italic;">
+                        Aucune signature enregistrée
+                    </div>
+                </div>
+
+                <div style="margin-top:8px;">
+                    <a
+                        href="{{ signatureUrl ?: '#' }}"
+                        target="_blank"
+                        class="ui tiny basic button js-sw-open {% if not signatureUrl %}sw-hidden{% endif %}"
+                    >
+                        <i class="external alternate icon"></i>
+                        Ouvrir
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

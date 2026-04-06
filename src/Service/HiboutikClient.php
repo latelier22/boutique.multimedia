@@ -1891,5 +1891,296 @@ public function createSale(array $fields): array
         'sale_id' => $saleId,
     ];
 }
+public function normalizePhone(string $phone): string
+{
+    $v = preg_replace('/\D+/', '', $phone) ?? '';
+
+    if (str_starts_with($v, '0033')) {
+        $v = '0' . substr($v, 4);
+    } elseif (str_starts_with($v, '33')) {
+        $v = '0' . substr($v, 2);
+    }
+
+    return $v;
+}
+
+private function normalizeSearchText(string $text): string
+{
+    $text = mb_strtolower(trim($text), 'UTF-8');
+
+    $replace = [
+        'à' => 'a', 'â' => 'a', 'ä' => 'a',
+        'ç' => 'c',
+        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+        'î' => 'i', 'ï' => 'i',
+        'ô' => 'o', 'ö' => 'o',
+        'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+        'ÿ' => 'y',
+        '-' => '',
+        '_' => '',
+        ' ' => '',
+        '\'' => '',
+    ];
+
+    return strtr($text, $replace);
+}
+
+public function normalizeCustomerRow(array $row): array
+{
+    return [
+        'id' => (int)(
+            $row['customers_id']
+            ?? $row['customer_id']
+            ?? $row['id']
+            ?? 0
+        ),
+        'first_name' => trim((string)(
+            $row['customers_first_name']
+            ?? $row['first_name']
+            ?? ''
+        )),
+        'last_name' => trim((string)(
+            $row['customers_last_name']
+            ?? $row['last_name']
+            ?? ''
+        )),
+        'phone' => trim((string)(
+            $row['customers_phone_number']
+            ?? $row['phone']
+            ?? ''
+        )),
+        'email' => trim((string)(
+            $row['customers_email']
+            ?? $row['email']
+            ?? ''
+        )),
+        'company' => trim((string)(
+            $row['customers_company']
+            ?? $row['company']
+            ?? ''
+        )),
+        'ref_ext' => trim((string)(
+            $row['customers_ref_ext']
+            ?? $row['ref_ext']
+            ?? ''
+        )),
+        'raw' => $row,
+    ];
+}
+
+public function searchCustomersLocal(
+    ?string $phone = null,
+    ?string $email = null,
+    ?string $nom = null,
+    ?string $prenom = null
+): array {
+    $customers = $this->getCustomers();
+
+    $phoneNorm = $this->normalizePhone((string) $phone);
+    $emailNorm = mb_strtolower(trim((string) $email), 'UTF-8');
+    $nomNorm = $this->normalizeSearchText((string) $nom);
+    $prenomNorm = $this->normalizeSearchText((string) $prenom);
+    $fullNorm = trim($nomNorm . $prenomNorm);
+
+    $results = [];
+
+    foreach ($customers as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $c = $this->normalizeCustomerRow($row);
+
+        if (($c['id'] ?? 0) <= 0) {
+            continue;
+        }
+
+        $customerPhoneNorm = $this->normalizePhone((string) $c['phone']);
+        $customerEmailNorm = mb_strtolower(trim((string) $c['email']), 'UTF-8');
+        $customerNomNorm = $this->normalizeSearchText((string) $c['last_name']);
+        $customerPrenomNorm = $this->normalizeSearchText((string) $c['first_name']);
+        $customerFullNorm = trim($customerNomNorm . $customerPrenomNorm);
+
+        $score = 0;
+
+        if ($phoneNorm !== '' && $customerPhoneNorm !== '') {
+            if ($phoneNorm === $customerPhoneNorm) {
+                $score += 100;
+            } elseif (
+                str_contains($customerPhoneNorm, $phoneNorm) ||
+                str_contains($phoneNorm, $customerPhoneNorm)
+            ) {
+                $score += 60;
+            }
+        }
+
+        if ($emailNorm !== '' && $customerEmailNorm !== '') {
+            if ($emailNorm === $customerEmailNorm) {
+                $score += 100;
+            } elseif (str_contains($customerEmailNorm, $emailNorm)) {
+                $score += 40;
+            }
+        }
+
+        if ($nomNorm !== '' && $customerNomNorm !== '') {
+            if ($nomNorm === $customerNomNorm) {
+                $score += 35;
+            } elseif (
+                str_contains($customerNomNorm, $nomNorm) ||
+                str_contains($nomNorm, $customerNomNorm)
+            ) {
+                $score += 20;
+            }
+        }
+
+        if ($prenomNorm !== '' && $customerPrenomNorm !== '') {
+            if ($prenomNorm === $customerPrenomNorm) {
+                $score += 25;
+            } elseif (
+                str_contains($customerPrenomNorm, $prenomNorm) ||
+                str_contains($prenomNorm, $customerPrenomNorm)
+            ) {
+                $score += 15;
+            }
+        }
+
+        if ($fullNorm !== '' && $customerFullNorm !== '' && str_contains($customerFullNorm, $fullNorm)) {
+            $score += 20;
+        }
+
+        if ($score > 0) {
+            $c['score'] = $score;
+            $results[] = $c;
+        }
+    }
+
+    usort($results, static function (array $a, array $b) {
+        $scoreCmp = ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
+        if ($scoreCmp !== 0) {
+            return $scoreCmp;
+        }
+
+        return ($a['id'] ?? 0) <=> ($b['id'] ?? 0);
+    });
+
+    $unique = [];
+    foreach ($results as $r) {
+        $id = (int) ($r['id'] ?? 0);
+        if ($id > 0) {
+            $unique[$id] = $r;
+        }
+    }
+
+    return array_values($unique);
+}
+public function findCustomerByRefExt(string $refExt): ?array
+{
+    $refExt = trim($refExt);
+    if ($refExt === '') {
+        return null;
+    }
+
+    foreach ($this->getCustomers() as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        if (trim((string)($row['customers_ref_ext'] ?? '')) === $refExt) {
+            return $this->normalizeCustomerRow($row);
+        }
+    }
+
+    return null;
+}
+
+public function ensureVirtualCustomer(string $refExt = 'RACHAT_VIRTUEL'): array
+{
+    $existing = $this->findVirtualCustomer($refExt);
+
+    if ($existing && !empty($existing['id'])) {
+        return [
+            'ok' => true,
+            'created' => false,
+            'customer_id' => (int)$existing['id'],
+            'customer' => $existing,
+        ];
+    }
+
+    $created = $this->createCustomer([
+        'first_name' => 'RACHATS',
+        'last_name' => 'INCOMPLETS',
+        'phone' => '',
+        'email' => '',
+        'company' => '',
+        'country' => 'FRA',
+        'customers_ref_ext' => $refExt,
+        'customers_misc' => 'Client virtuel pour vieux rachats incomplets',
+    ]);
+
+    $customerId = (int)($created['customer_id'] ?? 0);
+
+    return [
+        'ok' => ($created['ok'] ?? false) && $customerId > 0,
+        'created' => true,
+        'customer_id' => $customerId,
+        'raw' => $created,
+    ];
+}
+
+public function findVirtualCustomer(string $refExt = 'RACHAT_VIRTUEL'): ?array
+{
+    $refExt = trim($refExt);
+
+    foreach ($this->getCustomers() as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $storedRef = trim((string)($row['customers_ref_ext'] ?? ''));
+        $firstName = trim((string)($row['customers_first_name'] ?? ''));
+        $lastName = trim((string)($row['customers_last_name'] ?? ''));
+
+        // 1) match exact sur la nouvelle ref
+        if ($storedRef === $refExt) {
+            return $this->normalizeCustomerRow($row);
+        }
+
+        // 2) compatibilité avec les anciennes refs tronquées
+        if ($storedRef !== '' && str_starts_with($storedRef, 'VIRTUAL_RACHAT_INCOM')) {
+            return $this->normalizeCustomerRow($row);
+        }
+
+        // 3) sécurité supplémentaire sur le nom
+        if (
+            mb_strtolower($firstName, 'UTF-8') === 'rachats' &&
+            mb_strtolower($lastName, 'UTF-8') === 'incomplets'
+        ) {
+            return $this->normalizeCustomerRow($row);
+        }
+    }
+
+    return null;
+}
+public function createCategory(array $fields): array
+{
+    $res = $this->req('POST', 'categories', [
+        'json' => $fields,
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/json',
+        ],
+    ]);
+
+    if ($this->logger) {
+        $this->logger->info('[HIB CREATE CATEGORY]', [
+            'fields' => $fields,
+            'result' => $res,
+        ]);
+    }
+
+    return $res;
+}
+
+
 
 }

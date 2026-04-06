@@ -1,0 +1,116 @@
+<div class="ui two column stackable grid">
+    <div class="column">
+        <table class="ui very basic compact table">
+            <tbody>
+                <tr>
+                    <td><strong>ID</strong></td>
+                    <td>{{ dossier.id }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Référence</strong></td>
+                    <td>{{ dossier.reference ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Rachat source</strong></td>
+                    <td>{{ dossier.legacyRachatId ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Statut</strong></td>
+                    <td>{{ dossier.status ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date création</strong></td>
+                    <td>{{ dossier.createdAt ? dossier.createdAt|date('d/m/Y H:i') : '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Date cession</strong></td>
+                    <td>{{ dossier.dateCession ? dossier.dateCession|date('d/m/Y H:i') : '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Total achat</strong></td>
+                    <td>{{ dossier.totalAchat ?: '0.00' }} €</td>
+                </tr>
+                <tr>
+                    <td><strong>Mode paiement</strong></td>
+                    <td>{{ dossier.paidMethod ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Payé le</strong></td>
+                    <td>{{ dossier.paidAt ? dossier.paidAt|date('d/m/Y H:i') : '—' }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="column">
+        <table class="ui very basic compact table">
+            <tbody>
+                <tr>
+                    <td><strong>Client Hiboutik</strong></td>
+                    <td>{{ dossier.hibCustomerId ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Nom</strong></td>
+                    <td>{{ dossier.nomSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Prénom</strong></td>
+                    <td>{{ dossier.prenomSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Téléphone</strong></td>
+                    <td>{{ dossier.telephoneSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email</strong></td>
+                    <td>{{ dossier.emailSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Adresse</strong></td>
+                    <td>{{ dossier.adresseSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Code postal</strong></td>
+                    <td>{{ dossier.codePostalSnapshot ?: '—' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>N° CI</strong></td>
+                    <td>{{ dossier.numeroCiSnapshot ?: '—' }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="ui segment">
+    <h3 class="ui header">Client Hiboutik</h3>
+
+    <p>
+        <strong>ID client :</strong> {{ dossier.hibCustomerId ?: '—' }}<br>
+        <strong>Statut :</strong> {{ dossier.customerLinkStatus ?: '—' }}<br>
+        <strong>Note :</strong> {{ dossier.customerLinkNote ?: '—' }}
+    </p>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <a href="{{ path('admin_rachats_v2_customer_search', { id: dossier.id }) }}" class="ui button">
+            Rechercher client
+        </a>
+
+        <form method="post" action="{{ path('admin_rachats_v2_customer_create', { id: dossier.id }) }}" style="display:inline-block;">
+            <button type="submit" class="ui primary button">
+                Créer client
+            </button>
+        </form>
+
+        <form method="post" action="{{ path('admin_rachats_v2_customer_assign_virtual', { id: dossier.id }) }}" style="display:inline-block;">
+            <button type="submit" class="ui button">
+                Client virtuel
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if dossier.notes %}
+    <div class="ui divider"></div>
+    <strong>Notes :</strong><br>
+    {{ dossier.notes|nl2br }}
+{% endif %}

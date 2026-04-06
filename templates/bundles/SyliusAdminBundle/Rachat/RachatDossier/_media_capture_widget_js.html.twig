@@ -1,0 +1,536 @@
+<script>
+(function () {
+    let activeStream = null;
+    let activeVideo = null;
+
+    function stopGlobalCamera() {
+        if (activeStream) {
+            activeStream.getTracks().forEach(function (track) {
+                track.stop();
+            });
+            activeStream = null;
+        }
+
+        if (activeVideo) {
+            activeVideo.srcObject = null;
+            activeVideo = null;
+        }
+    }
+
+    function normalizeImageFile(file) {
+        return new Promise(function (resolve) {
+            if (!file || !file.type || !file.type.startsWith('image/')) {
+                resolve(file);
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const img = new Image();
+
+                img.onload = function () {
+                    const maxW = 1800;
+                    const maxH = 1800;
+
+                    let w = img.width;
+                    let h = img.height;
+
+                    const ratio = Math.min(maxW / w, maxH / h, 1);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+
+                    const c = document.createElement('canvas');
+                    c.width = w;
+                    c.height = h;
+
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    c.toBlob(function (blob) {
+                        if (!blob) {
+                            resolve(file);
+                            return;
+                        }
+
+                        resolve(new File([blob], (file.name || 'image') + '.jpg', { type: 'image/jpeg' }));
+                    }, 'image/jpeg', 0.9);
+                };
+
+                img.onerror = function () {
+                    resolve(file);
+                };
+
+                img.src = e.target.result;
+            };
+
+            reader.onerror = function () {
+                resolve(file);
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function bootWidget(root) {
+        if (!root || root.dataset.booted === '1' || root.dataset.disabled === '1') {
+            return;
+        }
+        root.dataset.booted = '1';
+
+        const uploadUrl = root.dataset.uploadUrl || '';
+        const deleteUrl = root.dataset.deleteUrl || '';
+        const csrfToken = root.dataset.csrf || '';
+        const slotField = root.dataset.slotField || 'slot';
+        const fileField = root.dataset.fileField || 'file';
+
+        const statusBox = root.querySelector('.js-rmw-status');
+        const video = root.querySelector('.js-rmw-video');
+        const canvas = root.querySelector('.js-rmw-canvas');
+        const cameraSelect = root.querySelector('.js-rmw-camera-select');
+        const btnStart = root.querySelector('.js-rmw-start-camera');
+        const btnStop = root.querySelector('.js-rmw-stop-camera');
+
+        function showStatus(message, type) {
+            if (!statusBox) {
+                return;
+            }
+
+            statusBox.className = 'ui message rmw-status js-rmw-status';
+
+            if (type === 'success') {
+                statusBox.classList.add('positive');
+            } else if (type === 'error') {
+                statusBox.classList.add('negative');
+            } else if (type === 'warning') {
+                statusBox.classList.add('warning');
+            } else {
+                statusBox.classList.add('info');
+            }
+
+            statusBox.textContent = message;
+            statusBox.classList.remove('rmw-hidden');
+        }
+
+        function hideStatus() {
+            if (!statusBox) {
+                return;
+            }
+
+            statusBox.className = 'ui message rmw-status js-rmw-status rmw-hidden';
+            statusBox.textContent = '';
+        }
+
+        function setPreview(slot, url) {
+            const img = root.querySelector('.js-rmw-preview[data-slot="' + slot + '"]');
+            const empty = root.querySelector('.js-rmw-preview-empty[data-slot="' + slot + '"]');
+            const link = root.querySelector('.js-rmw-open-link[data-slot="' + slot + '"]');
+            const cropBtn = root.querySelector('.js-rmw-crop[data-slot="' + slot + '"]');
+            const deleteBtn = root.querySelector('.js-rmw-delete[data-slot="' + slot + '"]');
+
+            if (!img || !empty || !link) {
+                return;
+            }
+
+            const finalUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+
+            img.src = finalUrl;
+            img.classList.remove('rmw-hidden');
+
+            empty.classList.add('rmw-hidden');
+
+            link.href = url;
+            link.classList.remove('rmw-hidden');
+
+            if (cropBtn) {
+                cropBtn.classList.remove('rmw-hidden');
+            }
+
+            if (deleteBtn) {
+                deleteBtn.classList.remove('rmw-hidden');
+            }
+        }
+
+        function clearPreview(slot) {
+            const img = root.querySelector('.js-rmw-preview[data-slot="' + slot + '"]');
+            const empty = root.querySelector('.js-rmw-preview-empty[data-slot="' + slot + '"]');
+            const link = root.querySelector('.js-rmw-open-link[data-slot="' + slot + '"]');
+            const cropBtn = root.querySelector('.js-rmw-crop[data-slot="' + slot + '"]');
+            const deleteBtn = root.querySelector('.js-rmw-delete[data-slot="' + slot + '"]');
+
+            if (img) {
+                img.src = '';
+                img.classList.add('rmw-hidden');
+            }
+
+            if (empty) {
+                empty.classList.remove('rmw-hidden');
+            }
+
+            if (link) {
+                link.href = '#';
+                link.classList.add('rmw-hidden');
+            }
+
+            if (cropBtn) {
+                cropBtn.classList.add('rmw-hidden');
+            }
+
+            if (deleteBtn) {
+                deleteBtn.classList.add('rmw-hidden');
+            }
+        }
+
+        async function loadCameras() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices || !cameraSelect) {
+                return;
+            }
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameras = devices.filter(function (d) {
+                return d.kind === 'videoinput';
+            });
+
+            cameraSelect.innerHTML = '<option value="">Caméra par défaut</option>';
+
+            cameras.forEach(function (camera, index) {
+                const option = document.createElement('option');
+                option.value = camera.deviceId;
+                option.textContent = camera.label || ('Caméra ' + (index + 1));
+                cameraSelect.appendChild(option);
+            });
+        }
+
+        async function startCamera(deviceId) {
+            hideStatus();
+            stopGlobalCamera();
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showStatus("Ce navigateur ne supporte pas l'accès webcam.", 'error');
+                return;
+            }
+
+            try {
+                const constraints = {
+                    audio: false,
+                    video: deviceId ? {
+                        deviceId: { exact: deviceId },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    } : {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    }
+                };
+
+                activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+                activeVideo = video;
+                video.srcObject = activeStream;
+                await video.play();
+
+                await loadCameras();
+
+                const track = activeStream.getVideoTracks()[0];
+                if (track && track.getSettings && cameraSelect) {
+                    const settings = track.getSettings();
+                    if (settings.deviceId) {
+                        cameraSelect.value = settings.deviceId;
+                    }
+                }
+
+                showStatus('Caméra active.', 'success');
+            } catch (e) {
+                console.error(e);
+                showStatus("Impossible d'ouvrir la caméra : " + (e.message || 'erreur inconnue'), 'error');
+            }
+        }
+
+        function captureBlobFromVideo() {
+            return new Promise(function (resolve, reject) {
+                const w = video.videoWidth || 0;
+                const h = video.videoHeight || 0;
+
+                if (!w || !h) {
+                    reject(new Error('Flux vidéo non prêt.'));
+                    return;
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, w, h);
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        reject(new Error("Impossible de générer l'image."));
+                        return;
+                    }
+
+                    resolve(blob);
+                }, 'image/jpeg', 0.92);
+            });
+        }
+
+        async function uploadFile(slot, blobOrFile, filename) {
+            const fd = new FormData();
+            fd.append('_token', csrfToken);
+            fd.append(slotField, slot);
+            fd.append(fileField, blobOrFile, filename || ('media-' + slot + '.jpg'));
+
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                body: fd,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            const json = await response.json();
+
+            if (!response.ok || !json.ok) {
+                throw new Error(json.error || 'Erreur upload');
+            }
+
+            setPreview(slot, json.url);
+
+            return json;
+        }
+
+        async function deleteSlot(slot) {
+            if (!deleteUrl) {
+                throw new Error('URL de suppression manquante.');
+            }
+
+            const fd = new FormData();
+            fd.append('_token', csrfToken);
+            fd.append(slotField, slot);
+
+            const response = await fetch(deleteUrl, {
+                method: 'POST',
+                body: fd,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            const json = await response.json();
+
+            if (!response.ok || !json.ok) {
+                throw new Error(json.error || 'Erreur suppression');
+            }
+
+            clearPreview(slot);
+
+            return json;
+        }
+
+        function openCropper(slot) {
+            const img = root.querySelector('.js-rmw-preview[data-slot="' + slot + '"]');
+
+            if (!img || !img.src) {
+                showStatus('Aucune image à recadrer.', 'warning');
+                return;
+            }
+
+            if (typeof Cropper === 'undefined') {
+                showStatus('Cropper.js n’est pas chargé.', 'error');
+                return;
+            }
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText =
+                'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;' +
+                'display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+
+            const cropImg = document.createElement('img');
+            cropImg.src = img.src;
+            cropImg.style.maxWidth = '90%';
+            cropImg.style.maxHeight = '75vh';
+            overlay.appendChild(cropImg);
+
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;';
+
+            const btnSave = document.createElement('button');
+            btnSave.type = 'button';
+            btnSave.className = 'ui primary button';
+            btnSave.textContent = 'Enregistrer recadrage';
+
+            const btnCancel = document.createElement('button');
+            btnCancel.type = 'button';
+            btnCancel.className = 'ui button';
+            btnCancel.textContent = 'Annuler';
+
+            actions.appendChild(btnSave);
+            actions.appendChild(btnCancel);
+            overlay.appendChild(actions);
+
+            document.body.appendChild(overlay);
+
+            const cropper = new Cropper(cropImg, {
+                aspectRatio: NaN,
+                viewMode: 1,
+                autoCropArea: 1
+            });
+
+            btnCancel.addEventListener('click', function () {
+                cropper.destroy();
+                overlay.remove();
+            });
+
+            btnSave.addEventListener('click', function () {
+                cropper.getCroppedCanvas({
+                    maxWidth: 1800,
+                    maxHeight: 1800,
+                    imageSmoothingQuality: 'high'
+                }).toBlob(async function (blob) {
+                    try {
+                        if (!blob) {
+                            throw new Error("Impossible de générer l'image recadrée.");
+                        }
+
+                        showStatus('Envoi du recadrage...', 'info');
+
+                        const file = new File([blob], slot + '.jpg', { type: 'image/jpeg' });
+                        await uploadFile(slot, file, file.name);
+
+                        cropper.destroy();
+                        overlay.remove();
+
+                        showStatus('Recadrage enregistré.', 'success');
+                    } catch (e) {
+                        console.error(e);
+                        showStatus('Erreur recadrage/upload : ' + (e.message || 'erreur inconnue'), 'error');
+                    }
+                }, 'image/jpeg', 0.92);
+            });
+        }
+
+        async function captureAndUpload(slot) {
+            try {
+                if (!activeStream || activeVideo !== video) {
+                    await startCamera(cameraSelect ? cameraSelect.value : '');
+                    if (!activeStream || activeVideo !== video) {
+                        return;
+                    }
+                }
+
+                showStatus('Capture en cours...', 'info');
+                const blob = await captureBlobFromVideo();
+                await uploadFile(slot, blob, 'webcam-' + slot + '.jpg');
+                showStatus('Image enregistrée pour ' + slot + '.', 'success');
+            } catch (e) {
+                console.error(e);
+                showStatus('Erreur capture/upload : ' + (e.message || 'erreur inconnue'), 'error');
+            }
+        }
+
+        async function handleManualUpload(slot, input) {
+            try {
+                const file = input.files && input.files[0] ? input.files[0] : null;
+                if (!file) {
+                    return;
+                }
+
+                showStatus('Préparation du fichier ' + slot + '...', 'info');
+                const normalized = await normalizeImageFile(file);
+
+                showStatus('Envoi du fichier ' + slot + '...', 'info');
+                await uploadFile(slot, normalized, normalized.name || ('upload-' + slot + '.jpg'));
+
+                showStatus('Image enregistrée pour ' + slot + '.', 'success');
+                input.value = '';
+            } catch (e) {
+                console.error(e);
+                showStatus('Erreur upload : ' + (e.message || 'erreur inconnue'), 'error');
+            }
+        }
+
+        if (btnStart) {
+            btnStart.addEventListener('click', function () {
+                startCamera(cameraSelect ? cameraSelect.value : '');
+            });
+        }
+
+        if (btnStop) {
+            btnStop.addEventListener('click', function () {
+                if (activeVideo === video) {
+                    stopGlobalCamera();
+                }
+                showStatus('Caméra fermée.', 'warning');
+            });
+        }
+
+        if (cameraSelect) {
+            cameraSelect.addEventListener('change', function () {
+                if (activeVideo === video && activeStream) {
+                    startCamera(cameraSelect.value);
+                }
+            });
+        }
+
+        root.querySelectorAll('.js-rmw-capture').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                captureAndUpload(btn.dataset.slot);
+            });
+        });
+
+        root.querySelectorAll('.js-rmw-file-input').forEach(function (input) {
+            input.addEventListener('change', function () {
+                handleManualUpload(input.dataset.slot, input);
+            });
+        });
+
+        root.querySelectorAll('.js-rmw-delete').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                const slot = btn.dataset.slot;
+
+                if (!window.confirm('Supprimer ' + slot + ' ?')) {
+                    return;
+                }
+
+                try {
+                    showStatus('Suppression en cours...', 'info');
+                    await deleteSlot(slot);
+                    showStatus('Image supprimée.', 'success');
+                } catch (e) {
+                    console.error(e);
+                    showStatus('Erreur suppression : ' + (e.message || 'erreur inconnue'), 'error');
+                }
+            });
+        });
+
+        root.querySelectorAll('.js-rmw-crop').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                openCropper(btn.dataset.slot);
+            });
+        });
+
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            loadCameras().catch(function (e) {
+                console.warn(e);
+            });
+        }
+    }
+
+    function bootAllWidgets() {
+        document.querySelectorAll('.js-rachat-media-widget').forEach(bootWidget);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootAllWidgets, { once: true });
+    } else {
+        bootAllWidgets();
+    }
+
+    document.addEventListener('turbo:load', bootAllWidgets);
+
+    window.addEventListener('beforeunload', function () {
+        stopGlobalCamera();
+    });
+})();
+</script>

@@ -89,8 +89,14 @@
         <span>🏠 ACCUEIL</span>
     </a>
 
+    <a href="{{ path('admin_rachats_v2_index') }}"
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_v2_' ? 'active' : '' }}" data-turbo="false">
+        <span>📱 RACHATS V2 (DOSSIER)</span>
+    </a>
+
+
     <a href="{{ path('admin_rachats_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_' ? 'active' : '' }}">
+       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_index' ? 'active' : '' }}">
         <span>📱 Rachats</span>
     </a>
 
@@ -142,10 +148,14 @@
     <a href="{{ path('app_admin_intervention_sales_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_sales' ? 'active' : '' }}">
         <span>💶 Ventes<br>(interventions)</span>
-    </a>
 
+    </a>
     <a href="{{ path('admin_display_message_index') }}"
        class="item {{ app.request.attributes.get('_route') starts with 'admin_display_message_' ? 'active' : '' }}">
       ✉️ Messages affichage
     </a>
+
+
+    
+
 </div>

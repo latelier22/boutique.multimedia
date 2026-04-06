@@ -1,0 +1,68 @@
+<div class="ui segment">
+    <h3 class="ui header">
+        <i class="boxes icon"></i>
+        <div class="content">
+            Produits repris
+            <div class="sub header">{{ dossier.items|length }} article(s)</div>
+        </div>
+    </h3>
+
+    <table class="ui celled compact table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Désignation</th>
+                <th>Catégorie</th>
+                <th>Marque / Modèle</th>
+                <th>IMEI / Série</th>
+                <th>État</th>
+                <th>Prix achat</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in dossier.items %}
+                <tr>
+                    <td>{{ item.ordre }}</td>
+                    <td>
+                        {{ item.designation ?: item.label }}
+                        {% if item.description %}
+                            <div style="margin-top:.35rem; color:#666;">
+                                {{ item.description }}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.categorie ?: '—' }}</td>
+                    <td>
+                        {% if item.marqueModele %}
+                            {{ item.marqueModele }}
+                        {% else %}
+                            {{ item.marque ?: '' }} {{ item.modele ?: '' }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.imei %}
+                            IMEI : {{ item.imei }}<br>
+                        {% endif %}
+                        {{ item.numeroSerie ?: '—' }}
+                    </td>
+                    <td>{{ item.etat ?: '—' }}</td>
+                    <td>{{ item.prixAchat ?: '0.00' }} €</td>
+                </tr>
+
+                {% if item.observations %}
+                    <tr>
+                        <td></td>
+                        <td colspan="6">
+                            <strong>Observations :</strong>
+                            {{ item.observations|nl2br }}
+                        </td>
+                    </tr>
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="7" class="center aligned">Aucun item</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

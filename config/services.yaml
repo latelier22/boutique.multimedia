@@ -12,8 +12,30 @@ parameters:
   tablet_pin: '%env(TABLET_PIN)%'
   tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
   webhook_secret: '%env(WEBHOOK_SECRET)%'
+  hiboutik_virtual_customer_id: 1251
+  app.legacy_rachats_enabled: true
 
   app.intervention_start_at: 2001
+
+  app.rachat_conditions_accept_label: "J'accepte les déclarations et conditions de cession ci-dessous."
+
+  app.rachat_conditions_pdf: |
+    Le vendeur déclare être le propriétaire légitime du bien cédé et avoir pleine capacité pour en disposer.
+    Le vendeur déclare que le bien cédé n'est pas issu d'un vol, d'un recel, d'une fraude, d'une location non restituée ou d'un financement non soldé.
+    Le vendeur déclare que les numéros d'identification communiqués (IMEI, numéro de série, référence) correspondent bien au matériel remis.
+    Le vendeur déclare avoir signalé à l'acheteur les défauts connus, dysfonctionnements, casses, blocages, accessoires manquants et limitations éventuelles du matériel.
+    Pour les appareils numériques, le vendeur déclare avoir retiré ses comptes, codes, verrous d'activation et protections à distance, et autorise l'effacement complet des données encore présentes sur le matériel.
+    Le vendeur reconnaît céder le matériel en l'état décrit au dossier et recevoir ce jour le montant indiqué sur le présent bon selon le mode de paiement mentionné.
+
+  app.rachat_conditions_tablet: |
+    Je reconnais avoir pris connaissance des déclarations et conditions de cession.
+    Je confirme être propriétaire légitime du matériel cédé.
+    Je confirme que les identifiants indiqués correspondent bien au matériel remis.
+    Je confirme avoir signalé les défauts connus et autorise l'effacement des données et comptes restants.
+    Je confirme recevoir le montant indiqué selon le mode de paiement mentionné sur le bon de cession.
+
+
+
 
   rachats_columns:
     columns:
@@ -172,3 +194,7 @@ services:
     App\Service\InterventionNumberGenerator:
         arguments:
             $startAt: '%app.intervention_start_at%'
+
+    # App\Service\RachatDossierCustomerResolver:
+    #     arguments:
+    #         $hiboutikVirtualCustomerId: '%hiboutik_virtual_customer_id%'

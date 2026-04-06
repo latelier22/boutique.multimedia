@@ -18,9 +18,15 @@
                 {{ card.button_label|default('Ouvrir') }}
             </a>
 
+            {% if card.secondary_route is defined and card.secondary_route %}
+                <a href="{{ path(card.secondary_route) }}" class="ui large button secondary-link">
+                    {{ card.secondary_label|default('+ Créer') }}
+                </a>
+            {% else %}
             <button type="button" class="ui large button create-btn">
-                {{ card.secondary_label|default('+ Créer') }}
+               Demander à configurer ce bouton
             </button>
+            {% endif %}
         </div>
     </div>
 </div>

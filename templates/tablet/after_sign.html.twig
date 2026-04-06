@@ -12,10 +12,11 @@
   </style>
 </head>
 <body>
+{% set titleId = dossier is defined and dossier ? dossier.id : (r is defined and r ? r.id : '') %}
   <div class="box">
     <h1>✅ Signature enregistrée</h1>
 
-    <p>Rachat n° <strong>{{ r.id }}</strong></p>
+    <p>Rachat n° <strong>{{ titleId }}</strong></p>
 
     {% if pdf_url %}
       <p>

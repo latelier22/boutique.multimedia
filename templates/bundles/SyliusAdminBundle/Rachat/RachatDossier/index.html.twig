@@ -1,0 +1,746 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Rachats V2
+{% endblock %}
+
+{% block content %}
+	<div class="ui segment">
+		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:12px;flex-wrap:wrap;">
+			<h1 class="ui header" style="margin:0;">
+				<i class="folder open icon"></i>
+				Rachats V2
+			</h1>
+		</div>
+		<a href="{{ path('admin_rachats_v2_new') }}" class="ui primary button">
+			<i class="plus icon"></i>
+			Nouveau dossier
+		</a>
+
+		<div class="ui segment" style="margin-bottom:1rem;">
+			<form method="get" class="ui form">
+				<div style="display:flex;align-items:end;gap:12px;flex-wrap:wrap;">
+					<div class="field" style="min-width:280px;margin:0;">
+						<label>Affichage clients</label>
+						<select name="customer_filter" class="ui dropdown">
+							<option value="without_virtual" {{ customerFilter == 'without_virtual' ? 'selected' : '' }}>
+								Par défaut : tout sauf client virtuel
+							</option>
+							<option value="no_client" {{ customerFilter == 'no_client' ? 'selected' : '' }}>
+								Seulement sans client
+							</option>
+							<option value="real_client" {{ customerFilter == 'real_client' ? 'selected' : '' }}>
+								Seulement avec vrai client
+							</option>
+							<option value="virtual_client" {{ customerFilter == 'virtual_client' ? 'selected' : '' }}>
+								Seulement client virtuel
+							</option>
+							<option value="all" {{ customerFilter == 'all' ? 'selected' : '' }}>
+								Voir tout
+							</option>
+						</select>
+					</div>
+
+					<div class="field" style="min-width:340px;flex:1;margin:0;">
+						<label>Recherche rapide</label>
+						<div class="ui left icon input" style="width:100%;">
+							<input type="text" id="live-dossier-search" placeholder="Nom, prénom, téléphone, référence, modèle, IMEI…" autocomplete="off">
+							<i class="search icon"></i>
+						</div>
+					</div>
+
+					<div style="display:flex;gap:8px;flex-wrap:wrap;">
+						<button type="submit" class="ui primary button">
+							<i class="filter icon"></i>
+							Filtrer
+						</button>
+
+						<a href="{{ path('admin_rachats_v2_index') }}" class="ui button">
+							Réinitialiser
+						</a>
+					</div>
+				</div>
+			</form>
+		</div>
+
+		<form method="post" id="bulk-dossiers-form">
+			<input type="hidden" name="_token" value="{{ csrf_token('bulk_rachats_v2') }}">
+
+			<div class="ui secondary segment" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+				<div>
+					<strong id="bulk-selected-count">0</strong>
+					dossier(s) sélectionné(s)
+					<span id="live-visible-count" style="margin-left:10px;color:#6b7280;"></span>
+				</div>
+
+				<div style="display:flex;gap:8px;flex-wrap:wrap;">
+					<button type="submit" class="ui button js-bulk-submit" formaction="{{ path('admin_rachats_v2_bulk_resync') }}" data-confirm="Resynchroniser les dossiers sélectionnés depuis les rachats legacy ?">
+						<i class="sync icon"></i>
+						Resync
+					</button>
+
+					<button type="submit" class="ui orange button js-bulk-submit" formaction="{{ path('admin_rachats_v2_bulk_assign_virtual') }}" data-confirm="Affecter les dossiers sélectionnés au client virtuel ?">
+						<i class="ghost icon"></i>
+						Affecter au virtuel
+					</button>
+
+					<button type="submit" class="ui primary button js-bulk-submit" formaction="{{ path('admin_rachats_v2_bulk_create_customers') }}" data-confirm="Pour chaque dossier sélectionné : affecter un client existant si le téléphone correspond, sinon créer un nouveau client ?">
+						<i class="users icon"></i>
+						Affecter par téléphone ou créer
+					</button>
+				</div>
+			</div>
+
+			<table class="ui celled compact table">
+				<thead>
+					<tr>
+						<th style="width:42px;" class="center aligned">
+							<div class="ui checkbox" style="margin:0;">
+								<input type="checkbox" id="check-all-dossiers">
+								<label></label>
+							</div>
+						</th>
+						<th>ID</th>
+						<th>Référence</th>
+						<th>Rachat source</th>
+						<th>Statut</th>
+						<th style="width:500px;">Client</th>
+						<th>Téléphone</th>
+						<th>Total</th>
+						<th style="width:300px;">Produits</th>
+						<th>Date</th>
+						<th style="width:250px;">Actions</th>
+					</tr>
+				</thead>
+				<tbody id="dossiers-tbody">
+					{% for dossier in dossiers %}
+						{% set hasCi = dossier.pieceIdentiteUrl is not empty %}
+						{% set hasDocs = dossier.pdfUrl is not empty or dossier.signatureUrl is not empty or dossier.pieceIdentiteUrl is not empty %}
+						{% set hasPhotos = false %}
+						{% for item in dossier.items %}
+							{% if item.photo1 is not empty or item.photo2 is not empty or item.photo3 is not empty or item.photosJson is not empty %}
+								{% set hasPhotos = true %}
+							{% endif %}
+						{% endfor %}
+
+						{% set searchParts = [
+                        dossier.id,
+                        dossier.reference,
+                        dossier.legacyRachatId,
+                        dossier.nomSnapshot,
+                        dossier.prenomSnapshot,
+                        dossier.telephoneSnapshot,
+                        dossier.emailSnapshot
+                    ] %}
+
+						{% for item in dossier.items %}
+							{% set searchParts = searchParts|merge([
+                            item.marqueModele,
+                            item.designation,
+                            item.imei,
+                            item.prixAchat,
+                            item.hibProductId
+                        ]) %}
+						{% endfor %}
+
+						<tr class="js-dossier-main-row" data-detail-id="details-{{ dossier.id }}" data-search="{{ searchParts|filter(v => v is not empty)|join(' ')|lower|e('html_attr') }}">
+							<td class="center aligned">
+								<input type="checkbox" class="js-dossier-checkbox" name="ids[]" value="{{ dossier.id }}">
+							</td>
+
+							<td>{{ dossier.id }}</td>
+							<td>{{ dossier.reference ?: '—' }}</td>
+
+							<td>
+								{% if dossier.legacyRachatId %}
+									<a href="{{ path('admin_rachats_show', { id: dossier.legacyRachatId }) }}" title="Voir le rachat d'origine #{{ dossier.legacyRachatId }}">
+										#{{ dossier.legacyRachatId }}
+									</a>
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td>
+								{% if dossier.status == 'signed' %}
+									<span class="ui green label">Signé</span>
+								{% elseif dossier.status == 'cancelled' %}
+									<span class="ui red label">Annulé</span>
+								{% elseif dossier.status == 'ready' %}
+									<span class="ui blue label">Prêt</span>
+								{% else %}
+									<span class="ui grey label">Brouillon</span>
+								{% endif %}
+							</td>
+
+							<td>
+								<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+									<div>
+										<div>
+											{{ dossier.prenomSnapshot ?: '' }}
+											{{ dossier.nomSnapshot ?: '—' }}
+										</div>
+
+										{% if dossier.hibCustomerId %}
+											<div style="margin-top:4px;">
+												{% if dossier.customerLinkStatus is defined and virtualStatus is defined and dossier.customerLinkStatus == virtualStatus %}
+													<span class="ui tiny grey label">
+														Virtuel #{{ dossier.hibCustomerId }}
+													</span>
+												{% else %}
+													<span class="ui tiny green label">
+														Client #{{ dossier.hibCustomerId }}
+													</span>
+												{% endif %}
+											</div>
+										{% endif %}
+									</div>
+
+									<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+										{% if hasCi %}
+											<button type="button" class="ui tiny basic icon button js-open-dossier-tab" data-target="details-{{ dossier.id }}" data-tab="piece-identite-{{ dossier.id }}" title="Pièce d'identité">
+												<i class="id card outline icon"></i>
+											</button>
+										{% else %}
+											<button type="button" class="ui tiny basic icon button disabled" title="Aucune pièce d'identité" tabindex="-1" style="opacity:.45;pointer-events:none;">
+												<i class="id card outline icon"></i>
+												<i class="ban icon" style="margin-left:-8px;color:#c0392b;"></i>
+											</button>
+										{% endif %}
+
+										{% if hasPhotos %}
+											<button type="button" class="ui tiny basic icon button js-open-dossier-tab" data-target="details-{{ dossier.id }}" data-tab="photos-{{ dossier.id }}" title="Photos">
+												<i class="images outline icon"></i>
+											</button>
+										{% else %}
+											<button type="button" class="ui tiny basic icon button disabled" title="Aucune photo" tabindex="-1" style="opacity:.45;pointer-events:none;">
+												<i class="images outline icon"></i>
+												<i class="ban icon" style="margin-left:-8px;color:#c0392b;"></i>
+											</button>
+										{% endif %}
+
+										{% if hasDocs %}
+											<button type="button" class="ui tiny basic icon button js-open-dossier-tab" data-target="details-{{ dossier.id }}" data-tab="documents-{{ dossier.id }}" title="Documents">
+												<i class="file alternate outline icon"></i>
+											</button>
+										{% else %}
+											<button type="button" class="ui tiny basic icon button disabled" title="Aucun document" tabindex="-1" style="opacity:.45;pointer-events:none;">
+												<i class="file alternate outline icon"></i>
+												<i class="ban icon" style="margin-left:-8px;color:#c0392b;"></i>
+											</button>
+										{% endif %}
+
+										{% if dossier.hibCustomerId and not (dossier.customerLinkStatus is defined and virtualStatus is defined and dossier.customerLinkStatus == virtualStatus) %}
+											<a href="{{ path('admin_rachats_v2_customer_show', { id: dossier.id }) }}" class="ui tiny basic button" title="Voir le client #{{ dossier.hibCustomerId }}">
+												<i class="user icon"></i>
+											</a>
+										{% endif %}
+
+										{% if dossier.hibCustomerId and not (dossier.customerLinkStatus is defined and virtualStatus is defined and dossier.customerLinkStatus == virtualStatus) %}
+											<a href="{{ path('admin_hiboutik_customer_edit', { id: dossier.hibCustomerId }) }}" class="ui tiny basic button" title="Éditer le client Hiboutik #{{ dossier.hibCustomerId }}">
+												<i class="edit icon"></i>
+											</a>
+										{% endif %}
+									</div>
+								</div>
+							</td>
+
+							<td>{{ dossier.telephoneSnapshot ?: '—' }}</td>
+							<td>{{ dossier.totalAchat ?: '0.00' }}
+								€</td>
+
+							<td>
+								<div style="display:flex;flex-direction:column;gap:6px;">
+									{% for item in dossier.items|slice(0, 4) %}
+										<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:nowrap;">
+											<div style="min-width:0;flex:1;">
+												<div style="font-weight:600;line-height:1.2;">
+													{{ item.marqueModele ?: item.designation ?: 'Produit' }}
+												</div>
+												<div style="font-size:.85rem;color:#6b7280;display:flex;gap:8px;flex-wrap:wrap;">
+													<span>{{ item.prixAchat ?: '—' }}
+														€</span>
+													{% if item.imei %}
+														<span>IMEI
+															{{ item.imei }}</span>
+													{% endif %}
+												</div>
+											</div>
+
+											<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+												{% if item.hibProductId %}
+													<span class="ui tiny green label" title="Produit Hiboutik créé">
+														<i class="cube icon"></i>
+														HIB #{{ item.hibProductId }}
+													</span>
+													<a href="{{ path('admin_hiboutik_product_edit', { id: item.hibProductId }) }}" class="ui tiny basic icon button" title="Voir produit Hiboutik #{{ item.hibProductId }}">
+														<i class="external alternate icon"></i>
+													</a>
+												{% else %}
+													<span class="ui tiny red label" title="Produit Hiboutik non créé">
+														<i class="ban icon"></i>
+														Pas Hiboutik
+													</span>
+												{% endif %}
+											</div>
+										</div>
+									{% else %}
+										<span style="color:#6b7280;">Aucun item</span>
+									{% endfor %}
+
+									{% if dossier.items|length > 4 %}
+										<div style="font-size:.82rem;color:#6b7280;">
+											+
+											{{ dossier.items|length - 4 }}
+											autre(s)
+										</div>
+									{% endif %}
+								</div>
+							</td>
+
+							<td>
+								{% if dossier.createdAt %}
+									{{ dossier.createdAt|date('d/m/Y H:i') }}
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td>
+								<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+									<button type="button" class="ui tiny button js-toggle-dossier" data-target="details-{{ dossier.id }}" data-open-tab="items-{{ dossier.id }}" title="Aperçu items">
+										<i class="eye icon"></i>
+									</button>
+
+									<a href="{{ path('admin_rachats_v2_display', { id: dossier.id }) }}" class="ui tiny button" title="Voir le dossier">
+										<i class="folder open icon"></i>
+									</a>
+
+									<a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}" class="ui tiny button" title="Modifier le dossier" data-turbo="false">
+										<i class="edit icon"></i>
+									</a>
+
+									{# <button type="submit" form="resync-one-{{ dossier.id }}" class="ui tiny basic button" title="Resync dossier" onclick="return confirm('Resynchroniser le dossier #{{ dossier.id }} ?');">
+																			<i class="sync icon"></i>
+																		</button> #}
+								</div>
+							</td>
+						</tr>
+
+						<tr id="details-{{ dossier.id }}" class="js-dossier-details" data-url="{{ path('admin_rachats_v2_details_row', { id: dossier.id }) }}" data-loaded="0" data-loading="0" style="display:none;">
+							<td colspan="11" style="background:#f9fafb;">
+								<div class="ui active inline loader"></div>
+							</td>
+						</tr>
+					{% else %}
+						<tr id="no-dossier-row">
+							<td colspan="11" class="center aligned">Aucun dossier</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</form>
+
+		<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:1rem;">
+			<div class="ui small message" style="margin:0;">
+				{{ totalCount }}
+				dossier(s) — page
+				{{ page }}
+				/
+				{{ totalPages }}
+			</div>
+
+			{% if totalPages > 1 %}
+				{% set startPage = page - 2 %}
+				{% if startPage < 1 %}
+					{% set startPage = 1 %}
+				{% endif %}
+
+				{% set endPage = startPage + 4 %}
+				{% if endPage > totalPages %}
+					{% set endPage = totalPages %}
+				{% endif %}
+
+				{% set startPage = endPage - 4 %}
+				{% if startPage < 1 %}
+					{% set startPage = 1 %}
+				{% endif %}
+
+				<div class="ui pagination menu">
+					{% if page > 1 %}
+						<a class="icon item" href="{{ path('admin_rachats_v2_index', { page: page - 1, customer_filter: customerFilter }) }}">
+							<i class="chevron left icon"></i>
+						</a>
+					{% else %}
+						<span class="icon item disabled">
+							<i class="chevron left icon"></i>
+						</span>
+					{% endif %}
+
+					{% for p in startPage..endPage %}
+						{% if p == page %}
+							<span class="active item">{{ p }}</span>
+						{% else %}
+							<a class="item" href="{{ path('admin_rachats_v2_index', { page: p, customer_filter: customerFilter }) }}">{{ p }}</a>
+						{% endif %}
+					{% endfor %}
+
+					{% if page < totalPages %}
+						<a class="icon item" href="{{ path('admin_rachats_v2_index', { page: page + 1, customer_filter: customerFilter }) }}">
+							<i class="chevron right icon"></i>
+						</a>
+					{% else %}
+						<span class="icon item disabled">
+							<i class="chevron right icon"></i>
+						</span>
+					{% endif %}
+				</div>
+			{% endif %}
+		</div>
+		{% for dossier in dossiers %}
+			<form id="resync-one-{{ dossier.id }}" method="post" action="{{ path('admin_rachats_v2_resync_one', { id: dossier.id }) }}" style="display:none;">
+				<input type="hidden" name="_token" value="{{ csrf_token('resync_dossier_' ~ dossier.id) }}">
+			</form>
+		{% endfor %}
+	</div>
+
+<script>
+function setActiveTab(parentCell, tabId) {
+    parentCell.querySelectorAll('.js-rachat-tab').forEach(function (t) {
+        t.classList.remove('active');
+    });
+
+    parentCell.querySelectorAll('.js-rachat-tab-pane').forEach(function (pane) {
+        pane.style.display = 'none';
+    });
+
+    const activeTab = parentCell.querySelector('.js-rachat-tab[data-tab="' + tabId + '"]');
+    const activePane = parentCell.querySelector('#' + CSS.escape(tabId));
+
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+
+    if (activePane) {
+        activePane.style.display = 'block';
+    }
+
+    return activePane;
+}
+
+function ensureCustomerPaneLoaded(tabId) {
+    const pane = document.getElementById(tabId);
+
+    if (!pane || !pane.classList.contains('js-customer-pane')) {
+        return;
+    }
+
+    if (pane.dataset.loaded === '1' || pane.dataset.loading === '1') {
+        return;
+    }
+
+    const url = pane.dataset.url;
+
+    if (!url) {
+        pane.innerHTML = '<div class="ui negative message">URL de chargement client manquante.</div>';
+        return;
+    }
+
+    pane.dataset.loading = '1';
+    pane.innerHTML = '<div class="ui active inline loader"></div>';
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+        .then(function (response) {
+            if (!response.ok) {
+                return response.text().then(function (text) {
+                    throw new Error(text || ('HTTP ' + response.status));
+                });
+            }
+
+            return response.text();
+        })
+        .then(function (html) {
+            pane.innerHTML = html;
+            pane.dataset.loaded = '1';
+        })
+        .catch(function (error) {
+            pane.innerHTML = '<div class="ui negative message">Chargement client impossible.</div>';
+            console.error('customer partial error:', error);
+        })
+        .finally(function () {
+            pane.dataset.loading = '0';
+        });
+}
+
+async function loadDossierDetailsRow(row) {
+    if (!row) {
+        return false;
+    }
+
+    if (row.dataset.loaded === '1') {
+        return true;
+    }
+
+    if (row.dataset.loading === '1') {
+        return false;
+    }
+
+    const url = row.dataset.url;
+    const cell = row.querySelector('td');
+
+    if (!url || !cell) {
+        return false;
+    }
+
+    row.dataset.loading = '1';
+    cell.innerHTML = '<div class="ui active inline loader"></div> Chargement des détails...';
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+
+        const html = await response.text();
+
+        if (!response.ok) {
+            throw new Error(html || ('HTTP ' + response.status));
+        }
+
+        cell.innerHTML = html;
+        row.dataset.loaded = '1';
+        return true;
+    } catch (error) {
+        console.error('details row error:', error);
+        cell.innerHTML = '<div class="ui negative message">Chargement des détails impossible.</div>';
+        return false;
+    } finally {
+        row.dataset.loading = '0';
+    }
+}
+
+async function openDossierRow(targetId, tabId = null) {
+    const row = document.getElementById(targetId);
+
+    if (!row) {
+        return;
+    }
+
+    const isOpen = row.style.display !== 'none';
+
+    if (isOpen && !tabId) {
+        row.style.display = 'none';
+        return;
+    }
+
+    document.querySelectorAll('.js-dossier-details').forEach(function (el) {
+        if (el !== row) {
+            el.style.display = 'none';
+        }
+    });
+
+    row.style.display = 'table-row';
+
+    const loaded = await loadDossierDetailsRow(row);
+
+    if (!loaded) {
+        return;
+    }
+
+    if (!tabId) {
+        return;
+    }
+
+    const parentCell = row.querySelector('td');
+
+    if (!parentCell) {
+        return;
+    }
+
+    const currentActiveTab = parentCell.querySelector('.js-rachat-tab.active');
+    const currentTabId = currentActiveTab ? currentActiveTab.dataset.tab : null;
+
+    if (isOpen && currentTabId === tabId) {
+        row.style.display = 'none';
+        return;
+    }
+
+    setActiveTab(parentCell, tabId);
+    ensureCustomerPaneLoaded(tabId);
+}
+
+document.addEventListener('click', function (e) {
+    const toggleBtn = e.target.closest('.js-toggle-dossier');
+    if (toggleBtn) {
+        e.preventDefault();
+        openDossierRow(toggleBtn.dataset.target, toggleBtn.dataset.openTab || null);
+        return;
+    }
+
+    const openTabBtn = e.target.closest('.js-open-dossier-tab');
+    if (openTabBtn) {
+        e.preventDefault();
+        openDossierRow(openTabBtn.dataset.target, openTabBtn.dataset.tab || null);
+        return;
+    }
+
+   const tab = e.target.closest('.js-rachat-tab');
+if (tab) {
+    e.preventDefault();
+
+    const detailRow = tab.closest('.js-dossier-details');
+    if (!detailRow) {
+        return;
+    }
+
+    const parentCell = tab.closest('td');
+    if (!parentCell) {
+        return;
+    }
+
+    setActiveTab(parentCell, tab.dataset.tab);
+    ensureCustomerPaneLoaded(tab.dataset.tab);
+}
+});
+
+(function () {
+    const checkAll = document.getElementById('check-all-dossiers');
+    const checkboxes = Array.from(document.querySelectorAll('.js-dossier-checkbox'));
+    const countNode = document.getElementById('bulk-selected-count');
+    const visibleCountNode = document.getElementById('live-visible-count');
+    const buttons = Array.from(document.querySelectorAll('.js-bulk-submit'));
+    const liveSearch = document.getElementById('live-dossier-search');
+    const mainRows = Array.from(document.querySelectorAll('.js-dossier-main-row'));
+
+    function normalizeText(value) {
+        return (value || '')
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim();
+    }
+
+    function getVisibleRows() {
+        return mainRows.filter(function (row) {
+            return row.style.display !== 'none';
+        });
+    }
+
+    function getVisibleCheckboxes() {
+        return getVisibleRows()
+            .map(function (row) {
+                return row.querySelector('.js-dossier-checkbox');
+            })
+            .filter(Boolean);
+    }
+
+    function refreshBulkUi() {
+        const checked = checkboxes.filter(function (cb) {
+            return cb.checked;
+        }).length;
+
+        const visibleCheckboxes = getVisibleCheckboxes();
+
+        const checkedVisible = visibleCheckboxes.filter(function (cb) {
+            return cb.checked;
+        }).length;
+
+        if (countNode) {
+            countNode.textContent = String(checked);
+        }
+
+        buttons.forEach(function (btn) {
+            btn.disabled = checked === 0;
+        });
+
+        if (checkAll) {
+            if (visibleCheckboxes.length === 0) {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            } else {
+                checkAll.checked = checkedVisible > 0 && checkedVisible === visibleCheckboxes.length;
+                checkAll.indeterminate = checkedVisible > 0 && checkedVisible < visibleCheckboxes.length;
+            }
+        }
+    }
+
+    function refreshVisibleCount() {
+        const visibleRows = getVisibleRows().length;
+
+        if (visibleCountNode) {
+            visibleCountNode.textContent = '• ' + visibleRows + ' visible(s)';
+        }
+    }
+
+    function applyLiveSearch() {
+        const q = normalizeText(liveSearch ? liveSearch.value : '');
+
+        mainRows.forEach(function (row) {
+            const haystack = normalizeText(row.dataset.search || '');
+            const detailId = row.dataset.detailId;
+            const detailRow = detailId ? document.getElementById(detailId) : null;
+            const match = q === '' || haystack.includes(q);
+
+            row.style.display = match ? '' : 'none';
+
+            if (!match && detailRow) {
+                detailRow.style.display = 'none';
+            }
+        });
+
+        refreshVisibleCount();
+        refreshBulkUi();
+    }
+
+    if (liveSearch) {
+        liveSearch.addEventListener('input', applyLiveSearch);
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            const checked = checkAll.checked;
+
+            getVisibleCheckboxes().forEach(function (cb) {
+                cb.checked = checked;
+            });
+
+            refreshBulkUi();
+        });
+    }
+
+    checkboxes.forEach(function (cb) {
+        cb.addEventListener('change', refreshBulkUi);
+    });
+
+    buttons.forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            const checked = checkboxes.filter(function (cb) {
+                return cb.checked;
+            }).length;
+
+            if (checked === 0) {
+                e.preventDefault();
+                return;
+            }
+
+            const msg = btn.dataset.confirm;
+            if (msg && !window.confirm(msg)) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    applyLiveSearch();
+    refreshBulkUi();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Recherche client Hiboutik{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="users icon"></i>
+            <div class="content">
+                Recherche client Hiboutik
+                <div class="sub header">
+                    Dossier {{ dossier.reference ?: ('#' ~ dossier.id) }}
+                </div>
+            </div>
+        </h1>
+
+        <a href="{{ path('admin_rachats_v2_show', { id: dossier.id }) }}" class="ui button">
+            <i class="arrow left icon"></i>
+            Retour dossier
+        </a>
+    </div>
+</div>
+
+<div class="ui info message">
+    <div class="header">Données du dossier</div>
+    <p style="margin-top:.5rem;">
+        <strong>Nom :</strong> {{ dossier.nomSnapshot ?: '—' }}<br>
+        <strong>Prénom :</strong> {{ dossier.prenomSnapshot ?: '—' }}<br>
+        <strong>Téléphone :</strong> {{ dossier.telephoneSnapshot ?: '—' }}<br>
+        <strong>Email :</strong> {{ dossier.emailSnapshot ?: '—' }}
+    </p>
+</div>
+
+<div class="ui segment">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <form method="post" action="{{ path('admin_rachats_v2_customer_create', { id: dossier.id }) }}" style="display:inline-block;">
+            <button type="submit" class="ui primary button">
+                <i class="user plus icon"></i>
+                Créer un client Hiboutik
+            </button>
+        </form>
+
+        <form method="post" action="{{ path('admin_rachats_v2_customer_assign_virtual', { id: dossier.id }) }}" style="display:inline-block;">
+            <button type="submit" class="ui button">
+                <i class="ghost icon"></i>
+                Affecter le client virtuel
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="ui segment">
+    <h3 class="ui header">
+        <i class="search icon"></i>
+        <div class="content">
+            Résultats
+            <div class="sub header">{{ candidates|length }} résultat(s)</div>
+        </div>
+    </h3>
+
+    <table class="ui celled compact table">
+        <thead>
+            <tr>
+                <th>ID Hiboutik</th>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>Téléphone</th>
+                <th>Email</th>
+                <th>Score</th>
+                <th style="width:140px;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in candidates %}
+            <tr>
+                <td>{{ c.id ?: '—' }}</td>
+                <td>{{ c.last_name ?: '—' }}</td>
+                <td>{{ c.first_name ?: '—' }}</td>
+                <td>{{ c.phone ?: '—' }}</td>
+                <td>{{ c.email ?: '—' }}</td>
+                <td>{{ c.score ?? '—' }}</td>
+                <td>
+                    <form method="post" action="{{ path('admin_rachats_v2_customer_assign', { id: dossier.id, customerId: c.id }) }}">
+                        <button type="submit" class="ui tiny primary button">
+                            Affecter
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7" class="center aligned">
+                    Aucun client trouvé
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

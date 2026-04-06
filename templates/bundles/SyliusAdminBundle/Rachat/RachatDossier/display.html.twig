@@ -1,0 +1,87 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Dossier rachat #{{ dossier.id }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="folder open icon"></i>
+            <div class="content">
+                Dossier {{ dossier.reference ?: ('#' ~ dossier.id) }}
+                <div class="sub header">
+                    Rachat source : {{ dossier.legacyRachatId ?: '—' }}
+                </div>
+            </div>
+        </h1>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ path('admin_rachats_v2_index') }}" class="ui button">
+                <i class="arrow left icon"></i>
+                Retour liste
+            </a>
+            <a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}" class="ui primary button" title="Modifier le dossier">
+										<i class="edit icon"></i>
+                                        Modifier le dossier
+									</a>
+
+            {% if dossier.legacyRachatId %}
+                <a href="{{ path('admin_rachats_show', { id: dossier.legacyRachatId }) }}" class="ui button">
+                    <i class="history icon"></i>
+                    Voir rachat source
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="ui top attached tabular menu">
+    <a class="active item js-rachat-tab" data-tab="items">Items</a>
+    <a class="item js-rachat-tab" data-tab="infos">Infos</a>
+    <a class="item js-rachat-tab" data-tab="piece-identite">Pièce d'identité</a>
+    <a class="item js-rachat-tab" data-tab="photos">Photos</a>
+    <a class="item js-rachat-tab" data-tab="documents">Documents</a>
+</div>
+
+<div class="ui bottom attached segment" style="border-top:none;">
+    <div id="items" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_items.html.twig' with { dossier: dossier } %}
+    </div>
+    <div id="infos" class="js-rachat-tab-pane">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_infos.html.twig' with { dossier: dossier } %}
+    </div>
+
+
+    <div id="piece-identite" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_piece_identite.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="photos" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_photos_items.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="documents" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_documents.html.twig' with { dossier: dossier } %}
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.js-rachat-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.js-rachat-tab').forEach(function (t) {
+            t.classList.remove('active');
+        });
+        tab.classList.add('active');
+
+        document.querySelectorAll('.js-rachat-tab-pane').forEach(function (pane) {
+            pane.style.display = 'none';
+        });
+
+        const pane = document.getElementById(tab.dataset.tab);
+        if (pane) {
+            pane.style.display = 'block';
+        }
+    });
+});
+</script>
+{% endblock %}

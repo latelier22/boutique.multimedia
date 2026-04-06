@@ -1,0 +1,180 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Aperçu PDF dossier #{{ dossier.id }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="file pdf outline icon"></i>
+            Aperçu PDF — dossier #{{ dossier.id }}
+        </h1>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="{{ path('admin_rachats_v2_index') }}" class="ui button">
+                <i class="list icon"></i>
+                Retour liste
+            </a>
+
+            <a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}" class="ui button">
+                <i class="folder open icon"></i>
+                Retour dossier
+            </a>
+
+            <a href="{{ dossier.pdfUrl }}#page={{ currentPage }}" target="_blank" class="ui button">
+                <i class="external alternate icon"></i>
+                Ouvrir le PDF
+            </a>
+
+            <a href="{{ dossier.pdfUrl }}#page={{ currentPage }}" target="_blank" class="ui teal button">
+                <i class="print icon"></i>
+                Imprimer
+            </a>
+
+            <a href="{{ path('admin_rachats_v2_sign', { id: dossier.id }) }}" class="ui orange button">
+    <i class="pencil alternate icon"></i>
+    Signer
+</a>
+
+            <button
+    type="button"
+    id="btn-tablet-sign"
+    class="ui primary button"
+    data-id="{{ dossier.id }}"
+    data-device="TAB1"
+    data-socket-token="{{ tablet_socket_token }}"
+>
+    <i class="tablet alternate icon"></i>
+    Signer sur tablette
+</button>
+        </div>
+    </div>
+
+    <div class="ui stackable grid">
+        <div class="four wide column">
+            <div class="ui segment" style="max-height:75vh;overflow:auto;">
+                <div class="ui small header">Pages du PDF</div>
+
+                {% if pageCount > 0 %}
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        {% for p in 1..pageCount %}
+                            <a
+                                href="{{ path('admin_rachats_v2_pdf_preview', { id: dossier.id, page: p }) }}"
+                                class="ui {% if p == currentPage %}blue{% endif %} segment"
+                                style="padding:8px;display:block;"
+                            >
+                                <div style="font-weight:700;margin-bottom:6px;">Page {{ p }}</div>
+                                <img
+                                    src="{{ path('admin_rachats_v2_pdf_thumb_page', { id: dossier.id, page: p }) }}"
+                                    alt="Page {{ p }}"
+                                    style="width:100%;height:auto;display:block;border-radius:6px;"
+                                    loading="lazy"
+                                >
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="ui warning message">Impossible de déterminer le nombre de pages.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="twelve wide column">
+            <div class="ui segment">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                    <div class="ui header" style="margin:0;">
+                        Page {{ currentPage }}
+                    </div>
+
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        {% if currentPage > 1 %}
+                            <a href="{{ path('admin_rachats_v2_pdf_preview', { id: dossier.id, page: currentPage - 1 }) }}" class="ui button">
+                                <i class="chevron left icon"></i>
+                                Précédente
+                            </a>
+                        {% endif %}
+
+                        {% if currentPage < pageCount %}
+                            <a href="{{ path('admin_rachats_v2_pdf_preview', { id: dossier.id, page: currentPage + 1 }) }}" class="ui button">
+                                Suivante
+                                <i class="chevron right icon"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="text-align:center;">
+                   <img
+    src="{{ path('admin_rachats_v2_pdf_preview_image', { id: dossier.id, page: currentPage }) }}"
+    alt="Aperçu page {{ currentPage }}"
+    style="width:100%;height:auto;display:block;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.08);"
+>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+  const btnTabletSign = document.getElementById('btn-tablet-sign');
+  if (!btnTabletSign) return;
+
+  btnTabletSign.addEventListener('click', async () => {
+    try {
+      const id = btnTabletSign.dataset.id;
+      const device = btnTabletSign.dataset.device || 'TAB1';
+      const socketToken = btnTabletSign.dataset.socketToken || '';
+
+      if (!socketToken) {
+        throw new Error('tablet_socket_token manquant');
+      }
+
+      btnTabletSign.classList.add('loading');
+      btnTabletSign.disabled = true;
+
+      const res = await fetch(`/admin/rachats-v2/${id}/tablet-link`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+      });
+
+      const j = await res.json();
+
+      if (!j || !j.ok || !j.url) {
+        throw new Error((j && j.error) || 'tablet-link: url manquante');
+      }
+
+      const u = new URL(j.url, window.location.origin);
+
+      const push = await fetch(`/ws-tablet-push`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          device: device,
+          url: u.pathname + u.search,
+          token: socketToken
+        })
+      });
+
+      const pj = await push.json();
+
+      if (!pj.ok) {
+        throw new Error('Push KO: ' + (pj.error || ''));
+      }
+
+    } catch (e) {
+      console.error(e);
+      alert('Erreur "Signer sur tablette" : ' + (e.message || 'inconnue'));
+    } finally {
+      btnTabletSign.classList.remove('loading');
+      btnTabletSign.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

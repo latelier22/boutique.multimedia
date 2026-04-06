@@ -5,7 +5,7 @@ namespace App\Controller\Admin\Rachat;
 use App\Entity\Rachat\Rachat;
 use App\Entity\Rachat\AttributeDefinition;
 use App\Entity\Rachat\Revendeur;
-use App\Form\RachatType;
+use App\Form\Rachat\RachatType;
 use App\Service\HiboutikClient;
 use App\Service\RachatPdfGenerator;
 use App\Service\RevendeurHiboutikSync;
@@ -28,6 +28,11 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
+use App\Service\Rachat\RachatLegacyConverter;
+use App\Entity\Rachat\RachatDossier;
+use App\Service\AppSettingsService;
+
+
 #[Route('/admin/rachats', name: 'admin_rachats_')]
 final class RachatController extends AbstractController
 {
@@ -37,7 +42,27 @@ final class RachatController extends AbstractController
         private MailerInterface $mailer,
         private RevendeurHiboutikSync $sync,
         private ?LoggerInterface $logger = null,
+        private AppSettingsService $settings,
     ) {}
+
+    /* ============================================================
+     *  LEGACY RACHATS ENABLED ?
+     * ============================================================ */  
+
+    private function legacyRachatsEnabled(): bool
+{
+    return $this->settings->getBool('legacy_rachats_enabled', false);
+}
+
+private function redirectLegacyDisabled(): Response
+{
+    $this->addFlash(
+        'warning',
+        'Les rachats legacy sont désactivés. Utilisez désormais les dossiers V2.'
+    );
+
+    return $this->redirectToRoute('admin_rachats_v2_index');
+}
 
     /* ============================================================
      *  TABLET
@@ -76,76 +101,92 @@ final class RachatController extends AbstractController
         return $this->json(['ok' => true, 'url' => $url, 'token' => $token]);
     }
 
-  #[Route('', name: 'index', methods: ['GET', 'POST'])]
+
+
+
+#[Route('/{id}/create-dossier', name: 'create_dossier', methods: ['POST'])]
+public function createDossier(
+    int $id,
+    Request $request,
+    EntityManagerInterface $em,
+    RachatLegacyConverter $converter,
+    LoggerInterface $logger
+): Response {
+    if (!$this->isCsrfTokenValid('create_dossier_' . $id, (string) $request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('Token CSRF invalide.');
+    }
+
+    $logger->info('create_dossier called', [
+        'legacy_id' => $id,
+        'referer' => $request->headers->get('referer'),
+        'redirect' => $request->request->get('_redirect'),
+    ]);
+
+    $legacy = $em->getRepository(Rachat::class)->find($id);
+
+    if (!$legacy) {
+        throw $this->createNotFoundException('Rachat introuvable');
+    }
+
+    $dossier = $converter->convert($legacy, true);
+
+    $this->addFlash('success', sprintf(
+        'Dossier V2 #%d lié au rachat legacy #%d.',
+        $dossier->getId(),
+        $legacy->getId()
+    ));
+
+    $redirect = $request->request->get('_redirect');
+    if (is_string($redirect) && $redirect !== '') {
+        return $this->redirect($redirect);
+    }
+
+    return $this->redirectToRoute('admin_rachats_index');
+}
+
+
+
+
+
+
+#[Route('', name: 'index', methods: ['GET', 'POST'])]
 public function index(Request $request): Response
 {
     if ($request->isMethod('POST')) {
         return $this->redirectToRoute('admin_rachats_index', $request->request->all());
     }
 
-    // Colonnes "simples" seulement
-    $columns = [
-        'id',
-        'enabled',
-        'dateCession',
-        'pdfUrl',
-        'marqueModele',
-        'imei',
-        'prixAchat',
-        'nom',
-        'prenom',
-        'numeroCi',
-        // 'pieceIdentiteUrl', // <-- IMPORTANT : retiré d'ici
-        'telephone',
-        'email',
-        'adresse',
-        'codePostal',
-        'hibSupplierId',
-        'hibProductId',
-        'paidMethod',
-        'paidAt',
-        'photosJson',
-        'createdAt',
-
-        'revendeurId',
-        'vendorProcessedAt',
-        'hibInventoryInputId',
-        'hibArrivageAddedAt',
-    ];
-
+    $dossier = trim((string) $request->query->get('dossier', ''));
     $enabled = $request->query->getInt('enabled', 1);
-    $q = trim((string)$request->query->get('q', ''));
+    $q = trim((string) $request->query->get('q', ''));
+    $paid = (string) $request->query->get('paid', '');
+    $revendeur = (string) $request->query->get('revendeur', '');
+    $arrivage = (string) $request->query->get('arrivage', '');
 
-    $ym = trim((string)$request->query->get('ym', ''));
-    $useMonthFilter = true;
-
-    if ($ym === 'all') {
-        $useMonthFilter = false;
-    } elseif ($ym === '' || !preg_match('/^\d{4}-\d{2}$/', $ym)) {
-        $ym = (new \DateTimeImmutable('now'))->format('Y-m');
-    }
-
+    $ym = trim((string) $request->query->get('ym', 'all'));
+    $useMonthFilter = false;
     $from = null;
     $to = null;
-    if ($useMonthFilter) {
+
+    if ($ym !== 'all' && preg_match('/^\d{4}-\d{2}$/', $ym)) {
+        $useMonthFilter = true;
+
         [$year, $month] = array_map('intval', explode('-', $ym));
         $from = new \DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
         $to = $from->modify('first day of next month');
+    } else {
+        $ym = 'all';
     }
-
-    $paid = (string)$request->query->get('paid', '');
-    $revendeur = (string)$request->query->get('revendeur', '');
-    $arrivage = (string)$request->query->get('arrivage', '');
 
     $qb = $this->em->getRepository(Rachat::class)->createQueryBuilder('r')
         ->leftJoin('r.revendeur', 'rev')
         ->addSelect('rev')
         ->andWhere('r.enabled = :e')
-        ->setParameter('e', (bool)$enabled)
+        ->setParameter('e', (bool) $enabled)
         ->orderBy('r.id', 'DESC');
 
     if ($useMonthFilter) {
-        $qb->andWhere('(r.dateCession >= :from AND r.dateCession < :to)')
+        $qb->andWhere('r.dateCession >= :from AND r.dateCession < :to')
             ->setParameter('from', $from)
             ->setParameter('to', $to);
     }
@@ -189,128 +230,167 @@ public function index(Request $request): Response
 
         if (ctype_digit($q)) {
             $orX->add('r.id = :rid');
-            $qb->setParameter('rid', (int)$q);
+            $qb->setParameter('rid', (int) $q);
         }
 
         $qb->andWhere($orX)->setParameter('q', $qLike);
     }
 
     $rowsRaw = $qb->getQuery()->getArrayResult();
-
     $rows = [];
+
     foreach ($rowsRaw as $row) {
-        $idInt = (int)($row['id'] ?? 0);
+        $idInt = (int) ($row['id'] ?? 0);
         if ($idInt <= 0) {
             continue;
         }
 
         $revId = 0;
         if (isset($row['revendeur']) && is_array($row['revendeur'])) {
-            $revId = (int)($row['revendeur']['id'] ?? 0);
+            $revId = (int) ($row['revendeur']['id'] ?? 0);
         }
-
-        foreach ($row as $k => $v) {
-            if ($v instanceof \DateTimeInterface) {
-                $row[$k] = $v->format('d-m-Y');
-            } elseif ($v === null) {
-                $row[$k] = '';
-            }
-        }
-
-        $editUrl = $this->generateUrl('admin_rachats_edit', ['id' => $idInt]);
-        $autreUrl = $this->generateUrl('admin_rachats_autre', ['id' => $idInt]);
 
         $photosFirst = '';
         $photosCount = 0;
+
         if (!empty($row['photosJson'] ?? $row['photos_json'] ?? '')) {
-            $rawPhotos = (string)($row['photosJson'] ?? $row['photos_json']);
+            $rawPhotos = (string) ($row['photosJson'] ?? $row['photos_json']);
             $arr = json_decode($rawPhotos, true);
+
             if (is_array($arr) && $arr) {
                 $photosCount = count($arr);
                 $photosFirst = $this->generateUrl('admin_rachats_photo', [
                     'id' => $idInt,
-                    'file' => basename((string)$arr[0]),
+                    'file' => basename((string) $arr[0]),
                 ]);
             }
         }
 
-        $revendeurShowUrl = $revId > 0
-            ? $this->generateUrl('admin_revendeurs_show', ['id' => $revId])
-            : '';
+        $ciRecto = '';
+        $ciVerso = '';
+        $rawCi = $row['pieceIdentiteUrl'] ?? $row['piece_identite_url'] ?? null;
 
-        $revendeurEditUrl = $revId > 0
-            ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId])
-            : '';
+        if (is_string($rawCi) && $rawCi !== '') {
+            $decoded = json_decode($rawCi, true);
 
-      // ===== Pièce d'identité : normalisation propre =====
-$ciRecto = '';
-$ciVerso = '';
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                if (!empty($decoded['recto']) && is_string($decoded['recto'])) {
+                    $ciRecto = $decoded['recto'];
+                }
+                if (!empty($decoded['verso']) && is_string($decoded['verso'])) {
+                    $ciVerso = $decoded['verso'];
+                }
 
-$rawCi = $row['pieceIdentiteUrl'] ?? $row['piece_identite_url'] ?? null;
-
-if (is_string($rawCi) && $rawCi !== '') {
-    $decoded = json_decode($rawCi, true);
-
-    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-        // cas {"recto":"...","verso":"..."}
-        if (!empty($decoded['recto']) && is_string($decoded['recto'])) {
-            $ciRecto = $decoded['recto'];
-        }
-        if (!empty($decoded['verso']) && is_string($decoded['verso'])) {
-            $ciVerso = $decoded['verso'];
-        }
-
-        // cas ["/url/recto", "/url/verso"]
-        if ($ciRecto === '' && !empty($decoded[0]) && is_string($decoded[0])) {
-            $ciRecto = $decoded[0];
-        }
-        if ($ciVerso === '' && !empty($decoded[1]) && is_string($decoded[1])) {
-            $ciVerso = $decoded[1];
-        }
-    } else {
-        // cas URL simple
-        $ciRecto = $rawCi;
-    }
-} elseif (is_array($rawCi)) {
-    if (!empty($rawCi['recto']) && is_string($rawCi['recto'])) {
-        $ciRecto = $rawCi['recto'];
-    }
-    if (!empty($rawCi['verso']) && is_string($rawCi['verso'])) {
-        $ciVerso = $rawCi['verso'];
-    }
-
-    if ($ciRecto === '' && !empty($rawCi[0]) && is_string($rawCi[0])) {
-        $ciRecto = $rawCi[0];
-    }
-    if ($ciVerso === '' && !empty($rawCi[1]) && is_string($rawCi[1])) {
-        $ciVerso = $rawCi[1];
-    }
-}
-
-        $reshaped = [];
-        foreach ($columns as $c) {
-            $value = $this->getRowValue($row, $c);
-
-            if (is_scalar($value) || $value === null) {
-                $reshaped[$c] = (string)($value ?? '');
+                if ($ciRecto === '' && !empty($decoded[0]) && is_string($decoded[0])) {
+                    $ciRecto = $decoded[0];
+                }
+                if ($ciVerso === '' && !empty($decoded[1]) && is_string($decoded[1])) {
+                    $ciVerso = $decoded[1];
+                }
             } else {
-                $reshaped[$c] = '';
+                $ciRecto = $rawCi;
+            }
+        } elseif (is_array($rawCi)) {
+            if (!empty($rawCi['recto']) && is_string($rawCi['recto'])) {
+                $ciRecto = $rawCi['recto'];
+            }
+            if (!empty($rawCi['verso']) && is_string($rawCi['verso'])) {
+                $ciVerso = $rawCi['verso'];
+            }
+
+            if ($ciRecto === '' && !empty($rawCi[0]) && is_string($rawCi[0])) {
+                $ciRecto = $rawCi[0];
+            }
+            if ($ciVerso === '' && !empty($rawCi[1]) && is_string($rawCi[1])) {
+                $ciVerso = $rawCi[1];
             }
         }
 
-        $reshaped['id'] = (string)$idInt;
-        $reshaped['revendeurId'] = (string)$revId;
-        $reshaped['ciRecto'] = $ciRecto;
-$reshaped['ciVerso'] = $ciVerso;
+        $rows[] = [
+            'id' => (string) $idInt,
+            'dateCession' => ($row['dateCession'] ?? null) instanceof \DateTimeInterface ? $row['dateCession']->format('d-m-Y') : '',
+            'marqueModele' => (string) ($row['marqueModele'] ?? ''),
+            'imei' => (string) ($row['imei'] ?? ''),
+            'prixAchat' => (string) ($row['prixAchat'] ?? ''),
+            'nom' => (string) ($row['nom'] ?? ''),
+            'prenom' => (string) ($row['prenom'] ?? ''),
+            'numeroCi' => (string) ($row['numeroCi'] ?? ''),
+            'telephone' => (string) ($row['telephone'] ?? ''),
+            'email' => (string) ($row['email'] ?? ''),
+            'adresse' => (string) ($row['adresse'] ?? ''),
+            'codePostal' => (string) ($row['codePostal'] ?? ''),
+            'hibSupplierId' => (string) ($row['hibSupplierId'] ?? ''),
+            'hibProductId' => (string) ($row['hibProductId'] ?? ''),
+            'hibInventoryInputId' => (string) ($row['hibInventoryInputId'] ?? ''),
+            'paidAt' => ($row['paidAt'] ?? null) instanceof \DateTimeInterface ? $row['paidAt']->format('d-m-Y H:i') : '',
+            'paidMethod' => (string) ($row['paidMethod'] ?? ''),
+            'revendeurId' => (string) $revId,
+            'pdfUrl' => (string) ($row['pdfUrl'] ?? ''),
+            'photosFirst' => $photosFirst,
+            'photosCount' => (string) $photosCount,
+            'ciRecto' => $ciRecto,
+            'ciVerso' => $ciVerso,
+            'editUrl' => $this->generateUrl('admin_rachats_edit', ['id' => $idInt]),
+            'showUrl' => $this->generateUrl('admin_rachats_show', ['id' => $idInt]),
+            'autreUrl' => $this->generateUrl('admin_rachats_autre', ['id' => $idInt]),
+            'revendeurShowUrl' => $revId > 0 ? $this->generateUrl('admin_revendeurs_show', ['id' => $revId]) : '',
+            'revendeurEditUrl' => $revId > 0 ? $this->generateUrl('admin_revendeurs_edit', ['id' => $revId]) : '',
+        ];
+    }
 
-        $reshaped['editUrl'] = $editUrl;
-        $reshaped['autreUrl'] = $autreUrl;
-        $reshaped['photosFirst'] = $photosFirst;
-        $reshaped['photosCount'] = (string)$photosCount;
-        $reshaped['revendeurShowUrl'] = $revendeurShowUrl;
-        $reshaped['revendeurEditUrl'] = $revendeurEditUrl;
+    $legacyIds = array_values(array_filter(array_map(
+        static fn(array $row) => isset($row['id']) ? (int) $row['id'] : 0,
+        $rows
+    )));
 
-        $rows[] = $reshaped;
+    $dossiers = [];
+    if (!empty($legacyIds)) {
+        $dossiers = $this->em->getRepository(RachatDossier::class)->findBy([
+            'legacyRachatId' => $legacyIds,
+        ]);
+    }
+
+    $dossierMap = [];
+
+    foreach ($dossiers as $dossierObj) {
+        $legacyRef = $dossierObj->getLegacyRachatId();
+
+        if ($legacyRef instanceof Rachat) {
+            $legacyId = $legacyRef->getId();
+        } elseif (is_numeric($legacyRef)) {
+            $legacyId = (int) $legacyRef;
+        } else {
+            $legacyId = null;
+        }
+
+        if ($legacyId !== null && $legacyId > 0) {
+            $dossierMap[(string) $legacyId] = (int) $dossierObj->getId();
+        }
+    }
+
+    foreach ($rows as &$row) {
+        $rid = isset($row['id']) ? (string) $row['id'] : null;
+        $dossierId = ($rid !== null && isset($dossierMap[$rid])) ? (int) $dossierMap[$rid] : null;
+
+        $row['dossierV2Existe'] = $dossierId !== null;
+        $row['dossierV2Id'] = $dossierId;
+    }
+    unset($row);
+
+    if ($dossier !== '') {
+        $rows = array_values(array_filter($rows, static function (array $row) use ($dossier) {
+            $hasDossier = !empty($row['dossierV2Existe']);
+
+            if ($dossier === '1') {
+                return $hasDossier;
+            }
+
+            if ($dossier === '0') {
+                return !$hasDossier;
+            }
+
+            return true;
+        }));
     }
 
     $prevYm = null;
@@ -324,6 +404,7 @@ $reshaped['ciVerso'] = $ciVerso;
 
         $base = $request->query->all();
         $base['enabled'] = $enabled;
+        $base['dossier'] = $dossier;
 
         $prevQ = $base;
         $prevQ['ym'] = $prevYm;
@@ -335,25 +416,23 @@ $reshaped['ciVerso'] = $ciVerso;
         $nextUrl = $this->generateUrl('admin_rachats_index', $nextQ);
     }
 
-    $colsCfg = $this->getParameter('rachats_columns');
-
     return $this->render('@SyliusAdmin/Rachat/index.html.twig', [
-        'colsCfg' => $colsCfg,
-        'columns' => $columns,
         'rows' => $rows,
         'enabled' => $enabled,
         'filters' => [
             'q' => $q,
-            'ym' => $useMonthFilter ? $ym : 'all',
+            'ym' => $ym,
             'paid' => $paid,
             'revendeur' => $revendeur,
             'arrivage' => $arrivage,
+            'dossier' => $dossier,
         ],
         'prevYm' => $prevYm,
         'nextYm' => $nextYm,
         'prevUrl' => $prevUrl,
         'nextUrl' => $nextUrl,
         'monthLabel' => ($useMonthFilter && $from) ? $from->format('m/Y') : 'Tous',
+        'legacy_rachats_enabled' => $this->legacyRachatsEnabled(),
     ]);
 }
 
@@ -376,22 +455,92 @@ $reshaped['ciVerso'] = $ciVerso;
      *  CREATE
      * ============================================================ */
 
-    #[Route('/new', name: 'create', methods: ['GET', 'POST'])]
-    public function create(Request $request): Response
-    {
-        if ($request->isMethod('GET')) {
-            $rachat = new Rachat();
-            $rachat->setCreatedAt(new \DateTimeImmutable());
-            $rachat->setDateCession(new \DateTimeImmutable('today'));
+   #[Route('/new', name: 'create', methods: ['GET', 'POST'])]
+public function create(Request $request): Response
+{
+    if (!$this->legacyRachatsEnabled()) {
+        return $this->redirectLegacyDisabled();
+    }
 
-            $this->em->persist($rachat);
-            $this->em->flush();
-
-            return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
-        }
-
+    if (!$request->isMethod('GET')) {
         return $this->redirectToRoute('admin_rachats_index');
     }
+
+    $repo = $this->em->getRepository(Rachat::class);
+
+    /** @var Rachat|null $last */
+    $last = $repo->createQueryBuilder('r')
+        ->orderBy('r.id', 'DESC')
+        ->setMaxResults(1)
+        ->getQuery()
+        ->getOneOrNullResult();
+
+    if ($last && $this->isRachatDraftEmpty($last)) {
+        $this->addFlash('info', sprintf(
+            'Un rachat vide existe déjà (#%d), réutilisation de cette fiche.',
+            $last->getId()
+        ));
+
+        return $this->redirectToRoute('admin_rachats_edit', ['id' => $last->getId()]);
+    }
+
+    $rachat = new Rachat();
+    $rachat->setCreatedAt(new \DateTimeImmutable());
+    $rachat->setDateCession(new \DateTimeImmutable('today'));
+    $rachat->setEnabled(true);
+
+    $this->em->persist($rachat);
+    $this->em->flush();
+
+    return $this->redirectToRoute('admin_rachats_edit', ['id' => $rachat->getId()]);
+}
+
+
+private function isRachatDraftEmpty(Rachat $r): bool
+{
+    $isEmptyString = static fn(?string $v): bool => trim((string)$v) === '';
+
+    $hasIdentity = !$isEmptyString($r->getNom())
+        || !$isEmptyString($r->getPrenom())
+        || !$isEmptyString($r->getTelephone())
+        || !$isEmptyString($r->getEmail())
+        || !$isEmptyString($r->getAdresse())
+        || !$isEmptyString($r->getCodePostal())
+        || !$isEmptyString($r->getNumeroCi());
+
+    $hasProduct = !$isEmptyString($r->getMarqueModele())
+        || !$isEmptyString($r->getImei())
+        || (float)str_replace(',', '.', (string)$r->getPrixAchat()) > 0
+        || !empty($r->getHibProductId())
+        || !empty($r->getHibCategoryId())
+        || !empty($r->getHibBrandId());
+
+    $hasFiles = !$isEmptyString($r->getPieceIdentiteUrl())
+        || !$isEmptyString($r->getPhotosJson())
+        || !$isEmptyString($r->getSignatureUrl())
+        || !$isEmptyString($r->getPdfUrl());
+
+    $hasWorkflow = $r->getPaidAt() !== null
+        || $r->getRevendeur() !== null
+        || !empty($r->getHibSupplierId())
+        || !empty($r->getHibInventoryInputId());
+
+    $attrs = $r->getAttributes();
+    $hasAttributes = is_array($attrs) && count(array_filter($attrs, static function ($v) {
+        if (is_array($v)) {
+            return count($v) > 0;
+        }
+        return trim((string)$v) !== '';
+    })) > 0;
+
+    return !$hasIdentity
+        && !$hasProduct
+        && !$hasFiles
+        && !$hasWorkflow
+        && !$hasAttributes;
+}
+
+
 
     /* ============================================================
      *  EDIT
@@ -399,20 +548,26 @@ $reshaped['ciVerso'] = $ciVerso;
 
     #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(int $id, Request $request): Response
+
     {
-        /** @var Rachat|null $r */
-        $r = $this->em->getRepository(Rachat::class)->find($id);
-        if (!$r) throw $this->createNotFoundException('Rachat introuvable');
 
-        // pré-remplir “today” à l’affichage si vide
-        if (!$request->isMethod('POST') && $r->getDateCession() === null) {
-            $r->setDateCession(new \DateTimeImmutable('today'));
-        }
+    if (!$this->legacyRachatsEnabled()) {
+        return $this->redirectLegacyDisabled();
+    }
 
-        // Choices Hiboutik
-        $brandsRes = $this->hib->listBrands();
-        $catsRes = $this->hib->listCategories();
-        $categories = ($catsRes['ok'] ?? false) && is_array($catsRes['data'] ?? null)
+    /** @var Rachat|null $r */
+    $r = $this->em->getRepository(Rachat::class)->find($id);
+    if (!$r) throw $this->createNotFoundException('Rachat introuvable');
+
+    // pré-remplir “today” à l’affichage si vide
+    if (!$request->isMethod('POST') && $r->getDateCession() === null) {
+        $r->setDateCession(new \DateTimeImmutable('today'));
+    }
+
+    // Choices Hiboutik
+    $brandsRes = $this->hib->listBrands();
+    $catsRes = $this->hib->listCategories();
+    $categories = ($catsRes['ok'] ?? false) && is_array($catsRes['data'] ?? null)
     ? $catsRes['data']
     : [];
 
@@ -2681,6 +2836,77 @@ private function findDefaultPhoneOccasionCategoryId(array $categories): ?int
 
     return null;
 }
+#[Route('/create-dossiers-batch', name: 'create_dossiers_batch', methods: ['POST'])]
+public function createDossiersBatch(
+    Request $request,
+    \App\Service\RachatLegacyConverter $converter
+): Response {
+    if (!$this->isCsrfTokenValid('rachats_batch', (string) $request->request->get('_token_batch'))) {
+        $this->addFlash('error', 'Jeton CSRF invalide.');
+        return $this->redirect($request->request->get('_redirect') ?: $this->generateUrl('admin_rachats_index'));
+    }
 
+    $ids = array_values(array_unique(array_filter(array_map(
+        'intval',
+        (array) $request->request->all('ids')
+    ))));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun rachat sélectionné.');
+        return $this->redirect($request->request->get('_redirect') ?: $this->generateUrl('admin_rachats_index'));
+    }
+
+    $repo = $this->em->getRepository(\App\Entity\Rachat\Rachat::class);
+    $dossierRepo = $this->em->getRepository(\App\Entity\Rachat\RachatDossier::class);
+
+    $created = 0;
+    $already = 0;
+    $errors = [];
+
+    foreach ($ids as $id) {
+        try {
+            $legacy = $repo->find($id);
+
+            if (!$legacy) {
+                $errors[] = 'Rachat #' . $id . ' introuvable.';
+                continue;
+            }
+
+            $existing = $dossierRepo->findOneBy([
+                'legacyRachatId' => $legacy->getId(),
+            ]);
+
+            if ($existing) {
+                $already++;
+                continue;
+            }
+
+            $converter->convert($legacy, false);
+            $created++;
+        } catch (\Throwable $e) {
+            $errors[] = 'Rachat #' . $id . ' : ' . $e->getMessage();
+        }
+    }
+
+    $this->em->flush();
+
+    if ($created > 0) {
+        $this->addFlash('success', sprintf('%d dossier(s) V2 créé(s).', $created));
+    }
+
+    if ($already > 0) {
+        $this->addFlash('info', sprintf('%d rachat(s) avaient déjà un dossier V2.', $already));
+    }
+
+    foreach (array_slice($errors, 0, 5) as $msg) {
+        $this->addFlash('error', $msg);
+    }
+
+    if (count($errors) > 5) {
+        $this->addFlash('error', sprintf('%d autres erreurs non affichées.', count($errors) - 5));
+    }
+
+    return $this->redirect($request->request->get('_redirect') ?: $this->generateUrl('admin_rachats_index'));
+}
 
 }

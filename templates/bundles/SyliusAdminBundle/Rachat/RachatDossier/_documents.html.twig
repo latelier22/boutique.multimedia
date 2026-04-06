@@ -1,0 +1,46 @@
+<div class="ui segment">
+    <h3 class="ui header">
+        <i class="file pdf outline icon"></i>
+        <div class="content">Documents</div>
+    </h3>
+
+    <table class="ui very basic table">
+        <tbody>
+            <tr>
+                <td style="width:220px;"><strong>Bon de cession PDF</strong></td>
+                <td>
+                  {% if dossier.pdfUrl %}
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+        <a href="{{ dossier.pdfUrl }}" target="_blank" class="ui primary button">
+            <i class="file pdf outline icon"></i>
+            Ouvrir PDF
+        </a>
+
+        <a href="{{ dossier.pdfUrl }}" target="_blank" title="Ouvrir le PDF">
+            <img
+                src="{{ path('admin_rachats_v2_pdf_thumb', { id: dossier.id }) }}"
+                alt="Aperçu PDF"
+                style="width:400px;height:auto;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.08);background:#fff;display:block;"
+            >
+        </a>
+    </div>
+{% endif %}
+                </td>
+            </tr>
+
+            <tr>
+                <td><strong>Signature</strong></td>
+                <td>
+                    {% if dossier.signatureUrl %}
+                        <a href="{{ dossier.signatureUrl }}" target="_blank" class="ui button">
+                            <i class="write icon"></i>
+                            Voir la signature
+                        </a>
+                    {% else %}
+                        <span class="ui grey text">Aucune signature</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>

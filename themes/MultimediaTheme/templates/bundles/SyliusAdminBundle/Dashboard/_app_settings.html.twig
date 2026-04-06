@@ -1,0 +1,18 @@
+<div class="ui segment">
+    <h3 class="ui header">Gestion Rachat V1</h3>
+
+    {% if legacy_rachats_enabled %}
+        <div class="ui green label">ON</div>
+    {% else %}
+        <div class="ui red label">OFF</div>
+    {% endif %}
+
+    <form method="post" action="{{ path('admin_dashboard_rachats_legacy_toggle') }}" style="margin-top:12px;">
+        <input type="hidden" name="_token" value="{{ csrf_token('toggle_legacy_rachats') }}">
+        <input type="hidden" name="enabled" value="{{ legacy_rachats_enabled ? 0 : 1 }}">
+
+        <button class="ui button {{ legacy_rachats_enabled ? 'red' : 'green' }}" type="submit">
+            {{ legacy_rachats_enabled ? 'Désactiver Rachat V1' : 'Activer Rachat V1' }}
+        </button>
+    </form>
+</div>

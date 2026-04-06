@@ -1,0 +1,40 @@
+<div class="ui top attached tabular menu">
+    <a class="active item js-rachat-tab" data-tab="items-{{ dossier.id }}">Items</a>
+    <a class="item js-rachat-tab" data-tab="infos-{{ dossier.id }}">Infos</a>
+    <a class="item js-rachat-tab" data-tab="piece-identite-{{ dossier.id }}">Pièce d'identité</a>
+    <a class="item js-rachat-tab" data-tab="photos-{{ dossier.id }}">Photos</a>
+    <a class="item js-rachat-tab" data-tab="documents-{{ dossier.id }}">Documents</a>
+    <a class="item js-rachat-tab js-customer-tab" data-tab="client-{{ dossier.id }}">Client</a>
+</div>
+
+<div class="ui bottom attached segment" style="border-top:none;">
+    <div id="items-{{ dossier.id }}" class="js-rachat-tab-pane">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_items.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="infos-{{ dossier.id }}" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_infos.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="piece-identite-{{ dossier.id }}" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_piece_identite.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="photos-{{ dossier.id }}" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_photos_items.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div id="documents-{{ dossier.id }}" class="js-rachat-tab-pane" style="display:none;">
+        {% include '@SyliusAdmin/Rachat/RachatDossier/_documents.html.twig' with { dossier: dossier } %}
+    </div>
+
+    <div
+        id="client-{{ dossier.id }}"
+        class="js-rachat-tab-pane js-customer-pane"
+        style="display:none;"
+        data-url="{{ path('admin_rachats_v2_customer_partial', { id: dossier.id }) }}"
+        data-loaded="0"
+    >
+        <div class="ui active inline loader"></div>
+    </div>
+</div>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <title>Signature dossier #{{ dossier.id }}</title>
+
+    {% include 'tablet/tablet/tablet_css.html.twig' %}
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+</head>
+<body>
+
+{% set firstItem = dossier.items|first %}
+
+<div class="tablet-page">
+    <div class="tablet-shell">
+        <div class="tablet-card">
+            <div class="tablet-header">
+                <div class="tablet-header-top">
+                    <div class="tablet-logo-box">
+                        <img src="{{ asset('logo-multimedia.png') }}" alt="Logo Multimédia Services">
+                    </div>
+
+                    <div class="tablet-title-wrap">
+                        <div class="tablet-brand">MULTIMÉDIA SERVICES &amp; CASH</div>
+                        <div class="tablet-subtitle">Achat - Vente - Réparation</div>
+
+                        <span class="tablet-chip">Signature vendeur</span>
+                        <span class="tablet-chip">Dossier #{{ dossier.id }}</span>
+                    </div>
+                </div>
+
+                <div class="tablet-meta-grid">
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Vendeur</span>
+                        <span class="tablet-meta-value">
+                            {{ (dossier.nomSnapshot ~ ' ' ~ dossier.prenomSnapshot)|trim ?: '—' }}
+                        </span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Téléphone</span>
+                        <span class="tablet-meta-value">{{ dossier.telephoneSnapshot ?: '—' }}</span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Produit</span>
+                        <span class="tablet-meta-value">
+                            {% if firstItem %}
+                                {{ firstItem.marqueModele ?: firstItem.designation ?: '—' }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="tablet-meta-item">
+                        <span class="tablet-meta-label">Total rachat</span>
+                        <span class="tablet-meta-value">{{ dossier.totalAchat ?: '—' }} €</span>
+                    </div>
+
+                    <div class="tablet-meta-item" style="grid-column:1/-1;">
+                        <span class="tablet-meta-label">Date</span>
+                        <span class="tablet-meta-value">{{ generated_at|date('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tablet-content">
+                <div id="err" class="tablet-flash tablet-flash-error hidden">
+                    Signature vide : dessine puis valide.
+                </div>
+
+                <form
+                    id="sig-form"
+                    method="post"
+                    action="{{ path('tablet_sign_dossier_submit', {id: dossier.id}) }}"
+                    class="tablet-stack"
+                >
+                    <input type="hidden" name="token" value="{{ token }}">
+                    <input type="hidden" name="signature_dataurl" id="signature_dataurl">
+
+                    <div class="tablet-section">
+                        <h2 class="tablet-section-title">Signature</h2>
+
+                        <div class="tablet-panel-white">
+                            <canvas id="signature" class="tablet-signature-canvas"></canvas>
+                        </div>
+
+                        <div class="tablet-help">
+                            Signez avec le doigt ou un stylet dans la zone blanche.
+                        </div>
+                    </div>
+
+                    <div class="tablet-actions">
+                        <button type="button" id="btn-clear" class="tablet-btn tablet-btn-secondary">
+                            Effacer
+                        </button>
+
+                        <button type="submit" class="tablet-btn tablet-btn-primary">
+                            Valider la signature
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const canvas = document.getElementById('signature');
+    const err = document.getElementById('err');
+    const form = document.getElementById('sig-form');
+    const hidden = document.getElementById('signature_dataurl');
+
+    if (!canvas || !form || !hidden) return;
+
+    const pad = new SignaturePad(canvas, {
+        minWidth: 0.9,
+        maxWidth: 2.8,
+        penColor: '#111',
+        backgroundColor: '#fff'
+    });
+
+    function resizeCanvas() {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1);
+        const data = pad.isEmpty() ? null : pad.toData();
+
+        const displayWidth = canvas.clientWidth;
+        const displayHeight = canvas.clientHeight;
+
+        canvas.width = Math.floor(displayWidth * ratio);
+        canvas.height = Math.floor(displayHeight * ratio);
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+        pad.clear();
+
+        if (data) {
+            pad.fromData(data);
+        }
+    }
+
+    const observerTarget = canvas.closest('.tablet-panel-white') || canvas.parentElement;
+    if (observerTarget && 'ResizeObserver' in window) {
+        new ResizeObserver(() => resizeCanvas()).observe(observerTarget);
+    }
+
+    window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 150));
+    window.addEventListener('resize', resizeCanvas);
+
+    resizeCanvas();
+
+    document.getElementById('btn-clear').addEventListener('click', function () {
+        pad.clear();
+        err.classList.add('hidden');
+    });
+
+    form.addEventListener('submit', function (e) {
+        if (pad.isEmpty()) {
+            e.preventDefault();
+            err.classList.remove('hidden');
+            return;
+        }
+
+        hidden.value = pad.toDataURL('image/png');
+    });
+})();
+</script>
+
+</body>
+</html>

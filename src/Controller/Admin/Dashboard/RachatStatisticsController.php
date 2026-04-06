@@ -7,11 +7,16 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{Request, Response, JsonResponse, StreamedResponse};
 use Symfony\Component\Routing\Annotation\Route;
+use App\Service\AppSettingsService;
 
 #[Route('/admin/dashboard/rachats', name: 'admin_dashboard_rachats_')]
 final class RachatStatisticsController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em) {}
+    public function __construct(
+        private EntityManagerInterface $em,
+        private AppSettingsService $settings,
+        
+        ) {}
 
   #[Route('/block', name: 'block', methods: ['GET'])]
 public function block(Request $request): Response
@@ -405,4 +410,34 @@ public function index(Request $request): Response
         'exportEnd'             => $exportData['end'],
     ];
 }
+
+#[Route('/legacy/block', name: 'legacy_block', methods: ['GET'])]
+    public function legacyBlock(): Response
+    {
+        return $this->render('@SyliusAdmin/Dashboard/_app_settings.html.twig', [
+            'legacy_rachats_enabled' => $this->settings->getBool('legacy_rachats_enabled', false),
+        ]);
+    }
+
+    #[Route('/legacy/toggle', name: 'legacy_toggle', methods: ['POST'])]
+    public function toggleLegacyRachats(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('toggle_legacy_rachats', (string) $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton CSRF invalide.');
+            return $this->redirectToRoute('sylius_admin_dashboard');
+        }
+
+        $enabled = (string) $request->request->get('enabled', '0') === '1';
+        $this->settings->setBool('legacy_rachats_enabled', $enabled);
+
+        $this->addFlash(
+            'success',
+            $enabled
+                ? 'Gestion Rachat V1 autorisée.'
+                : 'Gestion Rachat V1 désactivée.'
+        );
+
+        return $this->redirectToRoute('sylius_admin_dashboard');
+    }
+
 }

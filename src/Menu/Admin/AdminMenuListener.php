@@ -21,7 +21,7 @@ final class AdminMenuListener
                 ->setLabelAttribute('icon', 'settings')
             ;
         }
-
+        $this->addIfMissing($atelier, 'rachats_v2', 'Rachats V2 (DOSSIER)', 'admin_rachats_v2_index', 'mobile alternate');
         $this->addIfMissing($atelier, 'rachats', 'Rachats', 'admin_rachats_index', 'mobile alternate');
         $this->addIfMissing($atelier, 'caisse', 'Caisse', 'admin_till_index', 'money bill alternate');
         $this->addIfMissing($atelier, 'export_comptable', 'Export comptable', 'admin_dashboard_rachats_index', 'file excel');
