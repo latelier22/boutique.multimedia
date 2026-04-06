@@ -58,3 +58,5 @@
 /package-lock.json
 ###< symfony/webpack-encore-bundle ###
 .env
+
+backup.sql
