@@ -16,12 +16,21 @@ class RachatDossierCustomerResolver
 
     public function searchCandidates(RachatDossier $dossier): array
     {
-        return $this->hib->searchCustomersLocal(
+        return $this->searchCandidatesFromData(
             $dossier->getTelephoneSnapshot(),
             $dossier->getEmailSnapshot(),
             $dossier->getNomSnapshot(),
             $dossier->getPrenomSnapshot(),
         );
+    }
+
+    public function searchCandidatesFromData(
+        ?string $phone,
+        ?string $email,
+        ?string $lastName,
+        ?string $firstName,
+    ): array {
+        return $this->hib->searchCustomersLocal($phone, $email, $lastName, $firstName);
     }
 
     public function assignExistingCustomer(RachatDossier $dossier, int $hibCustomerId): void

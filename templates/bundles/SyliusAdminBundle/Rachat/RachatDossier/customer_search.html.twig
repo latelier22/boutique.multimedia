@@ -35,6 +35,7 @@
 <div class="ui segment">
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <form method="post" action="{{ path('admin_rachats_v2_customer_create', { id: dossier.id }) }}" style="display:inline-block;">
+            <input type="hidden" name="_token" value="{{ csrf_token('rachat_dossier_customer_create_' ~ dossier.id) }}">
             <button type="submit" class="ui primary button">
                 <i class="user plus icon"></i>
                 Créer un client Hiboutik
@@ -42,6 +43,7 @@
         </form>
 
         <form method="post" action="{{ path('admin_rachats_v2_customer_assign_virtual', { id: dossier.id }) }}" style="display:inline-block;">
+            <input type="hidden" name="_token" value="{{ csrf_token('rachat_dossier_customer_assign_virtual_' ~ dossier.id) }}">
             <button type="submit" class="ui button">
                 <i class="ghost icon"></i>
                 Affecter le client virtuel
@@ -82,6 +84,7 @@
                 <td>{{ c.score ?? '—' }}</td>
                 <td>
                     <form method="post" action="{{ path('admin_rachats_v2_customer_assign', { id: dossier.id, customerId: c.id }) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('rachat_dossier_customer_assign_' ~ dossier.id) }}">
                         <button type="submit" class="ui tiny primary button">
                             Affecter
                         </button>

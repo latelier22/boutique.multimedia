@@ -67,39 +67,11 @@
 						</button>
 					{% endif %}
 
-					{% if dossier.id and not dossier.lockedAt %}
-						<button class="ui orange button" type="submit" form="lock-dossier-form" onclick="return confirm('Verrouiller ce dossier ? Toute modification sera ensuite bloquée.');">
-							<i class="lock icon"></i>
-							Verrouiller
-						</button>
-
-					{% endif %}
-					{% if dossier.id and dossier.lockedAt %}
-						<button class="ui red button" type="submit" form="unlock-dossier-form" onclick="return confirm('Déverrouiller ce dossier ? Les modifications redeviendront possibles.');">
-							<i class="unlock icon"></i>
-							Déverrouiller
-						</button>
-					{% endif %}
-
 					{% if dossier.id %}
-						<a class="ui button" href="{{ path('admin_rachats_v2_show', { id: dossier.id }) }}">
-							<i class="folder open icon"></i>
-							Ouvrir
-						</a>
-					{% endif %}
-
-					{% if dossier.id %}
-						<button class="ui teal button" type="submit" form="generate-pdf-form">
+						<button class="ui teal button js-btn-pdf-preview" type="submit" form="generate-pdf-form" {{ dossier.hibCustomerId ? '' : 'disabled' }}>
 							<i class="file pdf icon"></i>
-							Générer PDF
+							Aperçu PDF
 						</button>
-
-						{% if dossier.pdfUrl %}
-							<a class="ui button" href="{{ dossier.pdfUrl }}" target="_blank">
-								<i class="external alternate icon"></i>
-								Ouvrir PDF
-							</a>
-						{% endif %}
 					{% endif %}
 
 					<a class="ui button" href="{{ path('admin_rachats_v2_index') }}">
@@ -161,8 +133,52 @@
 				{{ form_row(form.adresseSnapshot) }}
 			</div>
 
-			<div class="three fields">
-				<div class="field">{{ form_row(form.hibCustomerId) }}</div>
+			<div style="display:none;">
+				{{ form_widget(form.hibCustomerId, { attr: { class: 'js-hib-customer-id-field' } }) }}
+			</div>
+
+			<div class="ui segment" id="hib-customer-live-box"
+				data-dossier-id="{{ dossier.id ?: '' }}"
+				data-search-url="{{ dossier.id ? path('admin_rachats_v2_customer_search', { id: dossier.id }) : '' }}"
+				data-create-url="{{ dossier.id ? path('admin_rachats_v2_customer_create', { id: dossier.id }) : '' }}"
+				data-assign-url-template="{{ dossier.id ? path('admin_rachats_v2_customer_assign', { id: dossier.id, customerId: 0 }) : '' }}"
+				data-partial-url="{{ dossier.id ? path('admin_rachats_v2_customer_partial', { id: dossier.id }) : '' }}"
+				data-create-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_create_' ~ dossier.id) : '' }}"
+				data-assign-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_assign_' ~ dossier.id) : '' }}">
+				<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+					<h4 class="ui header" style="margin:0;">
+						<i class="users icon"></i>
+						Client Hiboutik
+					</h4>
+					<div class="js-hib-customer-status">
+						{% if dossier.hibCustomerId %}
+							<span class="ui green label">Client #{{ dossier.hibCustomerId }} lié</span>
+						{% else %}
+							<span class="ui red label">Aucun client lié</span>
+						{% endif %}
+					</div>
+				</div>
+
+				<div class="js-hib-customer-finalize-msg" style="margin-top:8px;color:{{ dossier.hibCustomerId ? '#1b5e20' : '#b71c1c' }};font-size:13px;">
+					{% if dossier.id %}
+						{% if dossier.hibCustomerId %}
+							Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.
+						{% else %}
+							Liaison obligatoire avant l’aperçu PDF et la signature.
+						{% endif %}
+					{% else %}
+						Enregistre d’abord le dossier pour activer la recherche et la création du client Hiboutik.
+					{% endif %}
+				</div>
+
+				<div class="js-hib-customer-search-state" style="margin-top:8px;font-size:12px;color:#6b7280;">
+					Tape nom, prénom ou téléphone pour chercher un client existant.
+				</div>
+
+				<div class="js-hib-customer-results" style="margin-top:12px;"></div>
+			</div>
+
+			<div class="two fields">
 				<div class="field">{{ form_row(form.paidMethod) }}</div>
 				<div class="field">{{ form_row(form.dateCession) }}</div>
 			</div>
@@ -259,23 +275,336 @@
 
 {{ form_end(form) }}
 
-			{% if dossier.id and not dossier.lockedAt %}
-				<form id="lock-dossier-form" method="post" action="{{ path('admin_rachats_v2_lock', { id: dossier.id }) }}" style="display:none;">
-					<input type="hidden" name="_token" value="{{ csrf_token('lock_dossier_' ~ dossier.id) }}">
-				</form>
-			{% endif %}
 
-			{% if dossier.id and dossier.lockedAt %}
-				<form id="unlock-dossier-form" method="post" action="{{ path('admin_rachats_v2_unlock', { id: dossier.id }) }}" style="display:none;">
-					<input type="hidden" name="_token" value="{{ csrf_token('unlock_dossier_' ~ dossier.id) }}">
-				</form>
-			{% endif %}
 
 			{% if dossier.id %}
 				<form id="generate-pdf-form" method="post" action="{{ path('admin_rachats_v2_generate_pdf', { id: dossier.id }) }}" style="display:none;">
 					<input type="hidden" name="_token" value="{{ csrf_token('generate_pdf_dossier_' ~ dossier.id) }}">
 				</form>
 			{% endif %}
+			<script>
+				(function () {
+const box = document.getElementById('hib-customer-live-box');
+
+if (!box || box.dataset.booted === '1') {
+	return;
+}
+
+box.dataset.booted = '1';
+
+const dossierId = String(box.dataset.dossierId || '').trim();
+const searchUrl = box.dataset.searchUrl || '';
+const createUrl = box.dataset.createUrl || '';
+const assignUrlTemplate = box.dataset.assignUrlTemplate || '';
+const createToken = box.dataset.createToken || '';
+const assignToken = box.dataset.assignToken || '';
+
+const statusNode = box.querySelector('.js-hib-customer-status');
+const searchStateNode = box.querySelector('.js-hib-customer-search-state');
+const resultsNode = box.querySelector('.js-hib-customer-results');
+const finalizeMsgNode = box.querySelector('.js-hib-customer-finalize-msg');
+const hibCustomerIdField = document.querySelector('.js-hib-customer-id-field');
+const pdfButton = document.querySelector('.js-btn-pdf-preview');
+
+const nomInput = document.querySelector('[name$="[nomSnapshot]"]');
+const prenomInput = document.querySelector('[name$="[prenomSnapshot]"]');
+const telephoneInput = document.querySelector('[name$="[telephoneSnapshot]"]');
+const emailInput = document.querySelector('[name$="[emailSnapshot]"]');
+const adresseInput = document.querySelector('[name$="[adresseSnapshot]"]');
+const codePostalInput = document.querySelector('[name$="[codePostalSnapshot]"]');
+const numeroCiInput = document.querySelector('[name$="[numeroCiSnapshot]"]');
+
+let debounceTimer = null;
+let currentController = null;
+
+function getValue(input) {
+	return input ? String(input.value || '').trim() : '';
+}
+
+function getPayload() {
+	return {
+		nomSnapshot: getValue(nomInput),
+		prenomSnapshot: getValue(prenomInput),
+		telephoneSnapshot: getValue(telephoneInput),
+		emailSnapshot: getValue(emailInput),
+		adresseSnapshot: getValue(adresseInput),
+		codePostalSnapshot: getValue(codePostalInput),
+		numeroCiSnapshot: getValue(numeroCiInput)
+	};
+}
+
+function escapeHtml(value) {
+	return String(value || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+function hasEnoughInfo(payload) {
+	return payload.nomSnapshot.length >= 2
+		|| payload.prenomSnapshot.length >= 2
+		|| payload.telephoneSnapshot.replace(/\D+/g, '').length >= 4
+		|| payload.emailSnapshot.length >= 5;
+}
+
+function canCreate(payload) {
+	return payload.nomSnapshot !== '' || payload.prenomSnapshot !== '' || payload.telephoneSnapshot !== '';
+}
+
+function setSearchState(message, type) {
+	if (!searchStateNode) {
+		return;
+	}
+
+	let color = '#6b7280';
+	if (type === 'error') {
+		color = '#b71c1c';
+	} else if (type === 'success') {
+		color = '#1b5e20';
+	}
+
+	searchStateNode.style.color = color;
+	searchStateNode.textContent = message;
+}
+
+function updateFinalizeUi() {
+	const linked = hibCustomerIdField && String(hibCustomerIdField.value || '').trim() !== '';
+
+	if (pdfButton) {
+		pdfButton.disabled = !linked;
+	}
+
+	if (finalizeMsgNode) {
+		finalizeMsgNode.style.color = linked ? '#1b5e20' : '#b71c1c';
+		finalizeMsgNode.textContent = linked
+			? 'Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.'
+			: 'Liaison obligatoire avant l’aperçu PDF et la signature.';
+	}
+}
+
+function updateStatusBadge(customerId, isVirtual) {
+	if (!statusNode) {
+		return;
+	}
+
+	if (customerId) {
+		statusNode.innerHTML = '<span class="ui ' + (isVirtual ? 'grey' : 'green') + ' label">' + (isVirtual ? 'Client virtuel #' : 'Client #') + escapeHtml(customerId) + ' lié</span>';
+	} else {
+		statusNode.innerHTML = '<span class="ui red label">Aucun client lié</span>';
+	}
+}
+
+function renderCreateButton(payload) {
+	if (!canCreate(payload)) {
+		return '';
+	}
+
+	return ''
+		+ '<div class="ui info message" style="margin-top:10px;">'
+		+ '<div class="header">Aucun résultat satisfaisant</div>'
+		+ '<p style="margin-top:.5rem;">Créer un client Hiboutik avec les informations actuellement saisies.</p>'
+		+ '<button type="button" class="ui primary button js-hib-create-customer">Créer client</button>'
+		+ '</div>';
+}
+
+function renderResults(candidates, payload) {
+	if (!resultsNode) {
+		return;
+	}
+
+	if (!Array.isArray(candidates) || candidates.length === 0) {
+		resultsNode.innerHTML = renderCreateButton(payload);
+		return;
+	}
+
+	resultsNode.innerHTML = candidates.map(function (candidate) {
+		const id = candidate.id || '';
+		const name = [candidate.first_name || '', candidate.last_name || ''].join(' ').trim() || 'Client';
+		const phone = candidate.phone || '—';
+		const email = candidate.email || '—';
+		const score = candidate.score !== undefined && candidate.score !== null ? candidate.score : '—';
+
+		return ''
+			+ '<div class="js-hib-customer-result">'
+			+ '<div>'
+			+ '<div style="font-weight:700;">' + escapeHtml(name) + '</div>'
+			+ '<div style="margin-top:4px;color:#4b5563;">#' + escapeHtml(id) + '</div>'
+			+ '<div style="margin-top:4px;font-size:12px;color:#6b7280;">Tél. ' + escapeHtml(phone) + ' · Email ' + escapeHtml(email) + ' · Score ' + escapeHtml(score) + '</div>'
+			+ '</div>'
+			+ '<div>'
+			+ '<button type="button" class="ui tiny primary button js-hib-assign-customer" data-customer-id="' + escapeHtml(id) + '">Affecter</button>'
+			+ '</div>'
+			+ '</div>';
+	}).join('') + renderCreateButton(payload);
+}
+
+async function runSearch() {
+	if (!dossierId || !searchUrl) {
+		return;
+	}
+
+	const payload = getPayload();
+
+	if (!hasEnoughInfo(payload)) {
+		if (resultsNode) {
+			resultsNode.innerHTML = '';
+		}
+		setSearchState('Tape au moins 2 lettres sur le nom ou prénom, ou 4 chiffres de téléphone.', 'info');
+		return;
+	}
+
+	if (currentController) {
+		currentController.abort();
+	}
+
+	currentController = new AbortController();
+
+	const params = new URLSearchParams({
+		nom: payload.nomSnapshot,
+		prenom: payload.prenomSnapshot,
+		telephone: payload.telephoneSnapshot,
+		email: payload.emailSnapshot
+	});
+
+	setSearchState('Recherche en cours…', 'info');
+
+	try {
+		const response = await fetch(searchUrl + '?' + params.toString(), {
+			method: 'GET',
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest',
+				'Accept': 'application/json'
+			},
+			credentials: 'same-origin',
+			signal: currentController.signal
+		});
+
+		const json = await response.json();
+
+		if (!response.ok || !json.ok) {
+			throw new Error(json.error || 'Recherche impossible');
+		}
+
+		renderResults(json.candidates || [], payload);
+		setSearchState((json.candidates || []).length + ' résultat(s) Hiboutik.', 'success');
+	} catch (error) {
+		if (error.name === 'AbortError') {
+			return;
+		}
+
+		console.error(error);
+		if (resultsNode) {
+			resultsNode.innerHTML = renderCreateButton(payload);
+		}
+		setSearchState(error.message || 'Erreur de recherche.', 'error');
+	}
+}
+
+function scheduleSearch() {
+	clearTimeout(debounceTimer);
+	debounceTimer = window.setTimeout(runSearch, 350);
+}
+
+async function postForm(url, data) {
+	const response = await fetch(url, {
+		method: 'POST',
+		body: data,
+		headers: {
+			'X-Requested-With': 'XMLHttpRequest',
+			'Accept': 'application/json'
+		},
+		credentials: 'same-origin'
+	});
+
+	const json = await response.json();
+
+	if (!response.ok || !json.ok) {
+		throw new Error(json.error || 'Action impossible');
+	}
+
+	return json;
+}
+
+async function createCustomer() {
+	const payload = getPayload();
+	const formData = new FormData();
+	formData.append('_token', createToken);
+	Object.entries(payload).forEach(function (entry) {
+		formData.append(entry[0], entry[1]);
+	});
+
+	setSearchState('Création du client Hiboutik…', 'info');
+
+	const json = await postForm(createUrl, formData);
+
+	if (hibCustomerIdField) {
+		hibCustomerIdField.value = String(json.hibCustomerId || '');
+	}
+
+	updateStatusBadge(json.hibCustomerId || '', false);
+	updateFinalizeUi();
+	if (resultsNode) {
+		resultsNode.innerHTML = '';
+	}
+	setSearchState(json.message || 'Client créé.', 'success');
+}
+
+async function assignCustomer(customerId) {
+	const formData = new FormData();
+	formData.append('_token', assignToken);
+
+	setSearchState('Affectation du client Hiboutik…', 'info');
+
+	const json = await postForm(assignUrlTemplate.replace(/\/0$/, '/' + encodeURIComponent(customerId)), formData);
+
+	if (hibCustomerIdField) {
+		hibCustomerIdField.value = String(json.hibCustomerId || customerId || '');
+	}
+
+	updateStatusBadge(json.hibCustomerId || customerId || '', json.customerLinkStatus === 'virtual');
+	updateFinalizeUi();
+	if (resultsNode) {
+		resultsNode.innerHTML = '';
+	}
+	setSearchState(json.message || 'Client affecté.', 'success');
+}
+
+[nomInput, prenomInput, telephoneInput, emailInput].forEach(function (input) {
+	if (input) {
+		input.addEventListener('input', scheduleSearch);
+	}
+});
+
+box.addEventListener('click', function (event) {
+	const assignBtn = event.target.closest('.js-hib-assign-customer');
+	if (assignBtn) {
+		event.preventDefault();
+		assignCustomer(assignBtn.dataset.customerId).catch(function (error) {
+			console.error(error);
+			setSearchState(error.message || 'Affectation impossible.', 'error');
+		});
+		return;
+	}
+
+	const createBtn = event.target.closest('.js-hib-create-customer');
+	if (createBtn) {
+		event.preventDefault();
+		createCustomer().catch(function (error) {
+			console.error(error);
+			setSearchState(error.message || 'Création impossible.', 'error');
+		});
+	}
+});
+
+updateFinalizeUi();
+if (dossierId) {
+	scheduleSearch();
+}
+})();
+			</script>
+
 			<script>
 				(function () {
 function bootRachatDossierV2() {

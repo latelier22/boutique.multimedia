@@ -276,6 +276,7 @@ public function detailsRow(int $id): Response
     #[Route('/{id}/customer/search', name: 'customer_search', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function searchCustomer(
         int $id,
+        Request $request,
         RachatDossierCustomerResolver $resolver
     ): Response {
         $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
@@ -284,7 +285,25 @@ public function detailsRow(int $id): Response
             throw $this->createNotFoundException('Dossier introuvable');
         }
 
-        $candidates = $resolver->searchCandidates($dossier);
+        $nom = trim((string) $request->query->get('nom', $dossier->getNomSnapshot() ?? ''));
+        $prenom = trim((string) $request->query->get('prenom', $dossier->getPrenomSnapshot() ?? ''));
+        $telephone = trim((string) $request->query->get('telephone', $dossier->getTelephoneSnapshot() ?? ''));
+        $email = trim((string) $request->query->get('email', $dossier->getEmailSnapshot() ?? ''));
+
+        $candidates = $resolver->searchCandidatesFromData($telephone, $email, $nom, $prenom);
+
+        if ($this->wantsJson($request)) {
+            return $this->json([
+                'ok' => true,
+                'candidates' => array_values($candidates),
+                'query' => [
+                    'nom' => $nom,
+                    'prenom' => $prenom,
+                    'telephone' => $telephone,
+                    'email' => $email,
+                ],
+            ]);
+        }
 
         return $this->render('@SyliusAdmin/Rachat/RachatDossier/customer_search.html.twig', [
             'dossier' => $dossier,
@@ -294,6 +313,7 @@ public function detailsRow(int $id): Response
 
     #[Route('/{id}/customer/create', name: 'customer_create', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function createCustomer(
+        Request $request,
         int $id,
         RachatDossierCustomerResolver $resolver
     ): Response {
@@ -303,15 +323,29 @@ public function detailsRow(int $id): Response
             throw $this->createNotFoundException('Dossier introuvable');
         }
 
+        if (!$this->isCsrfTokenValid('rachat_dossier_customer_create_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+            return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
+        }
+
+        $this->hydrateCustomerSnapshotsFromRequest($request, $dossier);
+
         try {
             $customerId = $resolver->createCustomerFromDossier($dossier);
+            $message = sprintf('Client Hiboutik #%d créé et affecté au dossier.', $customerId);
 
-            $this->addFlash('success', sprintf(
-                'Client Hiboutik #%d créé et affecté au dossier.',
-                $customerId
-            ));
+            if ($this->wantsJson($request)) {
+                return $this->json([
+                    'ok' => true,
+                    'message' => $message,
+                    'hibCustomerId' => $customerId,
+                    'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
+                    'customerPartialUrl' => $this->generateUrl('admin_rachats_v2_customer_partial', ['id' => $dossier->getId()]),
+                ]);
+            }
+
+            $this->addFlash('success', $message);
         } catch (\Throwable $e) {
-            $this->addFlash('error', 'Création client impossible : ' . $e->getMessage());
+            return $this->customerActionErrorResponse($request, $dossier, 'Création client impossible : ' . $e->getMessage(), 500);
         }
 
         return $this->redirectToRoute('admin_rachats_v2_show', [
@@ -321,6 +355,7 @@ public function detailsRow(int $id): Response
 
     #[Route('/{id}/customer/assign-virtual', name: 'customer_assign_virtual', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function assignVirtualCustomer(
+        Request $request,
         int $id,
         RachatDossierCustomerResolver $resolver
     ): Response {
@@ -330,15 +365,27 @@ public function detailsRow(int $id): Response
             throw $this->createNotFoundException('Dossier introuvable');
         }
 
+        if (!$this->isCsrfTokenValid('rachat_dossier_customer_assign_virtual_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+            return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
+        }
+
         try {
             $customerId = $resolver->assignVirtualCustomer($dossier);
+            $message = sprintf('Client virtuel Hiboutik #%d affecté.', $customerId);
 
-            $this->addFlash('success', sprintf(
-                'Client virtuel Hiboutik #%d affecté.',
-                $customerId
-            ));
+            if ($this->wantsJson($request)) {
+                return $this->json([
+                    'ok' => true,
+                    'message' => $message,
+                    'hibCustomerId' => $customerId,
+                    'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
+                    'customerPartialUrl' => $this->generateUrl('admin_rachats_v2_customer_partial', ['id' => $dossier->getId()]),
+                ]);
+            }
+
+            $this->addFlash('success', $message);
         } catch (\Throwable $e) {
-            $this->addFlash('error', 'Affectation du client virtuel impossible : ' . $e->getMessage());
+            return $this->customerActionErrorResponse($request, $dossier, 'Affectation du client virtuel impossible : ' . $e->getMessage(), 500);
         }
 
         return $this->redirectToRoute('admin_rachats_v2_show', [
@@ -348,6 +395,7 @@ public function detailsRow(int $id): Response
 
     #[Route('/{id}/customer/assign/{customerId}', name: 'customer_assign', requirements: ['id' => '\d+', 'customerId' => '\d+'], methods: ['POST'])]
     public function assignCustomer(
+        Request $request,
         int $id,
         int $customerId,
         RachatDossierCustomerResolver $resolver
@@ -358,11 +406,27 @@ public function detailsRow(int $id): Response
             throw $this->createNotFoundException('Dossier introuvable');
         }
 
+        if (!$this->isCsrfTokenValid('rachat_dossier_customer_assign_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+            return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
+        }
+
         try {
             $resolver->assignExistingCustomer($dossier, $customerId);
-            $this->addFlash('success', 'Client Hiboutik affecté au dossier.');
+            $message = 'Client Hiboutik affecté au dossier.';
+
+            if ($this->wantsJson($request)) {
+                return $this->json([
+                    'ok' => true,
+                    'message' => $message,
+                    'hibCustomerId' => $customerId,
+                    'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
+                    'customerPartialUrl' => $this->generateUrl('admin_rachats_v2_customer_partial', ['id' => $dossier->getId()]),
+                ]);
+            }
+
+            $this->addFlash('success', $message);
         } catch (\Throwable $e) {
-            $this->addFlash('error', 'Affectation impossible : ' . $e->getMessage());
+            return $this->customerActionErrorResponse($request, $dossier, 'Affectation impossible : ' . $e->getMessage(), 500);
         }
 
         return $this->redirectToRoute('admin_rachats_v2_show', [
@@ -846,6 +910,14 @@ public function generatePdf(Request $request, RachatDossier $dossier): Response
 {
     if (!$this->isCsrfTokenValid('generate_pdf_dossier_' . $dossier->getId(), (string) $request->request->get('_token'))) {
         throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+    }
+
+    if (!$dossier->getHibCustomerId()) {
+        $this->addFlash('error', 'Liez d’abord un client Hiboutik avant le PDF et la signature.');
+
+        return $this->redirectToRoute('admin_rachats_v2_edit', [
+            'id' => $dossier->getId(),
+        ]);
     }
 
     $shop = [
@@ -1466,6 +1538,51 @@ public function deleteItemPhoto(
     }
 }
 
+private function wantsJson(Request $request): bool
+{
+    $accept = (string) $request->headers->get('Accept', '');
 
+    return $request->isXmlHttpRequest() || str_contains($accept, 'application/json');
+}
+
+private function customerActionErrorResponse(Request $request, RachatDossier $dossier, string $message, int $status = 400): Response
+{
+    if ($this->wantsJson($request)) {
+        return new JsonResponse([
+            'ok' => false,
+            'error' => $message,
+        ], $status);
+    }
+
+    $this->addFlash('error', $message);
+
+    return $this->redirectToRoute('admin_rachats_v2_show', [
+        'id' => $dossier->getId(),
+    ]);
+}
+
+private function hydrateCustomerSnapshotsFromRequest(Request $request, RachatDossier $dossier): void
+{
+    $dossier->setNomSnapshot($this->requestString($request, ['nomSnapshot', 'nom'], (string) $dossier->getNomSnapshot()));
+    $dossier->setPrenomSnapshot($this->requestString($request, ['prenomSnapshot', 'prenom'], (string) $dossier->getPrenomSnapshot()));
+    $dossier->setTelephoneSnapshot($this->requestString($request, ['telephoneSnapshot', 'telephone'], (string) $dossier->getTelephoneSnapshot()));
+    $dossier->setEmailSnapshot($this->requestString($request, ['emailSnapshot', 'email'], (string) $dossier->getEmailSnapshot()));
+    $dossier->setAdresseSnapshot($this->requestString($request, ['adresseSnapshot', 'adresse'], (string) $dossier->getAdresseSnapshot()));
+    $dossier->setCodePostalSnapshot($this->requestString($request, ['codePostalSnapshot', 'code_postal'], (string) $dossier->getCodePostalSnapshot()));
+    $dossier->setNumeroCiSnapshot($this->requestString($request, ['numeroCiSnapshot', 'numero_ci'], (string) $dossier->getNumeroCiSnapshot()));
+}
+
+private function requestString(Request $request, array $keys, string $fallback = ''): string
+{
+    foreach ($keys as $key) {
+        $value = $request->request->get($key);
+
+        if ($value !== null) {
+            return trim((string) $value);
+        }
+    }
+
+    return trim($fallback);
+}
 
 }
