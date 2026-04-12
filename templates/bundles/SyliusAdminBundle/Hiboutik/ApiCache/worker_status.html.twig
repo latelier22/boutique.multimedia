@@ -1,0 +1,72 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}État worker apiCache{% endblock %}
+
+{% block content %}
+    <div class="ui segment">
+        <h1 class="ui header">
+            <i class="heartbeat icon"></i>
+            État worker apiCache
+        </h1>
+
+        <div class="ui stackable four cards">
+            <div class="card">
+                <div class="content">
+                    <div class="header">Worker vivant</div>
+                    <div class="description" id="alive">...</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="content">
+                    <div class="header">État</div>
+                    <div class="description" id="state">...</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="content">
+                    <div class="header">Pending</div>
+                    <div class="description" id="pending">0</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="content">
+                    <div class="header">Processing</div>
+                    <div class="description" id="processing">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui segment">
+            <p><strong>Produit en cours :</strong> <span id="current-product">-</span></p>
+            <p><strong>Dernier produit :</strong> <span id="last-product">-</span></p>
+            <p><strong>Dernière erreur :</strong> <span id="last-error">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        async function loadWorkerStatus() {
+            const res = await fetch('https://api.multimedia-services.fr/api/worker-status');
+            const data = await res.json();
+
+            document.getElementById('alive').innerHTML = data.alive
+                ? '<span class="ui green label">OUI</span>'
+                : '<span class="ui red label">NON</span>';
+
+            document.getElementById('state').textContent = data.worker?.state || '-';
+            document.getElementById('pending').textContent = data.queue?.pending ?? 0;
+            document.getElementById('processing').textContent = data.queue?.processing ?? 0;
+            document.getElementById('last-error').textContent = data.worker?.last_error || '-';
+
+            document.getElementById('current-product').textContent = data.currentProduct
+                ? `${data.currentProduct.name} | stock=${data.currentProduct.stock_available} | www=${data.currentProduct.product_display_www ? 'oui' : 'non'}`
+                : '-';
+
+            document.getElementById('last-product').textContent = data.lastProduct
+                ? `${data.lastProduct.name} | stock=${data.lastProduct.stock_available} | www=${data.lastProduct.product_display_www ? 'oui' : 'non'}`
+                : '-';
+        }
+
+        loadWorkerStatus();
+        setInterval(loadWorkerStatus, 5000);
+    </script>
+{% endblock %}

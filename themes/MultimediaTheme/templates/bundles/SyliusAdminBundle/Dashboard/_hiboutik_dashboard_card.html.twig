@@ -1,3 +1,7 @@
+{% set actions = card.actions|default([]) %}
+{% set maxButtons = 3 %}
+{% set missingButtons = maxButtons - (actions|length) %}
+
 <div class="dashboard-card {{ card.color|default('dashboard-card--blue') }}">
     <div class="dashboard-card__top">
         <div class="dashboard-card__icon">
@@ -14,18 +18,50 @@
 
     <div class="dashboard-card__bottom">
         <div class="dashboard-card__actions">
-            <a href="{{ path(card.route) }}" class="ui large button primary-link">
-                {{ card.button_label|default('Ouvrir') }}
-            </a>
+            {% for action in actions %}
+                {% set method = action.method|default('GET')|upper %}
 
-            {% if card.secondary_route is defined and card.secondary_route %}
-                <a href="{{ path(card.secondary_route) }}" class="ui large button secondary-link">
-                    {{ card.secondary_label|default('+ Créer') }}
-                </a>
-            {% else %}
-            <button type="button" class="ui large button create-btn">
-               Demander à configurer ce bouton
-            </button>
+                {% if method == 'GET' %}
+                    <a
+                        href="{{ path(action.route, action.route_params|default({})) }}"
+                        class="ui large button {{ action.class|default('primary-link') }}"
+                        {% if action.turbo is defined and action.turbo == false %}data-turbo="false"{% endif %}
+                        {% if action.confirm is defined and action.confirm %}onclick="return confirm('{{ action.confirm|e('js') }}')"{% endif %}
+                    >
+                        {{ action.label }}
+                    </a>
+                {% else %}
+                    <form
+                        method="post"
+                        action="{{ path(action.route, action.route_params|default({})) }}"
+                        {% if action.turbo is defined and action.turbo == false %}data-turbo="false"{% endif %}
+                        {% if action.confirm is defined and action.confirm %}onsubmit="return confirm('{{ action.confirm|e('js') }}')"{% endif %}
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="{{ csrf_token(action.csrf_token_id|default(action.route)) }}"
+                        >
+
+                        {% if method != 'POST' %}
+                            <input type="hidden" name="_method" value="{{ method }}">
+                        {% endif %}
+
+                        {% for name, value in action.fields|default({}) %}
+                            <input type="hidden" name="{{ name }}" value="{{ value }}">
+                        {% endfor %}
+
+                        <button type="submit" class="ui large fluid button {{ action.class|default('secondary-link') }}">
+                            {{ action.label }}
+                        </button>
+                    </form>
+                {% endif %}
+            {% endfor %}
+
+            {% if missingButtons > 0 %}
+                {% for i in 1..missingButtons %}
+                    <button type="button" class="ui large button empty-slot" tabindex="-1" aria-hidden="true"></button>
+                {% endfor %}
             {% endif %}
         </div>
     </div>

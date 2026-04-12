@@ -2,6 +2,8 @@ twig:
     paths: ['%kernel.project_dir%/templates']
     debug: '%kernel.debug%'
     strict_variables: '%kernel.debug%'
+    globals:
+        hiboutik_admin_navigation: '%app.admin_hiboutik_navigation%'
 
 services:
     _defaults:
@@ -14,3 +16,5 @@ services:
 when@test_cached:
     twig:
         strict_variables: true
+
+    

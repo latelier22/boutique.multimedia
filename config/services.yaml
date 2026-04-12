@@ -165,6 +165,8 @@ services:
 
  
     App\Menu\Admin\AdminMenuListener:
+        arguments:
+            $hiboutikAdminNavigation: '%app.admin_hiboutik_navigation%'
         tags:
             - { name: kernel.event_listener, event: sylius.menu.admin.main, method: addAdminMenuItems }
   

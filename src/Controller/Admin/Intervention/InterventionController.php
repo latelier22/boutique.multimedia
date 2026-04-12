@@ -469,6 +469,33 @@ public function edit(int $id, Request $request): Response
     }
 
 
+/**
+ *  @Route("/delete-batch", name="delete_batch", methods={"POST"})
+ */
+
+public function delete_batch(Request $request): Response
+{
+    $ids = $request->request->get('ids', []);
+    if (!is_array($ids) || empty($ids)) {
+        $this->addFlash('error', 'Aucune intervention sélectionnée pour la suppression.');
+        return $this->redirectToRoute('app_admin_intervention_index');
+    }
+
+    $deletedCount = 0;
+    foreach ($ids as $id) {
+        try {
+            $this->delete((int) $id, $request);
+            $deletedCount++;
+        } catch (\Throwable $e) {
+            // on continue même si une suppression échoue
+        }
+    }
+
+    $this->addFlash('success', sprintf('%d intervention(s) supprimée(s).', $deletedCount));
+    return $this->redirectToRoute('app_admin_intervention_index');
+
+}
+
     /**
  * @Route("/{id}/delete", name="delete", methods={"POST"})
  */

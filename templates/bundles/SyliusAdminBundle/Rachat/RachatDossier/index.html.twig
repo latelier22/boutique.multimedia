@@ -87,6 +87,19 @@
 						<i class="users icon"></i>
 						Affecter par téléphone ou créer
 					</button>
+
+					<button
+    type="submit"
+    class="ui red button js-bulk-submit"
+    formmethod="post"
+    formaction="{{ path('admin_rachats_v2_bulk_delete') }}"
+    data-confirm="Supprimer les dossiers sélectionnés ?"
+>
+    <i class="trash icon"></i>
+    Supprimer les dossiers sélectionnés
+</button>
+
+
 				</div>
 			</div>
 

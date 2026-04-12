@@ -74,6 +74,18 @@
 						</button>
 					{% endif %}
 
+					{% if dossier.id %}
+    <button
+        class="ui red button"
+        type="submit"
+        form="delete-form"
+        {{ (dossier.lockedAt) ? 'disabled' : '' }}
+    >
+        <i class="trash icon"></i>
+        Supprimer
+    </button>
+{% endif %}
+
 					<a class="ui button" href="{{ path('admin_rachats_v2_index') }}">
 						Retour liste
 					</a>
@@ -83,123 +95,149 @@
 
 		{% set status = dossier.status ?: 'draft' %}
 
-	{{ form_start(form, { attr: { class: 'ui form', id: 'rachat-dossier-form' } }) }}
+		{{ form_start(form, { attr: { class: 'ui form', id: 'rachat-dossier-form' } }) }}
 
-<div class="ui stackable grid">
-	<div class="eight wide column">
+		<div class="ui stackable grid">
+			<div class="eight wide column">
 
-		<div class="ui segment">
-			<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-				<h3 class="ui header" style="margin:0;">
-					<i class="user icon"></i>
-					Dossier / vendeur
-				</h3>
+				<div class="ui segment">
+					<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+						<h3 class="ui header" style="margin:0;">
+							<i class="user icon"></i>
+							Dossier / vendeur
+						</h3>
 
-				<div>
-					{% if dossier.isLocked %}
-						<span class="ui red label">
-							<i class="lock icon"></i>
-							Verrouillé
-						</span>
-					{% elseif status == 'signed' %}
-						<span class="ui green label">Signé</span>
-					{% elseif status == 'cancelled' %}
-						<span class="ui red label">Annulé</span>
-					{% elseif status == 'ready' %}
-						<span class="ui blue label">Prêt</span>
-					{% else %}
-						<span class="ui grey label">Brouillon</span>
-					{% endif %}
+						<div>
+							{% if dossier.isLocked %}
+								<span class="ui red label">
+									<i class="lock icon"></i>
+									Verrouillé
+								</span>
+							{% elseif status == 'signed' %}
+								<span class="ui green label">Signé</span>
+							{% elseif status == 'cancelled' %}
+								<span class="ui red label">Annulé</span>
+							{% elseif status == 'ready' %}
+								<span class="ui blue label">Prêt</span>
+							{% else %}
+								<span class="ui grey label">Brouillon</span>
+							{% endif %}
 
-					{% if dossier.reference %}
-						<span class="ui basic label">{{ dossier.reference }}</span>
-					{% endif %}
-				</div>
-			</div>
+							{% if dossier.reference %}
+								<span class="ui basic label">{{ dossier.reference }}</span>
+							{% endif %}
+						</div>
+					</div>
 
-			<div class="three fields" style="margin-top:1rem;">
-				<div class="field">{{ form_row(form.nomSnapshot) }}</div>
-				<div class="field">{{ form_row(form.prenomSnapshot) }}</div>
-				<div class="field">{{ form_row(form.telephoneSnapshot) }}</div>
-			</div>
+					<div class="three fields" style="margin-top:1rem;">
+						<div class="field">{{ form_row(form.nomSnapshot) }}</div>
+						<div class="field">{{ form_row(form.prenomSnapshot) }}</div>
+						<div class="field">{{ form_row(form.telephoneSnapshot) }}</div>
+					</div>
 
-			<div class="three fields">
-				<div class="field">{{ form_row(form.emailSnapshot) }}</div>
-				<div class="field">{{ form_row(form.codePostalSnapshot) }}</div>
-				<div class="field">{{ form_row(form.numeroCiSnapshot) }}</div>
-			</div>
+					<div class="three fields">
+						<div class="field">{{ form_row(form.emailSnapshot) }}</div>
+						<div class="field">{{ form_row(form.codePostalSnapshot) }}</div>
+						<div class="field">{{ form_row(form.numeroCiSnapshot) }}</div>
+					</div>
 
-			<div class="field">
-				{{ form_row(form.adresseSnapshot) }}
-			</div>
+					<div class="field">
+						{{ form_row(form.adresseSnapshot) }}
+					</div>
 
-			<div style="display:none;">
-				{{ form_widget(form.hibCustomerId, { attr: { class: 'js-hib-customer-id-field' } }) }}
-			</div>
+					<div style="display:none;">
+						{{ form_widget(form.hibCustomerId, { attr: { class: 'js-hib-customer-id-field' } }) }}
+					</div>
 
-			<div class="ui segment" id="hib-customer-live-box"
-				data-dossier-id="{{ dossier.id ?: '' }}"
-				data-search-url="{{ dossier.id ? path('admin_rachats_v2_customer_search', { id: dossier.id }) : '' }}"
-				data-create-url="{{ dossier.id ? path('admin_rachats_v2_customer_create', { id: dossier.id }) : '' }}"
-				data-assign-url-template="{{ dossier.id ? path('admin_rachats_v2_customer_assign', { id: dossier.id, customerId: 0 }) : '' }}"
-				data-partial-url="{{ dossier.id ? path('admin_rachats_v2_customer_partial', { id: dossier.id }) : '' }}"
-				data-create-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_create_' ~ dossier.id) : '' }}"
-				data-assign-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_assign_' ~ dossier.id) : '' }}">
-				<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-					<h4 class="ui header" style="margin:0;">
-						<i class="users icon"></i>
-						Client Hiboutik
-					</h4>
-					<div class="js-hib-customer-status">
+					<div class="ui segment" id="hib-customer-live-box" data-dossier-id="{{ dossier.id ?: '' }}" data-search-url="{{ dossier.id ? path('admin_rachats_v2_customer_search', { id: dossier.id }) : '' }}" data-create-url="{{ dossier.id ? path('admin_rachats_v2_customer_create', { id: dossier.id }) : '' }}" data-assign-url-template="{{ dossier.id ? path('admin_rachats_v2_customer_assign', { id: dossier.id, customerId: 0 }) : '' }}" data-partial-url="{{ dossier.id ? path('admin_rachats_v2_customer_partial', { id: dossier.id }) : '' }}" data-create-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_create_' ~ dossier.id) : '' }}" data-assign-token="{{ dossier.id ? csrf_token('rachat_dossier_customer_assign_' ~ dossier.id) : '' }}">
+						<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+							<h4 class="ui header" style="margin:0;">
+								<i class="users icon"></i>
+								Client Hiboutik
+							</h4>
+							<div class="js-hib-customer-status">
+								{% if dossier.hibCustomerId %}
+									<span class="ui green label">Client #{{ dossier.hibCustomerId }}
+										lié</span>
+								{% else %}
+									<span class="ui red label">Aucun client lié</span>
+								{% endif %}
+							</div>
+						</div>
+
+						<div class="js-hib-customer-finalize-msg" style="margin-top:8px;color:{{ dossier.hibCustomerId ? '#1b5e20' : '#b71c1c' }};font-size:13px;">
+							{% if dossier.id %}
+								{% if dossier.hibCustomerId %}
+									Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.
+								{% else %}
+									Liaison obligatoire avant l’aperçu PDF et la signature.
+								{% endif %}
+							{% else %}
+								Enregistre d’abord le dossier pour activer la recherche et la création du client Hiboutik.
+							{% endif %}
+						</div>
+
+						{% set customerLinked = dossier.hibCustomerId ? true : false %}
+
+						<details class="js-hib-customer-search-details" style="margin-top:12px;" {{ customerLinked ? '' : 'open' }}>
+							<summary style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:8px;outline:none;">
+								<i class="dropdown icon"></i>
+								{{ customerLinked ? 'Changer le client' : 'Rechercher / créer un client Hiboutik' }}
+							</summary>
+
+							<div style="margin-top:12px;">
+								<div class="js-hib-customer-search-state" style="margin-top:8px;font-size:12px;color:#6b7280;">
+									Tape nom, prénom ou téléphone pour chercher un client existant.
+								</div>
+
+								<div class="js-hib-customer-results" style="margin-top:12px;"></div>
+							</div>
+						</details>
+					</div>
+
+					<div id="hibCustomerBox" data-customer-signature="{{ [ dossier.hibCustomerId ?: '', hibCustomer.last_name|default(''), hibCustomer.first_name|default(''), hibCustomer.phone|default(''), hibCustomer.email|default(''), hibCustomer.company|default('') ]|join('||')|e('html_attr') }}" class="ui segment">
+						<div id="hibCustomerReloadMsg" style="margin-top:10px;"></div>
 						{% if dossier.hibCustomerId %}
-							<span class="ui green label">Client #{{ dossier.hibCustomerId }} lié</span>
-						{% else %}
-							<span class="ui red label">Aucun client lié</span>
+							<div style="display:flex;gap:8px;flex-wrap:wrap;">
+								<a class="ui button" href="{{ path('admin_hiboutik_customer_edit', { id: dossier.hibCustomerId }) }}" target="_blank">
+									<i class="edit icon"></i>
+									Éditer client
+								</a>
+
+								<button type="button" class="ui button btn-tablet-edit-customer" data-id="{{ dossier.hibCustomerId }}" data-device="TAB1">
+									<i class="tablet alternate icon"></i>
+									Éditer sur tablette
+								</button>
+							</div>
+
+							<div class="js-tablet-customer-msg" style="margin-top:10px;"></div>
 						{% endif %}
+					</div>
+
+
+					<div class="two fields">
+						<div class="field">{{ form_row(form.paidMethod) }}</div>
+						<div class="field">{{ form_row(form.dateCession) }}</div>
 					</div>
 				</div>
 
-				<div class="js-hib-customer-finalize-msg" style="margin-top:8px;color:{{ dossier.hibCustomerId ? '#1b5e20' : '#b71c1c' }};font-size:13px;">
+				<div class="ui segment">
+					<h3 class="ui header">
+						<i class="calculator icon"></i>
+						Total dossier
+					</h3>
+
+					<div style="font-size:1.2rem;font-weight:700;">
+						{{ dossier.totalAchat ?: '0.00' }}
+						€
+					</div>
+
+					<div style="margin-top:6px;color:#6b7280;">
+						Recalculé automatiquement à l’enregistrement.
+					</div>
+
 					{% if dossier.id %}
-						{% if dossier.hibCustomerId %}
-							Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.
-						{% else %}
-							Liaison obligatoire avant l’aperçu PDF et la signature.
-						{% endif %}
-					{% else %}
-						Enregistre d’abord le dossier pour activer la recherche et la création du client Hiboutik.
-					{% endif %}
-				</div>
-
-				<div class="js-hib-customer-search-state" style="margin-top:8px;font-size:12px;color:#6b7280;">
-					Tape nom, prénom ou téléphone pour chercher un client existant.
-				</div>
-
-				<div class="js-hib-customer-results" style="margin-top:12px;"></div>
-			</div>
-
-			<div class="two fields">
-				<div class="field">{{ form_row(form.paidMethod) }}</div>
-				<div class="field">{{ form_row(form.dateCession) }}</div>
-			</div>
-		</div>
-
-		<div class="ui segment">
-			<h3 class="ui header">
-				<i class="calculator icon"></i>
-				Total dossier
-			</h3>
-
-			<div style="font-size:1.2rem;font-weight:700;">
-				{{ dossier.totalAchat ?: '0.00' }} €
-			</div>
-
-			<div style="margin-top:6px;color:#6b7280;">
-				Recalculé automatiquement à l’enregistrement.
-			</div>
-
-			{% if dossier.id %}
-				{{ include('@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget.html.twig', {
+						{{ include('@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget.html.twig', {
 					widgetId: 'ci-dossier-' ~ dossier.id,
 					title: 'Pièce d’identité dossier',
 					uploadUrl: path('admin_rachats_v2_upload_ci', { id: dossier.id }),
@@ -216,78 +254,82 @@
 						verso: 'Verso'
 					}
 				}) }}
-			{% else %}
-				<div class="ui warning message">
-					Enregistre d’abord le dossier pour activer la pièce d’identité.
+					{% else %}
+						<div class="ui warning message">
+							Enregistre d’abord le dossier pour activer la pièce d’identité.
+						</div>
+					{% endif %}
 				</div>
-			{% endif %}
-		</div>
 
-	</div>
-
-	<div class="eight wide column">
-
-		<div class="ui segment">
-			<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-				<h3 class="ui header" style="margin:0;">
-					<i class="boxes icon"></i>
-					Items rachetés
-				</h3>
-
-				{% if not dossier.lockedAt %}
-					<button type="button" class="ui primary button" id="btn-add-item">
-						<i class="plus icon"></i>
-						Ajouter un item
-					</button>
-				{% else %}
-					<button type="button" class="ui button disabled">
-						<i class="lock icon"></i>
-						Ajout bloqué
-					</button>
-				{% endif %}
 			</div>
 
-			<div class="ui message" style="margin-top:12px;">
-				Un dossier = un vendeur + plusieurs items.
-			</div>
+			<div class="eight wide column">
 
-			<div id="items-collection" data-locked="{{ dossier.lockedAt ? '1' : '0' }}" data-index="{{ form.items|length }}">
-				{% for itemForm in form.items %}
-					{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
+				<div class="ui segment">
+					<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+						<h3 class="ui header" style="margin:0;">
+							<i class="boxes icon"></i>
+							Items rachetés
+						</h3>
+
+						{% if not dossier.lockedAt %}
+							<button type="button" class="ui primary button" id="btn-add-item">
+								<i class="plus icon"></i>
+								Ajouter un item
+							</button>
+						{% else %}
+							<button type="button" class="ui button disabled">
+								<i class="lock icon"></i>
+								Ajout bloqué
+							</button>
+						{% endif %}
+					</div>
+
+					<div class="ui message" style="margin-top:12px;">
+						Un dossier = un vendeur + plusieurs items.
+					</div>
+
+					<div id="items-collection" data-locked="{{ dossier.lockedAt ? '1' : '0' }}" data-index="{{ form.items|length }}">
+						{% for itemForm in form.items %}
+							{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
 						itemForm: itemForm,
 						dossier: dossier,
 						brands: brands|default([])
 					}) }}
-				{% endfor %}
-			</div>
+						{% endfor %}
+					</div>
 
-			<template id="item-prototype-template">
-				{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
+					<template id="item-prototype-template">
+						{{ include('@SyliusAdmin/Rachat/RachatDossier/_item_form.html.twig', {
 					itemForm: form.items.vars.prototype,
 					dossier: dossier,
 					brands: brands|default([])
 				}) }}
-			</template>
+					</template>
+				</div>
+
+			</div>
 		</div>
 
-	</div>
-</div>
-
-{{ form_end(form) }}
+		{{ form_end(form) }}
 
 
-
-			{% if dossier.id %}
-				<form id="generate-pdf-form" method="post" action="{{ path('admin_rachats_v2_generate_pdf', { id: dossier.id }) }}" style="display:none;">
-					<input type="hidden" name="_token" value="{{ csrf_token('generate_pdf_dossier_' ~ dossier.id) }}">
-				</form>
-			{% endif %}
-			<script>
-				(function () {
+		{% if dossier.id %}
+			<form id="generate-pdf-form" method="post" action="{{ path('admin_rachats_v2_generate_pdf', { id: dossier.id }) }}" style="display:none;">
+				<input type="hidden" name="_token" value="{{ csrf_token('generate_pdf_dossier_' ~ dossier.id) }}">
+			</form>
+		{% endif %}
+		{% if dossier.id %}
+			<form id="delete-form" method="post" action="{{ path('admin_rachats_v2_delete', { id: dossier.id }) }}" style="display:none;" onsubmit="return confirm('Confirmer la suppression de ce dossier ?')">
+				<input type="hidden" name="_token" value="{{ csrf_token('rachat_dossier_delete_' ~ dossier.id) }}">
+			</form>
+		{% endif %}
+		<script>
+			(function () {
 const box = document.getElementById('hib-customer-live-box');
 
-if (!box || box.dataset.booted === '1') {
-	return;
+if (! box || box.dataset.booted === '1') {
+return;
 }
 
 box.dataset.booted = '1';
@@ -303,6 +345,8 @@ const statusNode = box.querySelector('.js-hib-customer-status');
 const searchStateNode = box.querySelector('.js-hib-customer-search-state');
 const resultsNode = box.querySelector('.js-hib-customer-results');
 const finalizeMsgNode = box.querySelector('.js-hib-customer-finalize-msg');
+const searchDetails = box.querySelector('.js-hib-customer-search-details');
+
 const hibCustomerIdField = document.querySelector('.js-hib-customer-id-field');
 const pdfButton = document.querySelector('.js-btn-pdf-preview');
 
@@ -318,295 +362,279 @@ let debounceTimer = null;
 let currentController = null;
 
 function getValue(input) {
-	return input ? String(input.value || '').trim() : '';
+return input ? String(input.value || '').trim() : '';
 }
 
 function getPayload() {
-	return {
-		nomSnapshot: getValue(nomInput),
-		prenomSnapshot: getValue(prenomInput),
-		telephoneSnapshot: getValue(telephoneInput),
-		emailSnapshot: getValue(emailInput),
-		adresseSnapshot: getValue(adresseInput),
-		codePostalSnapshot: getValue(codePostalInput),
-		numeroCiSnapshot: getValue(numeroCiInput)
-	};
+return {
+nomSnapshot: getValue(nomInput),
+prenomSnapshot: getValue(prenomInput),
+telephoneSnapshot: getValue(telephoneInput),
+emailSnapshot: getValue(emailInput),
+adresseSnapshot: getValue(adresseInput),
+codePostalSnapshot: getValue(codePostalInput),
+numeroCiSnapshot: getValue(numeroCiInput)
+};
+}
+
+function hasLinkedCustomer() {
+return !!(hibCustomerIdField && String(hibCustomerIdField.value || '').trim() !== '');
 }
 
 function escapeHtml(value) {
-	return String(value || '')
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#039;');
+return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function hasEnoughInfo(payload) {
-	return payload.nomSnapshot.length >= 2
-		|| payload.prenomSnapshot.length >= 2
-		|| payload.telephoneSnapshot.replace(/\D+/g, '').length >= 4
-		|| payload.emailSnapshot.length >= 5;
+return payload.nomSnapshot.length >= 2 || payload.prenomSnapshot.length >= 2 || payload.telephoneSnapshot.replace(/\D+/g, '').length >= 4 || payload.emailSnapshot.length >= 5;
 }
 
 function canCreate(payload) {
-	return payload.nomSnapshot !== '' || payload.prenomSnapshot !== '' || payload.telephoneSnapshot !== '';
+return payload.nomSnapshot !== '' || payload.prenomSnapshot !== '' || payload.telephoneSnapshot !== '';
 }
 
 function setSearchState(message, type) {
-	if (!searchStateNode) {
-		return;
-	}
+if (! searchStateNode) {
+return;
+}
 
-	let color = '#6b7280';
-	if (type === 'error') {
-		color = '#b71c1c';
-	} else if (type === 'success') {
-		color = '#1b5e20';
-	}
+let color = '#6b7280';
+if (type === 'error') {
+color = '#b71c1c';
+} else if (type === 'success') {
+color = '#1b5e20';
+}
 
-	searchStateNode.style.color = color;
-	searchStateNode.textContent = message;
+searchStateNode.style.color = color;
+searchStateNode.textContent = message;
 }
 
 function updateFinalizeUi() {
-	const linked = hibCustomerIdField && String(hibCustomerIdField.value || '').trim() !== '';
+const linked = hasLinkedCustomer();
 
-	if (pdfButton) {
-		pdfButton.disabled = !linked;
-	}
+if (pdfButton) {
+pdfButton.disabled = ! linked;
+}
 
-	if (finalizeMsgNode) {
-		finalizeMsgNode.style.color = linked ? '#1b5e20' : '#b71c1c';
-		finalizeMsgNode.textContent = linked
-			? 'Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.'
-			: 'Liaison obligatoire avant l’aperçu PDF et la signature.';
-	}
+if (finalizeMsgNode) {
+finalizeMsgNode.style.color = linked ? '#1b5e20' : '#b71c1c';
+finalizeMsgNode.textContent = linked ? 'Client Hiboutik requis : OK, tu peux continuer vers le PDF puis la signature.' : 'Liaison obligatoire avant l’aperçu PDF et la signature.';
+}
 }
 
 function updateStatusBadge(customerId, isVirtual) {
-	if (!statusNode) {
-		return;
-	}
+if (! statusNode) {
+return;
+}
 
-	if (customerId) {
-		statusNode.innerHTML = '<span class="ui ' + (isVirtual ? 'grey' : 'green') + ' label">' + (isVirtual ? 'Client virtuel #' : 'Client #') + escapeHtml(customerId) + ' lié</span>';
-	} else {
-		statusNode.innerHTML = '<span class="ui red label">Aucun client lié</span>';
-	}
+if (customerId) {
+statusNode.innerHTML = '<span class="ui ' + (
+isVirtual ? 'grey' : 'green'
+) + ' label">' + (
+isVirtual ? 'Client virtuel #' : 'Client #'
+) + escapeHtml(customerId) + ' lié</span>';
+} else {
+statusNode.innerHTML = '<span class="ui red label">Aucun client lié</span>';
+}
 }
 
 function renderCreateButton(payload) {
-	if (!canCreate(payload)) {
-		return '';
-	}
+if (! canCreate(payload)) {
+return '';
+}
 
-	return ''
-		+ '<div class="ui info message" style="margin-top:10px;">'
-		+ '<div class="header">Aucun résultat satisfaisant</div>'
-		+ '<p style="margin-top:.5rem;">Créer un client Hiboutik avec les informations actuellement saisies.</p>'
-		+ '<button type="button" class="ui primary button js-hib-create-customer">Créer client</button>'
-		+ '</div>';
+return '' + '<div class="ui info message" style="margin-top:10px;">' + '<div class="header">Aucun résultat satisfaisant</div>' + '<p style="margin-top:.5rem;">Créer un client Hiboutik avec les informations actuellement saisies.</p>' + '<button type="button" class="ui primary button js-hib-create-customer">Créer client</button>' + '</div>';
 }
 
 function renderResults(candidates, payload) {
-	if (!resultsNode) {
-		return;
-	}
+if (! resultsNode) {
+return;
+}
 
-	if (!Array.isArray(candidates) || candidates.length === 0) {
-		resultsNode.innerHTML = renderCreateButton(payload);
-		return;
-	}
+if (!Array.isArray(candidates) || candidates.length === 0) {
+resultsNode.innerHTML = renderCreateButton(payload);
+return;
+}
 
-	resultsNode.innerHTML = candidates.map(function (candidate) {
-		const id = candidate.id || '';
-		const name = [candidate.first_name || '', candidate.last_name || ''].join(' ').trim() || 'Client';
-		const phone = candidate.phone || '—';
-		const email = candidate.email || '—';
-		const score = candidate.score !== undefined && candidate.score !== null ? candidate.score : '—';
+resultsNode.innerHTML = candidates.map(function (candidate) {
+const id = candidate.id || '';
+const name = [
+candidate.first_name || '',
+candidate.last_name || ''
+].join(' ').trim() || 'Client';
+const phone = candidate.phone || '—';
+const email = candidate.email || '—';
+const score = candidate.score !== undefined && candidate.score !== null ? candidate.score : '—';
 
-		return ''
-			+ '<div class="js-hib-customer-result">'
-			+ '<div>'
-			+ '<div style="font-weight:700;">' + escapeHtml(name) + '</div>'
-			+ '<div style="margin-top:4px;color:#4b5563;">#' + escapeHtml(id) + '</div>'
-			+ '<div style="margin-top:4px;font-size:12px;color:#6b7280;">Tél. ' + escapeHtml(phone) + ' · Email ' + escapeHtml(email) + ' · Score ' + escapeHtml(score) + '</div>'
-			+ '</div>'
-			+ '<div>'
-			+ '<button type="button" class="ui tiny primary button js-hib-assign-customer" data-customer-id="' + escapeHtml(id) + '">Affecter</button>'
-			+ '</div>'
-			+ '</div>';
-	}).join('') + renderCreateButton(payload);
+return '' + '<div class="js-hib-customer-result">' + '<div>' + '<div style="font-weight:700;">' + escapeHtml(name) + '</div>' + '<div style="margin-top:4px;color:#4b5563;">#' + escapeHtml(id) + '</div>' + '<div style="margin-top:4px;font-size:12px;color:#6b7280;">Tél. ' + escapeHtml(phone) + ' · Email ' + escapeHtml(email) + ' · Score ' + escapeHtml(score) + '</div>' + '</div>' + '<div>' + '<button type="button" class="ui tiny primary button js-hib-assign-customer" data-customer-id="' + escapeHtml(id) + '">Affecter</button>' + '</div>' + '</div>';
+}).join('') + renderCreateButton(payload);
 }
 
 async function runSearch() {
-	if (!dossierId || !searchUrl) {
-		return;
-	}
+if (! dossierId || ! searchUrl) {
+return;
+}
 
-	const payload = getPayload();
+if (hasLinkedCustomer() && searchDetails && ! searchDetails.open) {
+return;
+}
 
-	if (!hasEnoughInfo(payload)) {
-		if (resultsNode) {
-			resultsNode.innerHTML = '';
-		}
-		setSearchState('Tape au moins 2 lettres sur le nom ou prénom, ou 4 chiffres de téléphone.', 'info');
-		return;
-	}
+const payload = getPayload();
 
-	if (currentController) {
-		currentController.abort();
-	}
+if (! hasEnoughInfo(payload)) {
+if (resultsNode) {
+resultsNode.innerHTML = '';
+}
+setSearchState('Tape au moins 2 lettres sur le nom ou prénom, ou 4 chiffres de téléphone.', 'info');
+return;
+}
 
-	currentController = new AbortController();
+if (currentController) {
+currentController.abort();
+}
 
-	const params = new URLSearchParams({
-		nom: payload.nomSnapshot,
-		prenom: payload.prenomSnapshot,
-		telephone: payload.telephoneSnapshot,
-		email: payload.emailSnapshot
-	});
+currentController = new AbortController();
 
-	setSearchState('Recherche en cours…', 'info');
+const params = new URLSearchParams({nom: payload.nomSnapshot, prenom: payload.prenomSnapshot, telephone: payload.telephoneSnapshot, email: payload.emailSnapshot});
 
-	try {
-		const response = await fetch(searchUrl + '?' + params.toString(), {
-			method: 'GET',
-			headers: {
-				'X-Requested-With': 'XMLHttpRequest',
-				'Accept': 'application/json'
-			},
-			credentials: 'same-origin',
-			signal: currentController.signal
-		});
+setSearchState('Recherche en cours…', 'info');
 
-		const json = await response.json();
+try {
+const response = await fetch(searchUrl + '?' + params.toString(), {
+method: 'GET',
+headers: {
+'X-Requested-With': 'XMLHttpRequest',
+'Accept': 'application/json'
+},
+credentials: 'same-origin',
+signal: currentController.signal
+});
 
-		if (!response.ok || !json.ok) {
-			throw new Error(json.error || 'Recherche impossible');
-		}
+const json = await response.json();
 
-		renderResults(json.candidates || [], payload);
-		setSearchState((json.candidates || []).length + ' résultat(s) Hiboutik.', 'success');
-	} catch (error) {
-		if (error.name === 'AbortError') {
-			return;
-		}
+if (! response.ok || ! json.ok) {
+throw new Error(json.error || 'Recherche impossible');
+}
 
-		console.error(error);
-		if (resultsNode) {
-			resultsNode.innerHTML = renderCreateButton(payload);
-		}
-		setSearchState(error.message || 'Erreur de recherche.', 'error');
-	}
+renderResults(json.candidates || [], payload);
+setSearchState((json.candidates || []).length + ' résultat(s) Hiboutik.', 'success');
+} catch (error) {
+if (error.name === 'AbortError') {
+return;
+}
+
+console.error(error);
+if (resultsNode) {
+resultsNode.innerHTML = renderCreateButton(payload);
+}
+setSearchState(error.message || 'Erreur de recherche.', 'error');
+}
 }
 
 function scheduleSearch() {
-	clearTimeout(debounceTimer);
-	debounceTimer = window.setTimeout(runSearch, 350);
+clearTimeout(debounceTimer);
+debounceTimer = window.setTimeout(runSearch, 350);
 }
 
 async function postForm(url, data) {
-	const response = await fetch(url, {
-		method: 'POST',
-		body: data,
-		headers: {
-			'X-Requested-With': 'XMLHttpRequest',
-			'Accept': 'application/json'
-		},
-		credentials: 'same-origin'
-	});
+const response = await fetch(url, {
+method: 'POST',
+body: data,
+headers: {
+'X-Requested-With': 'XMLHttpRequest',
+'Accept': 'application/json'
+},
+credentials: 'same-origin'
+});
 
-	const json = await response.json();
+const json = await response.json();
 
-	if (!response.ok || !json.ok) {
-		throw new Error(json.error || 'Action impossible');
-	}
+if (! response.ok || ! json.ok) {
+throw new Error(json.error || 'Action impossible');
+}
 
-	return json;
+return json;
 }
 
 async function createCustomer() {
-	const payload = getPayload();
-	const formData = new FormData();
-	formData.append('_token', createToken);
-	Object.entries(payload).forEach(function (entry) {
-		formData.append(entry[0], entry[1]);
-	});
+const payload = getPayload();
+const formData = new FormData();
+formData.append('_token', createToken);
+Object.entries(payload).forEach(function (entry) {
+formData.append(entry[0], entry[1]);
+});
 
-	setSearchState('Création du client Hiboutik…', 'info');
+setSearchState('Création du client Hiboutik…', 'info');
 
-	const json = await postForm(createUrl, formData);
+const json = await postForm(createUrl, formData);
 
-	if (hibCustomerIdField) {
-		hibCustomerIdField.value = String(json.hibCustomerId || '');
-	}
+if (hibCustomerIdField) {
+hibCustomerIdField.value = String(json.hibCustomerId || '');
+}
 
-	updateStatusBadge(json.hibCustomerId || '', false);
-	updateFinalizeUi();
-	if (resultsNode) {
-		resultsNode.innerHTML = '';
-	}
-	setSearchState(json.message || 'Client créé.', 'success');
+setSearchState(json.message || 'Client créé.', 'success');
+window.location.reload();
 }
 
 async function assignCustomer(customerId) {
-	const formData = new FormData();
-	formData.append('_token', assignToken);
+const formData = new FormData();
+formData.append('_token', assignToken);
 
-	setSearchState('Affectation du client Hiboutik…', 'info');
+setSearchState('Affectation du client Hiboutik…', 'info');
 
-	const json = await postForm(assignUrlTemplate.replace(/\/0$/, '/' + encodeURIComponent(customerId)), formData);
+const json = await postForm(assignUrlTemplate.replace(/\/0$/, '/' + encodeURIComponent(customerId)), formData);
 
-	if (hibCustomerIdField) {
-		hibCustomerIdField.value = String(json.hibCustomerId || customerId || '');
-	}
-
-	updateStatusBadge(json.hibCustomerId || customerId || '', json.customerLinkStatus === 'virtual');
-	updateFinalizeUi();
-	if (resultsNode) {
-		resultsNode.innerHTML = '';
-	}
-	setSearchState(json.message || 'Client affecté.', 'success');
+if (hibCustomerIdField) {
+hibCustomerIdField.value = String(json.hibCustomerId || customerId || '');
 }
 
-[nomInput, prenomInput, telephoneInput, emailInput].forEach(function (input) {
-	if (input) {
-		input.addEventListener('input', scheduleSearch);
-	}
+setSearchState(json.message || 'Client affecté.', 'success');
+window.location.reload();
+}[nomInput, prenomInput, telephoneInput, emailInput].forEach(function (input) {
+if (input) {
+input.addEventListener('input', scheduleSearch);
+}
 });
 
-box.addEventListener('click', function (event) {
-	const assignBtn = event.target.closest('.js-hib-assign-customer');
-	if (assignBtn) {
-		event.preventDefault();
-		assignCustomer(assignBtn.dataset.customerId).catch(function (error) {
-			console.error(error);
-			setSearchState(error.message || 'Affectation impossible.', 'error');
-		});
-		return;
-	}
+if (searchDetails) {
+searchDetails.addEventListener('toggle', function () {
+if (searchDetails.open) {
+scheduleSearch();
+}
+});
+}
 
-	const createBtn = event.target.closest('.js-hib-create-customer');
-	if (createBtn) {
-		event.preventDefault();
-		createCustomer().catch(function (error) {
-			console.error(error);
-			setSearchState(error.message || 'Création impossible.', 'error');
-		});
-	}
+box.addEventListener('click', function (event) {
+const assignBtn = event.target.closest('.js-hib-assign-customer');
+if (assignBtn) {
+event.preventDefault();
+assignCustomer(assignBtn.dataset.customerId).catch(function (error) {
+console.error(error);
+setSearchState(error.message || 'Affectation impossible.', 'error');
+});
+return;
+}
+
+const createBtn = event.target.closest('.js-hib-create-customer');
+if (createBtn) {
+event.preventDefault();
+createCustomer().catch(function (error) {
+console.error(error);
+setSearchState(error.message || 'Création impossible.', 'error');
+});
+}
 });
 
 updateFinalizeUi();
-if (dossierId) {
-	scheduleSearch();
+
+if (dossierId && (! hasLinkedCustomer() || (searchDetails && searchDetails.open))) {
+scheduleSearch();
 }
 })();
-			</script>
+		</script>
 
-			<script>
-				(function () {
+		<script>
+			(function () {
 function bootRachatDossierV2() {
 const collection = document.getElementById('items-collection');
 const addBtn = document.getElementById('btn-add-item');
@@ -623,7 +651,7 @@ root = document;
 }
 
 if (window.$ && $.fn.checkbox) {
-    $(root || document).find('.ui.checkbox').checkbox();
+$(root || document).find('.ui.checkbox').checkbox();
 }
 
 
@@ -1345,14 +1373,14 @@ collection.appendChild(itemNode);
 const convertCheckbox = itemNode.querySelector('input[type="checkbox"][name$="[convertToHib]"]');
 
 if (convertCheckbox) {
-    convertCheckbox.checked = true;
+convertCheckbox.checked = true;
 
-    if (window.$ && $.fn.checkbox) {
-        const uiCheckbox = convertCheckbox.closest('.ui.checkbox');
-        if (uiCheckbox) {
-            $(uiCheckbox).checkbox('set checked');
-        }
-    }
+if (window.$ && $.fn.checkbox) {
+const uiCheckbox = convertCheckbox.closest('.ui.checkbox');
+if (uiCheckbox) {
+$(uiCheckbox).checkbox('set checked');
+}
+}
 }
 
 bindItem(itemNode);
@@ -1380,10 +1408,10 @@ bootRachatDossierV2();
 
 document.addEventListener('turbo:load', bootRachatDossierV2);
 })();
-			</script>
+		</script>
 
-			<script>
-				(function () {
+		<script>
+			(function () {
 const root = document.getElementById('ciDossierBox');
 if (! root || root.dataset.booted === '1') {
 return;
@@ -1757,11 +1785,150 @@ if (root.dataset.verso) {
 setPreview('verso', root.dataset.verso);
 }
 })();
-			</script>
-			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-			<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+		</script>
 
-			{% if dossier.id %}
-				{% include '@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget_js.html.twig' with { dossier: dossier } %}
-			{% endif %}
-		{% endblock %}
+		<script>
+			(function () {
+document.addEventListener('click', async function (e) {
+const btn = e.target.closest('.btn-tablet-edit-customer');
+if (! btn) 
+return;
+
+
+
+const box = btn.closest('#hibCustomerBox') || document;
+const msg = box.querySelector('.js-tablet-customer-msg');
+
+btn.classList.add('loading');
+btn.disabled = true;
+
+if (msg) {
+msg.innerHTML = '';
+}
+
+try {
+const customerId = btn.dataset.id;
+const device = btn.dataset.device || 'TAB1';
+
+if (! customerId) {
+throw new Error('Client Hiboutik introuvable.');
+}
+
+const url = `/tablet/customers/${customerId}/edit?device=${
+encodeURIComponent(device)
+}`;
+
+const push = await fetch('/ws-tablet-push', {
+method: 'POST',
+headers: {
+'Content-Type': 'application/x-www-form-urlencoded',
+'X-Requested-With': 'XMLHttpRequest'
+},
+body: new URLSearchParams(
+{device: device, url: url, token: '{{ tablet_socket_token|e("js") }}'}
+),
+credentials: 'same-origin'
+});
+
+const pj = await push.json().catch(() => ({}));
+
+if (! push.ok || ! pj.ok) {
+throw new Error(pj.error || 'Push tablette impossible.');
+}
+
+if (msg) {
+msg.innerHTML = `
+          <div class="ui positive message">
+            Édition client envoyée sur la tablette.
+          </div>
+        `;
+}
+} catch (err) {
+console.error(err);
+
+if (msg) {
+msg.innerHTML = `
+          <div class="ui negative message">
+            ${
+err.message || 'Erreur push tablette'
+}
+          </div>
+        `;
+}
+} finally {
+btn.classList.remove('loading');
+btn.disabled = false;
+}
+});
+})();
+		</script>
+
+
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+		{% if dossier.id %}
+			{% include '@SyliusAdmin/Rachat/RachatDossier/_media_capture_widget_js.html.twig' with { dossier: dossier } %}
+		{% endif %}
+
+		{% if dossier.id and dossier.hibCustomerId and dossier.status != 'signed' %}
+			<script>
+				(function () {
+const watchUrl = "{{ path('admin_rachats_v2_customer_watch', {id: dossier.id}) }}";
+
+let lastSignature = null;
+let busy = false;
+let reloading = false;
+
+async function checkCustomerChanged() {
+if (busy || reloading) {
+return;
+}
+
+busy = true;
+
+try {
+const res = await fetch(watchUrl, {
+headers: {
+'X-Requested-With': 'XMLHttpRequest',
+'Accept': 'application/json'
+},
+credentials: 'same-origin'
+});
+
+const json = await res.json();
+
+if (! res.ok || ! json.ok) {
+throw new Error(json.error || 'Erreur watch client');
+}
+
+const newSignature = String(json.signature || '');
+
+if (! newSignature) {
+return;
+}
+
+if (lastSignature === null) {
+lastSignature = newSignature;
+return;
+}
+
+if (newSignature !== lastSignature) {
+reloading = true;
+window.location.reload();
+}
+} catch (e) {
+console.error('[rachat-customer-watch]', e);
+} finally {
+busy = false;
+}
+}
+
+checkCustomerChanged();
+setInterval(checkCustomerChanged, 2000);
+})();
+			</script>
+		{% endif %}
+
+
+	{% endblock %}

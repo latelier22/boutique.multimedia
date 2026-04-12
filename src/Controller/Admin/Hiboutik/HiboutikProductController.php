@@ -273,11 +273,25 @@ public function new(Request $request): Response
 
     $productModel = trim((string)$request->request->get('product_model', 'Nouveau produit'));
     $productPrice = str_replace(',', '.', trim((string)$request->request->get('product_price', '0.00')));
+
     if ($productPrice === '' || !is_numeric($productPrice)) {
         $productPrice = '0.00';
     } else {
         $productPrice = number_format((float)$productPrice, 2, '.', '');
     }
+
+    // TVA / compte comptable saisis au formulaire
+    $vatChoice = trim((string)$request->request->get('vat_rate', '0'));
+    if (!in_array($vatChoice, ['0', '20'], true)) {
+        $vatChoice = '0';
+    }
+
+    $accountingAccount = trim((string)$request->request->get('accounting_account', '707002'));
+    if (!in_array($accountingAccount, ['707001', '707002'], true)) {
+        $accountingAccount = '707002';
+    }
+
+    $hibVatCode = $this->resolveHiboutikVatCodeFromVat($vatChoice);
 
     $payload = [
         'product_model'            => $productModel,
@@ -286,6 +300,8 @@ public function new(Request $request): Response
         'product_stock_management' => 1,
         'product_display_www'      => 0,
         'product_arch'             => 0,
+        'product_vat'              => $hibVatCode,
+        'accounting_account'       => $accountingAccount,
     ];
 
     if ($defaultCategoryId) {
@@ -344,7 +360,7 @@ public function edit(int $id, Request $request): Response
 
     $currentTagIds = [];
     foreach (($product['tags'] ?? []) as $tag) {
-        $tid = (int)($tag['tag_id'] ?? 0);
+        $tid = (int) ($tag['tag_id'] ?? 0);
         if ($tid > 0) {
             $currentTagIds[] = $tid;
         }
@@ -353,8 +369,8 @@ public function edit(int $id, Request $request): Response
 
     usort($brands, function ($a, $b) {
         return strcmp(
-            mb_strtolower((string)($a['brand_name'] ?? ''), 'UTF-8'),
-            mb_strtolower((string)($b['brand_name'] ?? ''), 'UTF-8')
+            mb_strtolower((string) ($a['brand_name'] ?? ''), 'UTF-8'),
+            mb_strtolower((string) ($b['brand_name'] ?? ''), 'UTF-8')
         );
     });
 
@@ -365,20 +381,20 @@ public function edit(int $id, Request $request): Response
     $leafCategoryIds = [];
     foreach ($categoryOptions as $opt) {
         if (!empty($opt['selectable'])) {
-            $leafCategoryIds[(int)$opt['id']] = true;
+            $leafCategoryIds[(int) $opt['id']] = true;
         }
     }
 
     // catégorie par défaut = "Occasion / reconditionné" enfant de "Téléphones"
     $defaultCategoryId = $this->findDefaultPhoneOccasionCategoryId($categories);
 
-    $currentCategoryId = (int)($product['product_category'] ?? 0);
+    $currentCategoryId = (int) ($product['product_category'] ?? 0);
     $selectedCategoryId = (
         $currentCategoryId > 0
         && isset($leafCategoryIds[$currentCategoryId])
     )
         ? $currentCategoryId
-        : ((int)$defaultCategoryId ?: 0);
+        : ((int) $defaultCategoryId ?: 0);
 
     $error = null;
 
@@ -386,10 +402,9 @@ public function edit(int $id, Request $request): Response
     // POST
     // -------------------------
     if ($request->isMethod('POST')) {
-
         if (!$this->isCsrfTokenValid(
             'hiboutik_edit_' . $id,
-            (string)$request->request->get('_csrf_token')
+            (string) $request->request->get('_csrf_token')
         )) {
             throw $this->createAccessDeniedException('CSRF invalid');
         }
@@ -397,11 +412,11 @@ public function edit(int $id, Request $request): Response
         $www = $request->request->has('product_display_www') ? '1' : '0';
 
         // catégorie
-        $categoryRaw = trim((string)$request->request->get('product_category', '0'));
-        $categoryId = ctype_digit($categoryRaw) ? (int)$categoryRaw : 0;
+        $categoryRaw = trim((string) $request->request->get('product_category', '0'));
+        $categoryId = ctype_digit($categoryRaw) ? (int) $categoryRaw : 0;
 
         if ($categoryId <= 0 && $defaultCategoryId) {
-            $categoryId = (int)$defaultCategoryId;
+            $categoryId = (int) $defaultCategoryId;
         }
 
         if ($categoryId <= 0) {
@@ -415,117 +430,126 @@ public function edit(int $id, Request $request): Response
         }
 
         // marque
-        $brandRaw = trim((string)$request->request->get('product_brand', '0'));
-$brandId = 0;
+        $brandRaw = trim((string) $request->request->get('product_brand', '0'));
+        $brandId = 0;
 
-if ($brandRaw === '__new__') {
-    $newBrandName = trim((string)$request->request->get('new_brand_name', ''));
+        if ($brandRaw === '__new__') {
+            $newBrandName = trim((string) $request->request->get('new_brand_name', ''));
 
-    if ($newBrandName === '') {
-        $this->addFlash('error', 'Le nom de la nouvelle marque est obligatoire.');
-        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
-    }
-
-    // position max + 1
-    $maxPosition = 0;
-    foreach ($brands as $b) {
-        $pos = (int)($b['brand_position'] ?? 0);
-        if ($pos > $maxPosition) {
-            $maxPosition = $pos;
-        }
-    }
-
-    $createRes = $this->hib->createBrand([
-        'brand_name' => $newBrandName,
-        'brand_enabled' => 1,
-        'brand_enabled_www' => 0,
-        'brand_position' => $maxPosition + 1,
-    ]);
-
-    if (!($createRes['ok'] ?? false)) {
-        $this->addFlash('error', 'Impossible de créer la nouvelle marque Hiboutik.');
-        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
-    }
-
-    // on essaie de récupérer l'id directement
-    $brandId = (int)($createRes['data']['brand_id'] ?? $createRes['brand_id'] ?? 0);
-
-    // fallback : on relit les marques et on retrouve par nom
-    if ($brandId <= 0) {
-        $brandsReload = $this->hib->listBrands();
-        $brandsReloadData = is_array($brandsReload['data'] ?? null) ? $brandsReload['data'] : [];
-
-        $targetNorm = $this->normalizeBrandName($newBrandName);
-
-        foreach ($brandsReloadData as $b) {
-            $bid = (int)($b['brand_id'] ?? 0);
-            $bname = trim((string)($b['brand_name'] ?? ''));
-
-            if ($bid > 0 && $this->normalizeBrandName($bname) === $targetNorm) {
-                $brandId = $bid;
-                break;
+            if ($newBrandName === '') {
+                $this->addFlash('error', 'Le nom de la nouvelle marque est obligatoire.');
+                return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
             }
-        }
-    }
 
-    if ($brandId <= 0) {
-        $this->addFlash('error', 'La marque a peut-être été créée, mais son identifiant est introuvable.');
-        return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
-    }
-} else {
-    $brandId = ctype_digit($brandRaw) ? (int)$brandRaw : 0;
-}
+            $maxPosition = 0;
+            foreach ($brands as $b) {
+                $pos = (int) ($b['brand_position'] ?? 0);
+                if ($pos > $maxPosition) {
+                    $maxPosition = $pos;
+                }
+            }
+
+            $createRes = $this->hib->createBrand([
+                'brand_name' => $newBrandName,
+                'brand_enabled' => 1,
+                'brand_enabled_www' => 0,
+                'brand_position' => $maxPosition + 1,
+            ]);
+
+            if (!($createRes['ok'] ?? false)) {
+                $this->addFlash('error', 'Impossible de créer la nouvelle marque Hiboutik.');
+                return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+            }
+
+            $brandId = (int) ($createRes['data']['brand_id'] ?? $createRes['brand_id'] ?? 0);
+
+            if ($brandId <= 0) {
+                $brandsReload = $this->hib->listBrands();
+                $brandsReloadData = is_array($brandsReload['data'] ?? null) ? $brandsReload['data'] : [];
+
+                $targetNorm = $this->normalizeBrandName($newBrandName);
+
+                foreach ($brandsReloadData as $b) {
+                    $bid = (int) ($b['brand_id'] ?? 0);
+                    $bname = trim((string) ($b['brand_name'] ?? ''));
+
+                    if ($bid > 0 && $this->normalizeBrandName($bname) === $targetNorm) {
+                        $brandId = $bid;
+                        break;
+                    }
+                }
+            }
+
+            if ($brandId <= 0) {
+                $this->addFlash('error', 'La marque a peut-être été créée, mais son identifiant est introuvable.');
+                return $this->redirectToRoute('admin_hiboutik_product_edit', ['id' => $id]);
+            }
+        } else {
+            $brandId = ctype_digit($brandRaw) ? (int) $brandRaw : 0;
+        }
 
         // tags cochés
         $selectedTagIds = array_values(array_unique(array_filter(
-            array_map('intval', (array)$request->request->all('product_tags')),
+            array_map('intval', (array) $request->request->all('product_tags')),
             fn ($x) => $x > 0
         )));
 
         // attributs postés
-        $postedMiscValues = json_decode((string)$request->request->get('misc_values_json', '{}'), true);
+        $postedMiscValues = json_decode((string) $request->request->get('misc_values_json', '{}'), true);
         if (!is_array($postedMiscValues)) {
             $postedMiscValues = [];
         }
 
-        // IMPORTANT : on repart de l'existant pour ne RIEN perdre
-        $existingMiscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
+        // repartir de l'existant pour ne rien perdre
+        $existingMiscValues = $this->parseMiscTextMap((string) ($product['misc_text'] ?? ''));
         if (!is_array($existingMiscValues)) {
             $existingMiscValues = [];
         }
 
-        // les valeurs postées écrasent les anciennes, mais si une clé n'est pas repostée on la garde
         $effectiveMiscValues = array_replace($existingMiscValues, $postedMiscValues);
 
         $defs = $this->em->getRepository(AttributeDefinition::class)
-            ->findBy(['category' => (string)$categoryId], ['id' => 'ASC']);
+            ->findBy(['category' => (string) $categoryId], ['id' => 'ASC']);
 
         $miscText = $this->buildProductMiscText($defs, $effectiveMiscValues);
 
+        $vatChoice = trim((string) $request->request->get('vat_rate', ''));
+        $accountingAccount = trim((string) $request->request->get('accounting_account', ''));
+
         $fields = [
-            'product_model'          => trim((string)$request->request->get('product_model', '')),
-            'product_barcode'        => trim((string)$request->request->get('product_barcode', '')),
-            'product_price'          => (string)$request->request->get('product_price', ''),
-            'product_discount_price' => (string)$request->request->get('product_discount_price', ''),
-            'product_category'       => (string)$categoryId,
-            'product_brand'          => (string)$brandId,
+            'product_model'          => trim((string) $request->request->get('product_model', '')),
+            'product_barcode'        => trim((string) $request->request->get('product_barcode', '')),
+            'product_price'          => (string) $request->request->get('product_price', ''),
+            'product_discount_price' => (string) $request->request->get('product_discount_price', ''),
+            'product_category'       => (string) $categoryId,
+            'product_brand'          => (string) $brandId,
             'product_display_www'    => $www,
             'misc_text'              => $miscText,
         ];
 
         // format prix
         foreach (['product_price', 'product_discount_price'] as $k) {
-            $v = str_replace(',', '.', trim((string)$fields[$k]));
+            $v = str_replace(',', '.', trim((string) $fields[$k]));
 
             if ($v === '') {
                 $v = '0.00';
             }
 
             if (is_numeric($v)) {
-                $v = number_format((float)$v, 2, '.', '');
+                $v = number_format((float) $v, 2, '.', '');
             }
 
             $fields[$k] = $v;
+        }
+
+        // TVA lue/choisie
+        if ($vatChoice !== '' && in_array($vatChoice, ['0', '20'], true)) {
+            $fields['product_vat'] = $this->resolveHiboutikVatCodeFromVat($vatChoice);
+        }
+
+        // compte comptable lu/choisi
+        if ($accountingAccount !== '' && in_array($accountingAccount, ['707001', '707002'], true)) {
+            $fields['accounting_account'] = $accountingAccount;
         }
 
         // update Hiboutik
@@ -536,7 +560,7 @@ if ($brandRaw === '__new__') {
             $this->addFlash('error', $error);
 
             return $this->redirectToRoute('admin_hiboutik_product_edit', [
-                'id' => $id
+                'id' => $id,
             ]);
         }
 
@@ -547,14 +571,14 @@ if ($brandRaw === '__new__') {
         $toRemove = array_diff($currentTagIds, $selectedTagIds);
 
         foreach ($toAdd as $tagId) {
-            $r = $this->hib->addTagToProduct($id, (int)$tagId);
+            $r = $this->hib->addTagToProduct($id, (int) $tagId);
             if (!($r['ok'] ?? false)) {
                 $tagErrors[] = 'Ajout tag #' . $tagId;
             }
         }
 
         foreach ($toRemove as $tagId) {
-            $r = $this->hib->deleteTagForProduct($id, (int)$tagId);
+            $r = $this->hib->deleteTagForProduct($id, (int) $tagId);
             if (!($r['ok'] ?? false)) {
                 $tagErrors[] = 'Suppression tag #' . $tagId;
             }
@@ -565,18 +589,21 @@ if ($brandRaw === '__new__') {
         $this->addFlash('success', "Produit #$id mis à jour.");
 
         if ($tagErrors) {
-            $this->addFlash('warning', 'Produit enregistré, mais certains tags n’ont pas pu être mis à jour : ' . implode(' | ', $tagErrors));
+            $this->addFlash(
+                'warning',
+                'Produit enregistré, mais certains tags n’ont pas pu être mis à jour : ' . implode(' | ', $tagErrors)
+            );
         }
 
         return $this->redirectToRoute('admin_hiboutik_product_edit', [
-            'id' => $id
+            'id' => $id,
         ]);
     }
 
     // -------------------------
     // GET
     // -------------------------
-    $miscValues = $this->parseMiscTextMap((string)($product['misc_text'] ?? ''));
+    $miscValues = $this->parseMiscTextMap((string) ($product['misc_text'] ?? ''));
 
     // attributs préchargés pour éviter le fetch lent au premier affichage
     $initialAttributeDefs = [];
@@ -587,7 +614,7 @@ if ($brandRaw === '__new__') {
              FROM attributes_definitions
              WHERE category = :cat
              ORDER BY id ASC',
-            ['cat' => (string)$selectedCategoryId]
+            ['cat' => (string) $selectedCategoryId]
         );
 
         foreach ($initialAttributeDefs as &$row) {
@@ -598,20 +625,25 @@ if ($brandRaw === '__new__') {
         unset($row);
     }
 
+    $initialVatChoice = $this->readVatChoiceFromProduct($product);
+    $initialAccountingAccount = $this->readAccountingAccountFromProduct($product);
+
     return $this->render('@SyliusAdmin/Hiboutik/Products/edit.html.twig', [
-        'id'                   => $id,
-        'product'              => $product,
-        'product_barcode'      => $product['product_barcode'] ?? '',
-        'categories'           => $categories,
-        'categoryOptions'      => $categoryOptions,
-        'selectedCategoryId'   => $selectedCategoryId,
-        'defaultCategoryId'    => $defaultCategoryId,
-        'brands'               => $brands,
-        'error'                => $error,
-        'miscValues'           => $miscValues,
-        'initialAttributeDefs' => $initialAttributeDefs,
-        'tagGroups'            => $tagGroups,
-        'currentTagIds'        => $currentTagIds,
+        'id'                       => $id,
+        'product'                  => $product,
+        'product_barcode'          => $product['product_barcode'] ?? '',
+        'categories'               => $categories,
+        'categoryOptions'          => $categoryOptions,
+        'selectedCategoryId'       => $selectedCategoryId,
+        'defaultCategoryId'        => $defaultCategoryId,
+        'brands'                   => $brands,
+        'error'                    => $error,
+        'miscValues'               => $miscValues,
+        'initialAttributeDefs'     => $initialAttributeDefs,
+        'tagGroups'                => $tagGroups,
+        'currentTagIds'            => $currentTagIds,
+        'initialVatChoice'         => $initialVatChoice,
+        'initialAccountingAccount' => $initialAccountingAccount,
     ]);
 }
 
@@ -2193,5 +2225,52 @@ private function getLabelBuilderSlotCount(string $format): int
 {
     return $format === 'a4' ? 8 : 4;
 }
+
+
+private const HIB_VAT_CODE_0 = 5;  // confirmé chez vous
+private const HIB_VAT_CODE_20 = 1; // à adapter avec votre vrai code Hiboutik 20%
+
+private function readVatChoiceFromProduct(array $product): ?string
+{
+    if (isset($product['product_vat_value']) && $product['product_vat_value'] !== '') {
+        $vatValue = (float) $product['product_vat_value'];
+
+        if (abs($vatValue - 20.0) < 0.01) {
+            return '20';
+        }
+
+        if (abs($vatValue - 0.0) < 0.01) {
+            return '0';
+        }
+    }
+
+    $vatCode = (string) ($product['product_vat'] ?? '');
+
+    if ($vatCode === (string) self::HIB_VAT_CODE_0) {
+        return '0';
+    }
+
+    if ($vatCode === (string) self::HIB_VAT_CODE_20) {
+        return '20';
+    }
+
+    return null;
+}
+
+private function readAccountingAccountFromProduct(array $product): ?string
+{
+    $account = trim((string) ($product['accounting_account'] ?? ''));
+
+    return $account !== '' ? $account : null;
+}
+
+private function resolveHiboutikVatCodeFromVat(string $vatChoice): string
+{
+    return $vatChoice === '20'
+        ? (string) self::HIB_VAT_CODE_20
+        : (string) self::HIB_VAT_CODE_0;
+}
+
+
 
 }

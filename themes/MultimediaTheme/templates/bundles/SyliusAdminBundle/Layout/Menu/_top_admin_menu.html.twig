@@ -8,6 +8,8 @@
     border: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
+    overflow: visible !important;
+    position: relative;
 }
 
 .admin-top-tools-menu.ui.menu::before,
@@ -15,8 +17,22 @@
     display: none !important;
 }
 
-.admin-top-tools-menu.ui.menu > .item {
-    display: flex !important;
+.admin-top-tools-menu__dropdown {
+    position: relative;
+    display: flex;
+    flex: 0 1 auto;
+    z-index: 1;
+}
+
+.admin-top-tools-menu__dropdown:hover,
+.admin-top-tools-menu__dropdown:focus-within,
+.admin-top-tools-menu__dropdown.active {
+    z-index: 9999;
+}
+
+.admin-top-tools-menu__main-link,
+.admin-top-tools-menu__home-link {
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
@@ -30,6 +46,7 @@
     font-weight: 700;
     line-height: 1.2;
     text-align: center;
+    text-decoration: none !important;
     white-space: normal !important;
     word-break: break-word;
     box-shadow: 0 10px 22px rgba(22, 60, 131, .20);
@@ -37,125 +54,196 @@
     flex: 0 1 auto;
 }
 
-.admin-top-tools-menu.ui.menu > .item:hover {
+.admin-top-tools-menu__main-link span,
+.admin-top-tools-menu__home-link span {
+    display: block;
+    white-space: normal;
+}
+
+.admin-top-tools-menu__home-link:hover,
+.admin-top-tools-menu__main-link:hover,
+.admin-top-tools-menu__dropdown:hover .admin-top-tools-menu__main-link,
+.admin-top-tools-menu__dropdown:focus-within .admin-top-tools-menu__main-link {
     transform: translateY(-1px);
     background: linear-gradient(135deg, #255dc7 0%, #1b4699 100%) !important;
     box-shadow: 0 14px 28px rgba(22, 60, 131, .26);
     color: #fff !important;
 }
 
-.admin-top-tools-menu.ui.menu > .item.active {
+.admin-top-tools-menu__home-link.active,
+.admin-top-tools-menu__dropdown.active .admin-top-tools-menu__main-link {
     background: linear-gradient(135deg, #ff8a1f 0%, #ef6c00 100%) !important;
     color: #fff !important;
     box-shadow: 0 14px 30px rgba(239, 108, 0, .28);
 }
 
-.admin-top-tools-menu.ui.menu > .item.active::after,
-.admin-top-tools-menu.ui.menu > .item::after {
-    display: none !important;
+.admin-top-tools-menu__panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 260px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 10px 10px 10px;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 34px rgba(0,0,0,.14);
+    z-index: 10000;
 }
 
-.admin-top-tools-menu.ui.menu > .item span {
+/* pont invisible entre le bouton et le panel */
+.admin-top-tools-menu__panel::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: transparent;
+}
+
+.admin-top-tools-menu__dropdown:hover .admin-top-tools-menu__panel,
+.admin-top-tools-menu__dropdown:focus-within .admin-top-tools-menu__panel {
+    display: flex;
+}
+
+.admin-top-tools-menu__submenu-link,
+.admin-top-tools-menu__submenu-button {
     display: block;
-    white-space: normal;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #111 !important;
+    text-align: left;
+    text-decoration: none !important;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+.admin-top-tools-menu__submenu-link:hover,
+.admin-top-tools-menu__submenu-button:hover {
+    background: #e5e7eb;
+    color: #111 !important;
+}
+
+.admin-top-tools-menu__submenu-form {
+    margin: 0;
 }
 
 @media (max-width: 1100px) {
-    .admin-top-tools-menu.ui.menu > .item {
+    .admin-top-tools-menu__dropdown,
+    .admin-top-tools-menu__home-wrapper {
         flex: 1 1 calc(33.333% - 10px);
+    }
+
+    .admin-top-tools-menu__main-link,
+    .admin-top-tools-menu__home-link {
+        width: 100%;
     }
 }
 
 @media (max-width: 700px) {
-    .admin-top-tools-menu.ui.menu > .item {
+    .admin-top-tools-menu__dropdown,
+    .admin-top-tools-menu__home-wrapper {
         flex: 1 1 calc(50% - 10px);
+    }
+
+    .admin-top-tools-menu__main-link,
+    .admin-top-tools-menu__home-link {
         min-height: 52px;
         padding: 10px 12px !important;
         font-size: 13px;
     }
+
+    .admin-top-tools-menu__panel {
+        min-width: 220px;
+    }
 }
 
 @media (max-width: 460px) {
-    .admin-top-tools-menu.ui.menu > .item {
+    .admin-top-tools-menu__dropdown,
+    .admin-top-tools-menu__home-wrapper {
         flex: 1 1 100%;
+    }
+
+    .admin-top-tools-menu__panel {
+        left: 0;
+        right: 0;
+        min-width: 100%;
     }
 }
 </style>
 
 <div class="ui secondary menu admin-top-tools-menu">
+    {% set currentRoute = app.request.attributes.get('_route') %}
+    {% set items = hiboutik_admin_navigation|default([])|sort((a, b) => (a.position|default(9999)) <=> (b.position|default(9999))) %}
 
-    <a href="{{ path('sylius_admin_dashboard') }}" 
-       class="item {{ app.request.attributes.get('_route') starts with 'sylius_admin_dashboard' ? 'active' : '' }}">
-        <span>🏠 ACCUEIL</span>
-    </a>
+    <div class="admin-top-tools-menu__home-wrapper">
+        <a href="{{ path('sylius_admin_dashboard') }}"
+           class="admin-top-tools-menu__home-link {{ currentRoute starts with 'sylius_admin_dashboard' ? 'active' : '' }}">
+            <span>🏠 ACCUEIL</span>
+        </a>
+    </div>
 
-    <a href="{{ path('admin_rachats_v2_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_v2_' ? 'active' : '' }}" data-turbo="false">
-        <span>📱 RACHATS V2 (DOSSIER)</span>
-    </a>
+    {% for item in items %}
+        {% set actions = item.actions|default([]) %}
+        {% set isActive = false %}
 
+        {% for prefix in item.active_prefixes|default([]) %}
+            {% if currentRoute starts with prefix %}
+                {% set isActive = true %}
+            {% endif %}
+        {% endfor %}
 
-    <a href="{{ path('admin_rachats_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_rachats_index' ? 'active' : '' }}">
-        <span>📱 Rachats</span>
-    </a>
+        <div class="admin-top-tools-menu__dropdown {{ isActive ? 'active' : '' }}">
+            <a href="{{ path(item.route, item.route_params|default({})) }}"
+               class="admin-top-tools-menu__main-link"
+               {% if item.turbo is defined and item.turbo == false %}data-turbo="false"{% endif %}>
+                <span>{{ item.top_label|default(item.menu_label|default(item.title)) }}</span>
+            </a>
 
-    <a href="{{ path('admin_till_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_till_' ? 'active' : '' }}">
-        <span>💶 Caisse</span>
-    </a>
+            {% if actions|length > 1 %}
+                <div class="admin-top-tools-menu__panel">
+                    {% for action in actions %}
+                        {% set method = action.method|default('GET')|upper %}
+                        {% set actionLabel = action.top_label|default(action.label) %}
 
-    <a href="{{ path('admin_dashboard_rachats_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_dashboard_rachats_' ? 'active' : '' }}">
-        <span>📤 Export comptable</span>
-    </a>
+                        {% if method == 'GET' %}
+                            <a href="{{ path(action.route, action.route_params|default({})) }}"
+                               class="admin-top-tools-menu__submenu-link"
+                               {% if action.turbo is defined and action.turbo == false %}data-turbo="false"{% endif %}>
+                                {{ actionLabel }}
+                            </a>
+                        {% else %}
+                            <form method="post"
+                                  action="{{ path(action.route, action.route_params|default({})) }}"
+                                  class="admin-top-tools-menu__submenu-form"
+                                  {% if action.confirm is defined and action.confirm %}onsubmit="return confirm('{{ action.confirm|e('js') }}')"{% endif %}
+                                  {% if action.turbo is defined and action.turbo == false %}data-turbo="false"{% endif %}>
+                                <input type="hidden"
+                                       name="_token"
+                                       value="{{ csrf_token(action.csrf_token_id|default(action.route)) }}">
 
-    <a href="{{ path('admin_arrivages_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_arrivages_' ? 'active' : '' }}">
-        <span>📦 Arrivages</span>
-    </a>
+                                {% if method != 'POST' %}
+                                    <input type="hidden" name="_method" value="{{ method }}">
+                                {% endif %}
 
-    <a href="{{ path('admin_vendors_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_vendors_' ? 'active' : '' }}">
-        <span>👤 Vendeurs</span>
-    </a>
+                                {% for name, value in action.fields|default({}) %}
+                                    <input type="hidden" name="{{ name }}" value="{{ value }}">
+                                {% endfor %}
 
-    <a href="{{ path('admin_hiboutik_product_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_' ? 'active' : '' }}">
-        <span>📱 Produits Hiboutik</span>
-    </a>
-
-    <a href="{{ path('admin_hiboutik_product_labels_builder') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_product_labels_builder' ? 'active' : '' }}">
-        <span>🏷️ Composeur étiquettes</span>
-    </a>
-
-    <a href="{{ path('admin_hiboutik_customer_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_hiboutik_customer_' ? 'active' : '' }}">
-        <span>👤 Clients Hiboutik</span>
-    </a>
-
-    <a href="{{ path('app_admin_intervention_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_' ? 'active' : '' }}">
-        <span>🔧 Interventions</span>
-    </a>
-
-    <a href="{{ path('admin_boite_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_intervention_boite' ? 'active' : '' }}">
-        <span>📦 Boîtes</span>
-    </a>
-
-    <a href="{{ path('app_admin_intervention_sales_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'app_admin_intervention_sales' ? 'active' : '' }}">
-        <span>💶 Ventes<br>(interventions)</span>
-
-    </a>
-    <a href="{{ path('admin_display_message_index') }}"
-       class="item {{ app.request.attributes.get('_route') starts with 'admin_display_message_' ? 'active' : '' }}">
-      ✉️ Messages affichage
-    </a>
-
-
-    
-
+                                <button type="submit" class="admin-top-tools-menu__submenu-button">
+                                    {{ actionLabel }}
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
 </div>

@@ -1,0 +1,230 @@
+parameters:
+    app.admin_hiboutik_navigation:
+        - key: "interventions"
+          position: 0
+          title: "INTERVENTIONS"
+          menu_label: "Interventions 2"
+          top_label: "🔧 Interventions 2"
+          text: "Réparations, suivi atelier et états d’avancement."
+          icon: null
+          icon_text: "🔧"
+          sidebar_icon: "wrench"
+          color: "dashboard-card--pink"
+          route: "app_admin_intervention_index"
+          active_prefixes: ["app_admin_intervention_"]
+          actions:
+              - label: "Ouvrir"
+                route: "app_admin_intervention_index"
+                method: "GET"
+                class: "primary-link"
+              - label: "+ Créer (Déjà client)"
+                route: "app_admin_intervention_new"
+                method: "GET"
+                class: "secondary-link"
+              - label: "+ Créer (NOUVEAU client)"
+                route: "app_admin_intervention_quick_create"
+                method: "POST"
+                class: "secondary-link"
+                csrf_token_id: "dashboard_quick_create"
+              - label: "Ventes->interventions"
+                route: "app_admin_intervention_sales_index"
+                method: "GET"
+                class: "secondary-link"
+
+        - key: "rachats_v2"
+          position: 10
+          title: "Rachats v2 (Dossier)"
+          menu_label: "Rachats V2 (DOSSIER)"
+          top_label: "📱 RACHATS V2 (DOSSIER)"
+          text: "Gestion des rachats v2 par dossier, suivi et consultation."
+          icon: "shop icon"
+          icon_text: null
+          sidebar_icon: "mobile alternate"
+          color: "dashboard-card--gold"
+          route: "admin_rachats_v2_index"
+          active_prefixes: ["admin_rachats_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_rachats_v2_index"
+                method: "GET"
+                class: "primary-link"
+              - label: "+ Créer un DOSSIER rachat"
+                route: "admin_rachats_v2_new"
+                method: "GET"
+                class: "secondary-link"
+              - label: "Anciens rachats(v1)"
+                route: "admin_rachats_index"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "caisse"
+          position: 30
+          title: "Caisse"
+          menu_label: "Caisse"
+          top_label: "💶 Caisse"
+          text: "Accès aux mouvements et à la caisse."
+          icon: "ticket icon"
+          icon_text: null
+          sidebar_icon: "money bill alternate"
+          color: "dashboard-card--green"
+          route: "admin_till_index"
+          active_prefixes: ["admin_till_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_till_index"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "export_comptable"
+          position: 35
+          title: "Export comptable"
+          menu_label: "Export comptable"
+          top_label: "📤 Export comptable"
+          text: "Exports comptables et synthèses."
+          icon_text: "📤"
+          sidebar_icon: "file excel"
+          color: "dashboard-card--blue"
+          route: "admin_dashboard_rachats_index"
+          active_prefixes: ["admin_dashboard_rachats_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_dashboard_rachats_index"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "arrivages"
+          position: 40
+          title: "Arrivages"
+          menu_label: "Arrivages"
+          top_label: "📦 Arrivages"
+          text: "Réception, suivi et organisation des arrivages."
+          icon: "box icon"
+          icon_text: null
+          sidebar_icon: "boxes"
+          color: "dashboard-card--purple"
+          route: "admin_arrivages_index"
+          active_prefixes: ["admin_arrivages_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_arrivages_index"
+                method: "GET"
+                class: "primary-link"
+
+        # - key: "vendeurs"
+        #   position: 45
+        #   title: "Vendeurs"
+        #   menu_label: "Vendeurs"
+        #   top_label: "👤 Vendeurs"
+        #   text: "Gestion et consultation des vendeurs."
+        #   icon_text: "👤"
+        #   sidebar_icon: "user"
+        #   color: "dashboard-card--slate"
+        #   route: "admin_vendors_index"
+        #   active_prefixes: ["admin_vendors_"]
+        #   actions:
+        #       - label: "Ouvrir"
+        #         route: "admin_vendors_index"
+        #         method: "GET"
+        #         class: "primary-link"
+
+        - key: "produits_hiboutik"
+          position: 50
+          title: "Produits Hiboutik"
+          menu_label: "Produits Hiboutik"
+          top_label: "📱 Produits Hiboutik"
+          text: "Catalogue, édition et synchronisation produits."
+          icon_text: "📱"
+          sidebar_icon: "mobile"
+          color: "dashboard-card--red"
+          route: "admin_hiboutik_product_index"
+          active_prefixes: ["admin_hiboutik_product_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_hiboutik_product_index"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "composeur_etiquettes"
+          position: 60
+          title: "Composeur étiquettes A5"
+          menu_label: "Composeur étiquettes"
+          top_label: "🏷️ Composeur étiquettes"
+          text: "Composer et imprimer les planches d’étiquettes."
+          icon_text: "🏷️"
+          sidebar_icon: "tags"
+          color: "dashboard-card--teal"
+          route: "admin_hiboutik_product_labels_builder"
+          active_prefixes: ["admin_hiboutik_product_labels_builder"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_hiboutik_product_labels_builder"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "clients_hiboutik"
+          position: 70
+          title: "Clients Hiboutik"
+          menu_label: "Clients Hiboutik"
+          top_label: "👤 Clients Hiboutik"
+          text: "Recherche et consultation des clients Hiboutik."
+          icon_text: "👤"
+          sidebar_icon: "users"
+          color: "dashboard-card--gold"
+          route: "admin_hiboutik_customer_index"
+          active_prefixes: ["admin_hiboutik_customer_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_hiboutik_customer_index"
+                method: "GET"
+                class: "primary-link"
+
+        - key: "boites"
+          position: 90
+          title: "Boîtes"
+          menu_label: "Boîtes"
+          top_label: "📦 Boîtes"
+          text: "Gestion des boîtes et affectations atelier."
+          icon_text: "📦"
+          sidebar_icon: "archive"
+          color: "dashboard-card--slate"
+          route: "admin_boite_index"
+          active_prefixes: ["admin_boite_", "admin_intervention_boite"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_boite_index"
+                method: "GET"
+                class: "primary-link"
+
+        # - key: "ventes_interventions"
+        #   position: 100
+        #   title: "Ventes interventions"
+        #   menu_label: "Ventes (interventions)"
+        #   top_label: "💶 Ventes (interventions)"
+        #   text: "Consultation des ventes liées aux interventions."
+        #   icon_text: "💶"
+        #   sidebar_icon: "euro sign"
+        #   color: "dashboard-card--indigo"
+        #   route: "app_admin_intervention_sales_index"
+        #   active_prefixes: ["app_admin_intervention_sales"]
+        #   actions:
+        #       - label: "Ouvrir"
+        #         route: "app_admin_intervention_sales_index"
+        #         method: "GET"
+        #         class: "primary-link"
+
+        - key: "messages_affichage"
+          position: 110
+          title: "Messages affichage"
+          menu_label: "Messages affichage"
+          top_label: "✉️ Messages affichage"
+          text: "Gestion des messages du diaporama et de l’affichage."
+          icon_text: "✉️"
+          sidebar_icon: "mail"
+          color: "dashboard-card--blue"
+          route: "admin_display_message_index"
+          active_prefixes: ["admin_display_message_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_display_message_index"
+                method: "GET"
+                class: "primary-link"

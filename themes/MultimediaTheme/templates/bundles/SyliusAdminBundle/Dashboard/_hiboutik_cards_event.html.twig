@@ -70,8 +70,12 @@
     gap: 10px;
 }
 
-.dashboard-card__actions .ui.button {
+.dashboard-card__actions .ui.button,
+.dashboard-card__actions form {
     margin: 0 !important;
+}
+
+.dashboard-card__actions .ui.button {
     border-radius: 16px !important;
     font-weight: 800 !important;
     min-height: 46px;
@@ -88,13 +92,18 @@
     transform: translateY(-1px);
 }
 
-.dashboard-card__actions .ui.button.create-btn {
+.dashboard-card__actions .ui.button.secondary-link {
     background: rgba(255,255,255,.12) !important;
     color: #fff !important;
     border: 1px solid rgba(255,255,255,.24) !important;
     box-shadow: none !important;
-    cursor: default !important;
-    opacity: .95;
+}
+
+.dashboard-card__actions .ui.button.ghost-link {
+    background: transparent !important;
+    color: #fff !important;
+    border: 1px dashed rgba(255,255,255,.24) !important;
+    box-shadow: none !important;
 }
 
 .dashboard-card--orange { background: linear-gradient(135deg, #ff941f 0%, #ef6c00 100%); }
@@ -114,25 +123,54 @@
     }
 
     .dashboard-card {
-        aspect-ratio: auto;
         min-height: 210px;
     }
 }
 </style>
+{# <div class="ui message">
+    cards defined? {{ cards is defined ? 'OUI' : 'NON' }} |
+    cards null? {{ cards is null ? 'OUI' : 'NON' }} |
+    cards length:
+    {% if cards is defined and cards is not null %}
+        {{ cards|length }}
+    {% else %}
+        0
+    {% endif %}
+</div> #}
+
+
+{% set sortedCards = (hiboutik_admin_navigation|default([]))|sort((a, b) => (a.position|default(9999)) <=> (b.position|default(9999))) %}
 
 <div class="dashboard-cards">
-    {% for card in cards %}
+    {% for card in sortedCards %}
         {% include '@SyliusAdmin/Dashboard/_hiboutik_dashboard_card.html.twig' with { card: card } only %}
+    {% else %}
+        <div class="ui message">
+            Aucune carte configurée.
+        </div>
     {% endfor %}
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const cards = document.querySelectorAll('.dashboard-card');
-    let maxHeight = 0;
+(function () {
+    function equalizeDashboardCards() {
+        const cards = document.querySelectorAll('.dashboard-card');
+        let maxHeight = 0;
 
-    cards.forEach(card => card.style.height = 'auto');
-    cards.forEach(card => maxHeight = Math.max(maxHeight, card.offsetHeight));
-    cards.forEach(card => card.style.height = maxHeight + 'px');
-});
+        cards.forEach(card => {
+            card.style.height = 'auto';
+        });
+
+        cards.forEach(card => {
+            maxHeight = Math.max(maxHeight, card.offsetHeight);
+        });
+
+        cards.forEach(card => {
+            card.style.height = maxHeight + 'px';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', equalizeDashboardCards);
+    document.addEventListener('turbo:load', equalizeDashboardCards);
+})();
 </script>

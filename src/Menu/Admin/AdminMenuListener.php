@@ -8,6 +8,11 @@ use Sylius\Bundle\UiBundle\Menu\Event\MenuBuilderEvent;
 
 final class AdminMenuListener
 {
+    public function __construct(
+        private readonly array $hiboutikAdminNavigation,
+    ) {
+    }
+
     public function addAdminMenuItems(MenuBuilderEvent $event): void
     {
         $menu = $event->getMenu();
@@ -18,21 +23,21 @@ final class AdminMenuListener
             $atelier = $menu
                 ->addChild('atelier')
                 ->setLabel('HIBOUTIK')
-                ->setLabelAttribute('icon', 'settings')
-            ;
+                ->setLabelAttribute('icon', 'settings');
         }
-        $this->addIfMissing($atelier, 'rachats_v2', 'Rachats V2 (DOSSIER)', 'admin_rachats_v2_index', 'mobile alternate');
-        $this->addIfMissing($atelier, 'rachats', 'Rachats', 'admin_rachats_index', 'mobile alternate');
-        $this->addIfMissing($atelier, 'caisse', 'Caisse', 'admin_till_index', 'money bill alternate');
-        $this->addIfMissing($atelier, 'export_comptable', 'Export comptable', 'admin_dashboard_rachats_index', 'file excel');
-        $this->addIfMissing($atelier, 'arrivages', 'Arrivages', 'admin_arrivages_index', 'boxes');
-        $this->addIfMissing($atelier, 'vendeurs', 'Vendeurs', 'admin_vendors_index', 'user');
-        $this->addIfMissing($atelier, 'produits_hiboutik', 'Produits Hiboutik', 'admin_hiboutik_product_index', 'mobile');
-        $this->addIfMissing($atelier, 'composeur_etiquettes', 'Composeur étiquettes', 'admin_hiboutik_product_labels_builder', 'tags');
-        $this->addIfMissing($atelier, 'clients_hiboutik', 'Clients Hiboutik', 'admin_hiboutik_customer_index', 'users');
-        $this->addIfMissing($atelier, 'interventions', 'Interventions', 'app_admin_intervention_index', 'wrench');
-        $this->addIfMissing($atelier, 'boites', 'Boîtes', 'admin_boite_index', 'archive');
-        $this->addIfMissing($atelier, 'ventes_interventions', 'Ventes (interventions)', 'app_admin_intervention_sales_index', 'euro sign');
+
+        $items = $this->hiboutikAdminNavigation;
+        usort($items, static fn (array $a, array $b): int => ($a['position'] ?? 9999) <=> ($b['position'] ?? 9999));
+
+        foreach ($items as $item) {
+            $this->addIfMissing(
+                $atelier,
+                $item['key'],
+                $item['menu_label'] ?? $item['title'],
+                $item['route'],
+                $item['sidebar_icon'] ?? 'circle'
+            );
+        }
 
         $this->moveChildFirst($menu, 'atelier');
     }
@@ -51,8 +56,7 @@ final class AdminMenuListener
         $menu
             ->addChild($key, ['route' => $route])
             ->setLabel($label)
-            ->setLabelAttribute('icon', $icon)
-        ;
+            ->setLabelAttribute('icon', $icon);
     }
 
     private function moveChildFirst($menu, string $childName): void

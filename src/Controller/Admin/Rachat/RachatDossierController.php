@@ -48,6 +48,7 @@ final class RachatDossierController extends AbstractController
         private RachatDossierPdfGenerator $pdfGenerator,
         private CacheInterface $cache,
         private HiboutikReferentialService $hibReferential,
+        private RachatDossierCustomerResolver $customerResolver,
     ) {
     }
 
@@ -310,48 +311,181 @@ public function detailsRow(int $id): Response
             'candidates' => $candidates,
         ]);
     }
+#[Route('/{id}/customer/create', name: 'customer_create', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function createCustomer(
+    Request $request,
+    int $id,
+    RachatDossierCustomerResolver $resolver
+): Response {
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
 
-    #[Route('/{id}/customer/create', name: 'customer_create', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function createCustomer(
-        Request $request,
-        int $id,
-        RachatDossierCustomerResolver $resolver
-    ): Response {
-        $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
-
-        if (!$dossier) {
-            throw $this->createNotFoundException('Dossier introuvable');
-        }
-
-        if (!$this->isCsrfTokenValid('rachat_dossier_customer_create_' . $dossier->getId(), (string) $request->request->get('_token'))) {
-            return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
-        }
-
-        $this->hydrateCustomerSnapshotsFromRequest($request, $dossier);
-
-        try {
-            $customerId = $resolver->createCustomerFromDossier($dossier);
-            $message = sprintf('Client Hiboutik #%d créé et affecté au dossier.', $customerId);
-
-            if ($this->wantsJson($request)) {
-                return $this->json([
-                    'ok' => true,
-                    'message' => $message,
-                    'hibCustomerId' => $customerId,
-                    'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
-                    'customerPartialUrl' => $this->generateUrl('admin_rachats_v2_customer_partial', ['id' => $dossier->getId()]),
-                ]);
-            }
-
-            $this->addFlash('success', $message);
-        } catch (\Throwable $e) {
-            return $this->customerActionErrorResponse($request, $dossier, 'Création client impossible : ' . $e->getMessage(), 500);
-        }
-
-        return $this->redirectToRoute('admin_rachats_v2_show', [
-            'id' => $dossier->getId(),
-        ]);
+    if (!$dossier) {
+        throw $this->createNotFoundException('Dossier introuvable');
     }
+
+    if (!$this->isCsrfTokenValid(
+        'rachat_dossier_customer_create_' . $dossier->getId(),
+        (string) $request->request->get('_token')
+    )) {
+        return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
+    }
+
+    // IMPORTANT : on recopie dans le dossier les valeurs tapées à l'écran
+    // avant de créer le client Hiboutik
+    $this->hydrateCustomerSnapshotsFromRequest($request, $dossier);
+
+    try {
+        $customerId = $resolver->createCustomerFromDossier($dossier);
+        $message = sprintf('Client Hiboutik #%d créé et affecté au dossier.', $customerId);
+
+        if ($this->wantsJson($request)) {
+            return $this->json([
+                'ok' => true,
+                'message' => $message,
+                'hibCustomerId' => $customerId,
+                'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
+            ]);
+        }
+
+        $this->addFlash('success', $message);
+    } catch (\Throwable $e) {
+        return $this->customerActionErrorResponse(
+            $request,
+            $dossier,
+            'Création client impossible : ' . $e->getMessage(),
+            500
+        );
+    }
+
+    return $this->redirectToRoute('admin_rachats_v2_edit', [
+        'id' => $dossier->getId(),
+    ]);
+}
+
+
+
+
+
+
+/**
+ * 
+ * Suppression d'un dossier uniquement si :
+ * - il n'est pas verrouillé
+ *
+ */
+#[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function delete(int $id, Request $request): Response
+{
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
+
+    if (!$dossier) {
+        throw $this->createNotFoundException('Dossier introuvable');
+    }
+
+    if (!$this->isCsrfTokenValid('rachat_dossier_delete_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+    }
+
+    if ($dossier->isLocked()) {
+        $this->addFlash('error', 'Ce dossier est verrouillé et ne peut pas être supprimé.');
+        return $this->redirectToRoute('admin_rachats_v2_index');
+    }
+
+    // if ($dossier->getHibCustomerId()) {
+    //     $this->addFlash('error', 'Ce dossier a un client Hiboutik affecté et ne peut pas être supprimé.');
+    //     return $this->redirectToRoute('admin_rachats_v2_index');
+    // }
+
+    // if ($dossier->getItems()->count() > 0) {
+    //     $this->addFlash('error', 'Ce dossier contient des articles et ne peut pas être supprimé.');
+    //     return $this->redirectToRoute('admin_rachats_v2_index');
+    // }
+
+    if ($dossier->getPdfUrl()) {
+        try {
+            $this->pdfGenerator->deletePdf($dossier);
+        } catch (\Throwable) {
+            // ne bloque jamais la suppression du dossier si la suppression du PDF échoue
+        }
+    }
+
+    $this->em->remove($dossier);
+    $this->em->flush();
+
+    $this->addFlash('success', 'Dossier supprimé.');
+
+    return $this->redirectToRoute('admin_rachats_v2_index');
+}
+
+#[Route('/bulk/delete', name: 'bulk_delete', methods: ['POST'])]
+public function deleteBatch(Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('bulk_rachats_v2', (string) $request->request->get('_token'))) {
+        $this->addFlash('error', 'Jeton CSRF invalide.');
+        return $this->redirectToRoute('admin_rachats_v2_index');
+    }
+
+    $ids = array_values(array_unique(array_filter(array_map(
+        'intval',
+        (array) $request->request->all('ids')
+    ))));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Aucun dossier sélectionné.');
+        return $this->redirectToRoute('admin_rachats_v2_index');
+    }
+
+    $dossiers = $this->em->getRepository(RachatDossier::class)->findBy(['id' => $ids]);
+
+    $deleted = 0;
+    $skipped = 0;
+
+    foreach ($dossiers as $dossier) {
+        
+        if ($dossier->isLocked() > 0) {
+            $skipped++;
+            continue;
+        }
+    
+        // if ($dossier->isLocked() || $dossier->getHibCustomerId() || $dossier->getItems()->count() > 0) {
+        //     $skipped++;
+        //     continue;
+        // }
+
+
+        if ($dossier->getPdfUrl()) {
+            try {
+                $this->pdfGenerator->deletePdf($dossier);
+            } catch (\Throwable) {
+                // ne bloque jamais la suppression
+            }
+        }
+
+        $this->em->remove($dossier);
+        $deleted++;
+    }
+
+    $this->em->flush();
+
+    if ($deleted > 0) {
+        $this->addFlash('success', sprintf('%d dossier(s) supprimé(s).', $deleted));
+    }
+
+    if ($skipped > 0) {
+        $this->addFlash('warning', sprintf(
+            '%d dossier(s) non supprimé(s) car verrouillés, liés à un client Hiboutik ou contenant des articles.',
+            $skipped
+        ));
+    }
+
+    if ($deleted === 0 && $skipped === 0) {
+        $this->addFlash('info', 'Aucun dossier supprimé.');
+    }
+
+    return $this->redirectToRoute('admin_rachats_v2_index');
+}
+
+
 
     #[Route('/{id}/customer/assign-virtual', name: 'customer_assign_virtual', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function assignVirtualCustomer(
@@ -393,46 +527,53 @@ public function detailsRow(int $id): Response
         ]);
     }
 
-    #[Route('/{id}/customer/assign/{customerId}', name: 'customer_assign', requirements: ['id' => '\d+', 'customerId' => '\d+'], methods: ['POST'])]
-    public function assignCustomer(
-        Request $request,
-        int $id,
-        int $customerId,
-        RachatDossierCustomerResolver $resolver
-    ): Response {
-        $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
+   #[Route('/{id}/customer/assign/{customerId}', name: 'customer_assign', requirements: ['id' => '\d+', 'customerId' => '\d+'], methods: ['POST'])]
+public function assignCustomer(
+    Request $request,
+    int $id,
+    int $customerId,
+    RachatDossierCustomerResolver $resolver
+): Response {
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
 
-        if (!$dossier) {
-            throw $this->createNotFoundException('Dossier introuvable');
-        }
-
-        if (!$this->isCsrfTokenValid('rachat_dossier_customer_assign_' . $dossier->getId(), (string) $request->request->get('_token'))) {
-            return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
-        }
-
-        try {
-            $resolver->assignExistingCustomer($dossier, $customerId);
-            $message = 'Client Hiboutik affecté au dossier.';
-
-            if ($this->wantsJson($request)) {
-                return $this->json([
-                    'ok' => true,
-                    'message' => $message,
-                    'hibCustomerId' => $customerId,
-                    'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
-                    'customerPartialUrl' => $this->generateUrl('admin_rachats_v2_customer_partial', ['id' => $dossier->getId()]),
-                ]);
-            }
-
-            $this->addFlash('success', $message);
-        } catch (\Throwable $e) {
-            return $this->customerActionErrorResponse($request, $dossier, 'Affectation impossible : ' . $e->getMessage(), 500);
-        }
-
-        return $this->redirectToRoute('admin_rachats_v2_show', [
-            'id' => $dossier->getId(),
-        ]);
+    if (!$dossier) {
+        throw $this->createNotFoundException('Dossier introuvable');
     }
+
+    if (!$this->isCsrfTokenValid(
+        'rachat_dossier_customer_assign_' . $dossier->getId(),
+        (string) $request->request->get('_token')
+    )) {
+        return $this->customerActionErrorResponse($request, $dossier, 'Jeton CSRF invalide.', 403);
+    }
+
+    try {
+        $resolver->assignExistingCustomer($dossier, $customerId);
+        $message = 'Client Hiboutik affecté au dossier.';
+
+        if ($this->wantsJson($request)) {
+            return $this->json([
+                'ok' => true,
+                'message' => $message,
+                'hibCustomerId' => $customerId,
+                'customerLinkStatus' => $dossier->getCustomerLinkStatus(),
+            ]);
+        }
+
+        $this->addFlash('success', $message);
+    } catch (\Throwable $e) {
+        return $this->customerActionErrorResponse(
+            $request,
+            $dossier,
+            'Affectation impossible : ' . $e->getMessage(),
+            500
+        );
+    }
+
+    return $this->redirectToRoute('admin_rachats_v2_edit', [
+        'id' => $dossier->getId(),
+    ]);
+}
 
     #[Route('/bulk/assign-virtual', name: 'bulk_assign_virtual', methods: ['POST'])]
     public function bulkAssignVirtual(
@@ -636,6 +777,47 @@ public function detailsRow(int $id): Response
         ));
     }
 
+    #[Route('/{id}/customer-watch', name: 'customer_watch', methods: ['GET'])]
+public function customerWatch(int $id): JsonResponse
+{
+    $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
+
+    if (!$dossier) {
+        return new JsonResponse([
+            'ok' => false,
+            'error' => 'Dossier introuvable',
+        ], 404);
+    }
+
+    $hibCustomerId = (int) ($dossier->getHibCustomerId() ?? 0);
+    $signature = '';
+
+    if ($hibCustomerId > 0) {
+        try {
+            $customer = $this->hiboutikClient->getCustomer($hibCustomerId);
+
+            $signature = implode('||', [
+                (string) $hibCustomerId,
+                (string) ($customer['last_name'] ?? ''),
+                (string) ($customer['first_name'] ?? ''),
+                (string) ($customer['phone'] ?? ''),
+                (string) ($customer['email'] ?? ''),
+                (string) ($customer['company'] ?? ''),
+                (string) ($customer['address'] ?? ''),
+                (string) ($customer['postal_code'] ?? ''),
+            ]);
+        } catch (\Throwable) {
+            $signature = 'error||' . $hibCustomerId;
+        }
+    }
+
+    return new JsonResponse([
+        'ok' => true,
+        'hibCustomerId' => $hibCustomerId,
+        'signature' => md5($signature),
+    ]);
+}
+
     #[Route('/{id}/pdf-thumb', name: 'pdf_thumb', requirements: ['id' => '\d+'], methods: ['GET'])]
     public function pdfThumb(int $id): Response
     {
@@ -671,14 +853,29 @@ public function detailsRow(int $id): Response
 
 
 
+/**
+ *  creation et flush dossier draft des que le bouton "Nouveau dossier" est cliqué,
+ *  pour permettre la génération d'une reference et son affichage immédiat dans la liste des dossiers, 
+ * et éviter les problèmes de références en cas de création simultanée de plusieurs dossiers.
+ */
 
-    #[Route('/new', name: 'new', methods: ['GET', 'POST'])]
-    public function new(Request $request): Response
-    {
-        $dossier = $this->manager->createDraft();
+    #[Route('/new', name: 'new', methods: ['GET'])]
+public function new(): Response
+{
+    $dossier = $this->manager->createDraft();
 
-        return $this->handleForm($request, $dossier, true);
-    }
+    $this->em->persist($dossier);
+    $this->em->flush();
+
+    $this->manager->generateReferenceIfNeeded($dossier);
+    $this->em->flush();
+
+    $this->addFlash('success', 'Nouveau dossier V2 créé.');
+
+    return $this->redirectToRoute('admin_rachats_v2_edit', [
+        'id' => $dossier->getId(),
+    ]);
+}
 
     #[Route('/{id}/edit', name: 'edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
     public function edit(Request $request, RachatDossier $dossier): Response
@@ -702,17 +899,32 @@ private function handleForm(Request $request, RachatDossier $dossier, bool $isNe
             'id' => $dossier->getId(),
         ]);
     }
-   if (!$dossier->getPaidMethod()) {
-    $dossier->setPaidMethod('ESP');
-}
-    $brands = $this->hibReferential->getBrandsRows();
-$categoryMeta = $this->hibReferential->buildCategoryChoicesAndDisabled();
 
-$form = $this->createForm(RachatDossierType::class, $dossier, [
-    'brands_choices' => $this->hibReferential->buildBrandChoices(),
-    'categories_choices' => $categoryMeta['choices'],
-    'categories_disabled' => $categoryMeta['disabled'],
-]);
+    if (!$dossier->getPaidMethod()) {
+        $dossier->setPaidMethod('ESP');
+    }
+
+    if (
+        !$request->isMethod('POST')
+        && $dossier->getHibCustomerId()
+        && $dossier->getCustomerLinkStatus() !== RachatDossier::CUSTOMER_VIRTUAL
+        && $dossier->getStatus() !== RachatDossier::STATUS_SIGNED
+    ) {
+        try {
+            $this->customerResolver->syncSnapshotsFromAssignedCustomer($dossier, true);
+        } catch (\Throwable $e) {
+            // ne bloque jamais l'écran d'édition si Hiboutik répond mal
+        }
+    }
+
+    $brands = $this->hibReferential->getBrandsRows();
+    $categoryMeta = $this->hibReferential->buildCategoryChoicesAndDisabled();
+
+    $form = $this->createForm(RachatDossierType::class, $dossier, [
+        'brands_choices' => $this->hibReferential->buildBrandChoices(),
+        'categories_choices' => $categoryMeta['choices'],
+        'categories_disabled' => $categoryMeta['disabled'],
+    ]);
 
     $form->handleRequest($request);
 
@@ -739,9 +951,9 @@ $form = $this->createForm(RachatDossierType::class, $dossier, [
         'dossier' => $dossier,
         'pieceIdentite' => $this->ciManager->decode($dossier->getPieceIdentiteUrl()),
         'brands' => $brands,
+        'tablet_socket_token' => (string) $this->getParameter('tablet_socket_token'),
     ]);
 }
-
 
  private function buildBrandChoices(): array
 {
@@ -1538,39 +1750,10 @@ public function deleteItemPhoto(
     }
 }
 
-private function wantsJson(Request $request): bool
-{
-    $accept = (string) $request->headers->get('Accept', '');
 
-    return $request->isXmlHttpRequest() || str_contains($accept, 'application/json');
-}
 
-private function customerActionErrorResponse(Request $request, RachatDossier $dossier, string $message, int $status = 400): Response
-{
-    if ($this->wantsJson($request)) {
-        return new JsonResponse([
-            'ok' => false,
-            'error' => $message,
-        ], $status);
-    }
 
-    $this->addFlash('error', $message);
 
-    return $this->redirectToRoute('admin_rachats_v2_show', [
-        'id' => $dossier->getId(),
-    ]);
-}
-
-private function hydrateCustomerSnapshotsFromRequest(Request $request, RachatDossier $dossier): void
-{
-    $dossier->setNomSnapshot($this->requestString($request, ['nomSnapshot', 'nom'], (string) $dossier->getNomSnapshot()));
-    $dossier->setPrenomSnapshot($this->requestString($request, ['prenomSnapshot', 'prenom'], (string) $dossier->getPrenomSnapshot()));
-    $dossier->setTelephoneSnapshot($this->requestString($request, ['telephoneSnapshot', 'telephone'], (string) $dossier->getTelephoneSnapshot()));
-    $dossier->setEmailSnapshot($this->requestString($request, ['emailSnapshot', 'email'], (string) $dossier->getEmailSnapshot()));
-    $dossier->setAdresseSnapshot($this->requestString($request, ['adresseSnapshot', 'adresse'], (string) $dossier->getAdresseSnapshot()));
-    $dossier->setCodePostalSnapshot($this->requestString($request, ['codePostalSnapshot', 'code_postal'], (string) $dossier->getCodePostalSnapshot()));
-    $dossier->setNumeroCiSnapshot($this->requestString($request, ['numeroCiSnapshot', 'numero_ci'], (string) $dossier->getNumeroCiSnapshot()));
-}
 
 private function requestString(Request $request, array $keys, string $fallback = ''): string
 {
@@ -1584,5 +1767,45 @@ private function requestString(Request $request, array $keys, string $fallback =
 
     return trim($fallback);
 }
+
+private function wantsJson(Request $request): bool
+{
+    $accept = (string) $request->headers->get('Accept', '');
+
+    return $request->isXmlHttpRequest() || str_contains($accept, 'application/json');
+}
+
+
+private function customerActionErrorResponse(
+    Request $request,
+    RachatDossier $dossier,
+    string $message,
+    int $status = 400
+): Response {
+    if ($this->wantsJson($request)) {
+        return new JsonResponse([
+            'ok' => false,
+            'error' => $message,
+        ], $status);
+    }
+
+    $this->addFlash('error', $message);
+
+    return $this->redirectToRoute('admin_rachats_v2_edit', [
+        'id' => $dossier->getId(),
+    ]);
+}
+
+private function hydrateCustomerSnapshotsFromRequest(Request $request, RachatDossier $dossier): void
+{
+    $dossier->setNomSnapshot(trim((string) $request->request->get('nomSnapshot', $dossier->getNomSnapshot() ?? '')));
+    $dossier->setPrenomSnapshot(trim((string) $request->request->get('prenomSnapshot', $dossier->getPrenomSnapshot() ?? '')));
+    $dossier->setTelephoneSnapshot(trim((string) $request->request->get('telephoneSnapshot', $dossier->getTelephoneSnapshot() ?? '')));
+    $dossier->setEmailSnapshot(trim((string) $request->request->get('emailSnapshot', $dossier->getEmailSnapshot() ?? '')));
+    $dossier->setAdresseSnapshot(trim((string) $request->request->get('adresseSnapshot', $dossier->getAdresseSnapshot() ?? '')));
+    $dossier->setCodePostalSnapshot(trim((string) $request->request->get('codePostalSnapshot', $dossier->getCodePostalSnapshot() ?? '')));
+    // surtout pas numeroCiSnapshot ici
+}
+
 
 }

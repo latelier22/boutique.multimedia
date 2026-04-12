@@ -1,5 +1,15 @@
+<style>
+.dashboard-card__actions .ui.button.empty-slot {
+    visibility: hidden !important;
+    pointer-events: none !important;
+    min-height: 46px;
+    margin: 0 !important;
+}
+</style>
+
 <div class="ui segment">
         <h1 class="ui header">Dashboard Hiboutik</h1>
 
         {{ sylius_template_event('app.admin.hiboutik.dashboard.cards', _context) }}
     </div>
+

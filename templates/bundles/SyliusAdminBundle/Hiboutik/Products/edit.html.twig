@@ -80,6 +80,35 @@
             <input name="product_discount_price" value="{{ product.product_discount_price ?? '' }}" />
           </div>
         </div>
+<div class="two fields">
+  <div class="field">
+    <label>Taux de TVA</label>
+    <select name="vat_rate" class="ui dropdown">
+      <option value="" {{ initialVatChoice is null ? 'selected' : '' }}>— non lu —</option>
+      <option value="0" {{ initialVatChoice == '0' ? 'selected' : '' }}>0 %</option>
+      <option value="20" {{ initialVatChoice == '20' ? 'selected' : '' }}>20 %</option>
+    </select>
+
+    <div style="margin-top:6px;font-size:12px;color:#666;">
+      Lu depuis Hiboutik :
+      code = {{ product.product_vat is defined ? product.product_vat : '—' }},
+      valeur = {{ product.product_vat_value is defined ? product.product_vat_value : '—' }}
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Compte comptable</label>
+    <select name="accounting_account" class="ui dropdown">
+      <option value="" {{ initialAccountingAccount is null ? 'selected' : '' }}>— non lu —</option>
+      <option value="707001" {{ initialAccountingAccount == '707001' ? 'selected' : '' }}>707001</option>
+      <option value="707002" {{ initialAccountingAccount == '707002' ? 'selected' : '' }}>707002</option>
+    </select>
+
+    <div style="margin-top:6px;font-size:12px;color:#666;">
+      Lu depuis Hiboutik : {{ product.accounting_account is defined and product.accounting_account ? product.accounting_account : '—' }}
+    </div>
+  </div>
+</div>
 
         <div class="field">
           <label>Catégorie</label>
