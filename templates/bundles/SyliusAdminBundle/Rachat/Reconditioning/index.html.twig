@@ -1,0 +1,199 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Reconditionnement{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="tools icon"></i>
+            Reconditionnement
+        </h1>
+    </div>
+
+    <div class="ui secondary segment" style="margin-bottom:1rem;">
+        <form method="get" class="ui form">
+            <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+                <div class="field" style="min-width:220px;margin:0;">
+                    <label>Filtre</label>
+                    <select name="status" class="ui dropdown">
+                        <option value="open" {{ status == 'open' ? 'selected' : '' }}>À traiter</option>
+                        <option value="all" {{ status == 'all' ? 'selected' : '' }}>Tous sauf "aucun"</option>
+                        <option value="todo" {{ status == 'todo' ? 'selected' : '' }}>À reconditionner</option>
+                        <option value="in_progress" {{ status == 'in_progress' ? 'selected' : '' }}>En cours</option>
+                        <option value="done" {{ status == 'done' ? 'selected' : '' }}>Reconditionné</option>
+                        <option value="failed" {{ status == 'failed' ? 'selected' : '' }}>Échec</option>
+                        <option value="parts" {{ status == 'parts' ? 'selected' : '' }}>Pour pièces</option>
+                    </select>
+                </div>
+
+                <div class="field" style="min-width:320px;flex:1;margin:0;">
+                    <label>Recherche</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Référence dossier, modèle, IMEI, client, boîte...">
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button type="submit" class="ui primary button">
+                        <i class="search icon"></i>
+                        Filtrer
+                    </button>
+
+                    <a href="{{ path('admin_reconditioning_index') }}" class="ui button">
+                        Réinitialiser
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="ui small statistics" style="margin-bottom:1rem;display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="statistic">
+            <div class="value">{{ counts.open|default(0) }}</div>
+            <div class="label">À traiter</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ counts.todo|default(0) }}</div>
+            <div class="label">À reconditionner</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ counts.in_progress|default(0) }}</div>
+            <div class="label">En cours</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ counts.done|default(0) }}</div>
+            <div class="label">Reconditionnés</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ counts.failed|default(0) }}</div>
+            <div class="label">Échecs</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ counts.parts|default(0) }}</div>
+            <div class="label">Pour pièces</div>
+        </div>
+    </div>
+
+    <table class="ui celled compact table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Dossier</th>
+                <th>Produit</th>
+                <th>IMEI</th>
+                <th>Prix achat</th>
+                <th>Boîte</th>
+                <th>Client</th>
+                <th>Hiboutik</th>
+                <th>Statut atelier</th>
+                <th style="width:260px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            {% set dossier = item.dossier %}
+            <tr>
+                <td>#{{ item.id }}</td>
+
+                <td>
+                    {% if dossier %}
+                        <a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}">
+                            {{ dossier.reference ?: ('#' ~ dossier.id) }}
+                        </a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <td>
+                    <div style="font-weight:600;">
+                        {{ item.marqueModele ?: item.designation ?: 'Produit' }}
+                    </div>
+                    {% if item.designation and item.marqueModele and item.designation != item.marqueModele %}
+                        <div style="font-size:12px;color:#6b7280;">
+                            {{ item.designation }}
+                        </div>
+                    {% endif %}
+                </td>
+
+                <td>{{ item.imei ?: '—' }}</td>
+                <td>{{ item.prixAchat ?: '0.00' }} €</td>
+                <td>{{ item.boite ? item.boite.code : '—' }}</td>
+
+                <td>
+                    {% if dossier %}
+                        {{ dossier.prenomSnapshot ?: '' }} {{ dossier.nomSnapshot ?: '' }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if item.hibProductId %}
+                        <span class="ui tiny green label">HIB #{{ item.hibProductId }}</span>
+                    {% else %}
+                        <span class="ui tiny grey label">Pas Hiboutik</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if item.reconditioningStatus == 'todo' %}
+                        <span class="ui orange label">À reconditionner</span>
+                    {% elseif item.reconditioningStatus == 'in_progress' %}
+                        <span class="ui blue label">En cours</span>
+                    {% elseif item.reconditioningStatus == 'done' %}
+                        <span class="ui green label">Reconditionné</span>
+                    {% elseif item.reconditioningStatus == 'failed' %}
+                        <span class="ui red label">Échec</span>
+                    {% elseif item.reconditioningStatus == 'parts' %}
+                        <span class="ui grey label">Pour pièces</span>
+                    {% else %}
+                        <span class="ui basic label">Aucun</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                        {% if dossier %}
+                            <a href="{{ path('admin_rachats_v2_edit', { id: dossier.id }) }}" class="ui tiny button">
+                                <i class="edit icon"></i>
+                                Dossier
+                            </a>
+                        {% endif %}
+
+                        {% if item.hibProductId %}
+                            <a href="{{ path('admin_hiboutik_product_edit', { id: item.hibProductId }) }}" class="ui tiny basic button">
+                                <i class="external icon"></i>
+                                Produit
+                            </a>
+                        {% endif %}
+
+                        <form method="post" action="{{ path('admin_reconditioning_item_status', { id: item.id }) }}" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('reconditioning_status_' ~ item.id) }}">
+                            <input type="hidden" name="_redirect" value="{{ app.request.uri }}">
+
+                            <select name="status" class="ui dropdown" style="min-width:170px;">
+                                {% for value, label in statusChoices %}
+                                    <option value="{{ value }}" {{ item.reconditioningStatus == value ? 'selected' : '' }}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+
+                            <button type="submit" class="ui tiny primary button">
+                                OK
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="10" class="center aligned">
+                    Aucun item trouvé.
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

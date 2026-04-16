@@ -12,6 +12,7 @@ parameters:
   tablet_pin: '%env(TABLET_PIN)%'
   tablet_link_secret: '%env(TABLET_LINK_SECRET)%'
   webhook_secret: '%env(WEBHOOK_SECRET)%'
+  api_cache_base_url : 'env(API_CACHE_BASE_URL)'
   hiboutik_virtual_customer_id: 1251
   app.legacy_rachats_enabled: true
 
@@ -200,3 +201,8 @@ services:
     # App\Service\RachatDossierCustomerResolver:
     #     arguments:
     #         $hiboutikVirtualCustomerId: '%hiboutik_virtual_customer_id%'
+
+    App\Controller\Admin\Hiboutik\ApiCacheController:
+        arguments:
+            $apiCacheBaseUrl: '%env(string:API_CACHE_BASE_URL)%'
+            $webhook_secret: '%webhook_secret%'

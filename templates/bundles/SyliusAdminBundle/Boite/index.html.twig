@@ -3,73 +3,202 @@
 {% block title %}Boîtes{% endblock %}
 
 {% block content %}
-{# Top menu dans le pre_content du Layout Admin #}
 <div class="ui segment">
     <div class="ui clearing basic segment" style="padding:0 0 1rem 0;">
         <h1 class="ui left floated header">Boîtes</h1>
 
         <form method="post" action="{{ path('admin_boite_create') }}" class="ui right floated form" style="margin:0;">
-            <button class="ui primary button" type="submit">
-                <i class="plus icon"></i>
-                Nouvelle boîte
-            </button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select name="root" class="ui dropdown">
+                    <option value="">Racine existante</option>
+                    {% for root in roots|default([]) %}
+                        <option value="{{ root }}">{{ root }}</option>
+                    {% endfor %}
+                </select>
+
+                <input
+                    type="text"
+                    name="new_root"
+                    placeholder="Nouvelle racine ex : CASIER"
+                    style="min-width:220px;"
+                >
+
+                <button class="ui primary button" type="submit">
+                    <i class="plus icon"></i>
+                    Nouvelle boîte
+                </button>
+            </div>
+
+            <div style="margin-top:6px;font-size:12px;color:#666;">
+                Choisis une racine existante ou tape une nouvelle racine. Exemples : B, C, CASIER.
+                Le code créé sera automatiquement du type CASIER01, CASIER02, etc.
+            </div>
         </form>
     </div>
 
-    <table class="ui celled table">
+    <table class="ui celled compact table">
         <thead>
             <tr>
-                <th>Code</th>
-                <th>Statut</th>
-                <th>Affectation</th>
-                <th>Référence</th>
-                <th></th>
+                <th style="width:110px;">Code</th>
+                <th style="width:180px;">Statut</th>
+                <th style="width:180px;">Affectation</th>
+                <th style="width:260px;">Référence</th>
+                <th>Contenu</th>
+                <th style="width:170px;"></th>
             </tr>
         </thead>
+
         <tbody>
         {% for item in items %}
             <tr>
-                <td>{{ item.code }}</td>
                 <td>
-                    {% if item.status == 'available' %}
-                        <span class="ui green empty circular label"></span> Libre
-                    {% elseif item.status == 'occupied' %}
-                        <span class="ui orange empty circular label"></span> Occupée
+                    <strong>{{ item.code }}</strong>
+                </td>
+
+                <td>
+                    {% if item.intervention %}
+                        <span class="ui orange empty circular label"></span>
+                        Occupée (intervention)
+                    {% elseif item.rachat %}
+                        <span class="ui orange empty circular label"></span>
+                        Occupée (rachat legacy)
+                    {% elseif item.items is defined and item.items|length > 0 %}
+                        <span class="ui orange empty circular label"></span>
+                        Occupée (item V2)
+                    {% elseif item.status == 'available' %}
+                        <span class="ui green empty circular label"></span>
+                        Libre
                     {% else %}
-                        <span class="ui grey empty circular label"></span> Inactive
+                        <span class="ui grey empty circular label"></span>
+                        Inactive
                     {% endif %}
                 </td>
+
                 <td>
                     {% if item.intervention %}
                         Intervention
                     {% elseif item.rachat %}
-                        Rachat
+                        Rachat legacy
+                    {% elseif item.items is defined and item.items|length > 0 %}
+                        {{ item.items|length }} item(s) dossier V2
                     {% else %}
                         —
                     {% endif %}
                 </td>
+
                 <td>
                     {% if item.intervention %}
                         <a href="{{ path('app_admin_intervention_edit', {id: item.intervention.id}) }}">
-                            #{{ item.intervention.interventionNumber }}
+                            Intervention #{{ item.intervention.interventionNumber }}
                         </a>
+
                     {% elseif item.rachat %}
-                        #{{ item.rachat.id }}
+                        <a href="{{ path('admin_rachats_edit', {id: item.rachat.id}) }}">
+                            Rachat #{{ item.rachat.id }}
+                        </a>
+
+                    {% elseif item.items is defined and item.items|length > 0 %}
+                        <div style="display:flex;flex-direction:column;gap:6px;">
+                            {% for ri in item.items %}
+                                <div>
+                                    {% if ri.dossier %}
+                                        <a href="{{ path('admin_rachats_v2_edit', {id: ri.dossier.id}) }}#item-{{ ri.id }}">
+                                            {{ ri.dossier.reference ?: ('Dossier #' ~ ri.dossier.id) }}
+                                        </a>
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
                     {% else %}
                         —
                     {% endif %}
                 </td>
+
+                <td>
+                    {% if item.intervention %}
+                        <div style="font-weight:600;">
+                            {{ item.intervention.deviceBrand ?: '' }}
+                            {{ item.intervention.deviceModel ?: '' }}
+                        </div>
+
+                    {% elseif item.rachat %}
+                        <div style="font-weight:600;">
+                            {{ item.rachat.marqueModele ?: 'Rachat legacy' }}
+                        </div>
+
+                    {% elseif item.items is defined and item.items|length > 0 %}
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                            {% for ri in item.items %}
+                                <div style="padding-bottom:6px;border-bottom:1px solid #eee;">
+                                    <div style="font-weight:600;">
+                                        {{ ri.marqueModele ?: ri.designation ?: 'Produit' }}
+                                    </div>
+
+                                    <div style="font-size:12px;color:#666;display:flex;gap:8px;flex-wrap:wrap;">
+                                        {% if ri.imei %}
+                                            <span>IMEI {{ ri.imei }}</span>
+                                        {% endif %}
+
+                                        {% if ri.prixAchat %}
+                                            <span>{{ ri.prixAchat }} €</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                                        {% if ri.dossier %}
+                                            <a class="ui tiny basic button" href="{{ path('admin_rachats_v2_edit', {id: ri.dossier.id}) }}#item-{{ ri.id }}">
+                                                <i class="folder open icon"></i>
+                                                Dossier
+                                            </a>
+                                        {% endif %}
+
+                                        {% if ri.hibProductId %}
+                                            <a class="ui tiny basic button" href="{{ path('admin_hiboutik_product_edit', {id: ri.hibProductId}) }}">
+                                                <i class="cube icon"></i>
+                                                HIB #{{ ri.hibProductId }}
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
                 <td class="right aligned">
-                    {% if item.status == 'occupied' %}
+                    {% if item.intervention or item.rachat or (item.items is defined and item.items|length > 0) %}
                         <form method="post" action="{{ path('admin_boite_release', {id: item.id}) }}" style="display:inline-block;">
-                            <button class="ui mini button" type="submit">Libérer</button>
+                            <button class="ui mini button" type="submit">
+                                <i class="unlock icon"></i>
+                                Libérer
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if item.status == 'available' and (item.items is not defined or item.items|length == 0) and not item.intervention and not item.rachat %}
+                        <form
+                            method="post"
+                            action="{{ path('admin_boite_delete', {id: item.id}) }}"
+                            style="display:inline-block;"
+                            onsubmit="return confirm('Supprimer la boîte {{ item.code }} ?');"
+                        >
+                            <button class="ui mini red basic button" type="submit">
+                                <i class="trash icon"></i>
+                                Supprimer
+                            </button>
                         </form>
                     {% endif %}
                 </td>
             </tr>
         {% else %}
             <tr>
-                <td colspan="5">Aucune boîte</td>
+                <td colspan="6">Aucune boîte</td>
             </tr>
         {% endfor %}
         </tbody>

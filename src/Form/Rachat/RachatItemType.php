@@ -11,6 +11,10 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use App\Entity\Stock\Boite;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
+
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 
 class RachatItemType extends AbstractType
 {
@@ -56,14 +60,77 @@ class RachatItemType extends AbstractType
                     'class' => 'ui fluid search selection dropdown js-item-category-select',
                 ],
             ])
+            ->add('convertToHib', CheckboxType::class, [
+                'required' => false,
+                'label' => 'Créer le produit Hiboutik',
+            ])
+            ->add('reconditioningStatus', ChoiceType::class, [
+                'required' => false,
+                'label' => 'Statut atelier',
+                'choices' => [
+                    'Pas de reconditionnement' => RachatItem::RECONDITIONING_NONE,
+                    'À reconditionner' => RachatItem::RECONDITIONING_TODO,
+                    'En cours' => RachatItem::RECONDITIONING_IN_PROGRESS,
+                    'Reconditionné' => RachatItem::RECONDITIONING_DONE,
+                    'Échec reconditionnement' => RachatItem::RECONDITIONING_FAILED,
+                    'Pour pièces' => RachatItem::RECONDITIONING_PARTS,
+                ],
+                'attr' => [
+                    'class' => 'ui dropdown',
+                ],
+            ])
+            ->add('boite', EntityType::class, [
+                'class' => Boite::class,
+                'required' => false,
+                'label' => 'Boîte / emplacement',
+                'choices' => $options['boites_choices'],
+                'choice_label' => function (Boite $boite) {
+                    return $boite->getCode();
+                },
+                'placeholder' => 'Choisir une boîte',
+                'attr' => [
+                    'class' => 'ui fluid search selection dropdown',
+                ],
+            ])
             ->add('attributes', HiddenType::class, [
                 'required' => false,
                 'attr' => [
                     'class' => 'js-item-attributes-json',
                 ],
+
             ])
-            ->add('convertToHib', CheckboxType::class, [
+            ->add('reconditioningStatus', ChoiceType::class, [
     'required' => false,
+    'label' => 'Statut atelier',
+    'choices' => [
+        'Pas de reconditionnement' => 'none',
+        'À reconditionner' => 'todo',
+        'En cours' => 'in_progress',
+        'Reconditionné' => 'done',
+        'Échec reconditionnement' => 'failed',
+        'Pour pièces' => 'parts',
+    ],
+    'attr' => [
+        'class' => 'ui dropdown js-reconditioning-status',
+    ],
+])
+->add('reconditioningWorkToDo', TextareaType::class, [
+    'required' => false,
+    'label' => 'Travail à faire',
+    'attr' => [
+        'rows' => 4,
+        'class' => 'js-reconditioning-work',
+        'placeholder' => 'Ex : changement batterie, nettoyage, écran à remplacer, tests, reset, etc.',
+    ],
+])
+->add('reconditioningNotes', TextareaType::class, [
+    'required' => false,
+    'label' => 'Notes atelier',
+    'attr' => [
+        'rows' => 3,
+        'class' => 'js-reconditioning-notes',
+        'placeholder' => 'Remarques internes atelier',
+    ],
 ])
         ;
 
@@ -102,6 +169,7 @@ class RachatItemType extends AbstractType
             'brands_choices' => [],
             'categories_choices' => [],
             'categories_disabled' => [],
+            'boites_choices' => [],
         ]);
     }
 }

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Reconditionnement item #{{ ticket.itemId }}</title>
+    <style>
+        @page { size: 80mm auto; margin: 0; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 80mm;
+            background: #fff;
+            color: #000;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.25;
+        }
+        body { padding: 4mm 3mm; box-sizing: border-box; }
+        .sep { border-top: 1px dashed #000; margin: 2.5mm 0; }
+        .title { text-align:center; font-size:15px; font-weight:800; text-transform:uppercase; margin:2mm 0; }
+        .row { margin-bottom: 1mm; word-break: break-word; }
+        .label { font-weight:700; }
+    </style>
+</head>
+<body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+            <div style="font-size:15px;font-weight:800;">MULTIMÉDIA SERVICES</div>
+            <div>BON DE RECONDITIONNEMENT</div>
+        </div>
+        <div style="text-align:right;border:1px solid #000;padding:2mm 3mm;font-size:11px;font-weight:700;">
+            Boîte : {{ ticket.boxCode ?: '___' }}
+        </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="title">ITEM #{{ ticket.itemId }}</div>
+    <div class="row"><span class="label">Dossier :</span> {{ ticket.dossierRef ?: '—' }}</div>
+    <div class="row"><span class="label">Date :</span> {{ ticket.date ? ticket.date|date('d/m/Y H:i') : '—' }}</div>
+    <div class="row"><span class="label">Statut :</span> {{ ticket.status ?: '—' }}</div>
+
+    <div class="sep"></div>
+
+    <div class="row"><span class="label">Client :</span> {{ (ticket.lastName ~ ' ' ~ ticket.firstName)|trim ?: '—' }}</div>
+    <div class="row"><span class="label">Téléphone :</span> {{ ticket.phone ?: '—' }}</div>
+    <div class="row"><span class="label">Email :</span> {{ ticket.email ?: '—' }}</div>
+
+    <div class="sep"></div>
+
+    <div class="row"><span class="label">Produit :</span> {{ ticket.deviceLabel ?: '—' }}</div>
+    <div class="row"><span class="label">IMEI :</span> {{ ticket.imei ?: '—' }}</div>
+
+    {% if ticket.hibProductId %}
+        <div class="row"><span class="label">Produit Hiboutik :</span> #{{ ticket.hibProductId }}</div>
+    {% endif %}
+
+    <div class="sep"></div>
+
+    <div class="row">
+        <span class="label">Travail à faire :</span><br>
+        {{ ticket.workToDo ?: '—' }}
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="row">
+        <span class="label">Notes atelier :</span><br>
+        {{ ticket.notes ?: '—' }}
+    </div>
+</body>
+</html>

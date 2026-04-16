@@ -6,6 +6,10 @@ use App\Entity\Intervention\Intervention;
 use App\Entity\Rachat\Rachat;
 use Doctrine\ORM\Mapping as ORM;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use App\Entity\Rachat\RachatItem;
+
 /**
  * @ORM\Entity(repositoryClass="App\Repository\Stock\BoiteRepository")
  * @ORM\Table(name="app_boite")
@@ -58,13 +62,28 @@ class Boite
      */
     private \DateTimeImmutable $updatedAt;
 
+    /**
+     * @ORM\OneToMany(targetEntity=RachatItem::class, mappedBy="boite")
+     */
+    private Collection $items;
+
     public function __construct()
     {
         $now = new \DateTimeImmutable();
-        $this->createdAt = $now;
-        $this->updatedAt = $now;
-        $this->status = self::STATUS_AVAILABLE;
+    $this->createdAt = $now;
+    $this->updatedAt = $now;
+    $this->status = self::STATUS_AVAILABLE;
+    $this->items = new ArrayCollection();
     }
+
+    /**
+     * @return Collection<int, RachatItem>
+     */
+    public function getItems(): Collection
+    {
+        return $this->items;
+    }
+
 
     public function getId(): ?int
     {

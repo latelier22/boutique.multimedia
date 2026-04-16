@@ -2,6 +2,8 @@
 
 {% block content %}
 
+{% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
+
 <h2 class="ui header">
   Images produit #{{ product.product_id }}
 </h2>
@@ -22,44 +24,57 @@ const uploadUrl = "{{ path('admin_hiboutik_product_images', {id: product.product
     {% endif %}
   {% endfor %}
 
+  {% set previewUrl = '' %}
+  {% if current and current.url is defined and current.url %}
+    {% if current.url starts with imageProxyBase %}
+      {% set previewUrl = current.url %}
+    {% else %}
+      {% set previewUrl = imageProxyBase ~ (current.url|url_encode) %}
+    {% endif %}
+  {% endif %}
+
   <div class="four wide column">
     <div class="ui segment center aligned" data-slot="{{ i }}">
 
-      <!-- IMAGE -->
       <img id="preview-{{ i }}"
-           src="{{ current ? current.url : '' }}"
+           src="{{ previewUrl }}"
            style="max-width:100%; min-height:150px; background:#f5f5f5; object-fit:contain">
 
-      <div>Image {{ i }}</div>
+      <div style="margin-top:8px;">Image {{ i }}</div>
 
-      <!-- INPUT FILE -->
       <input type="file"
              id="input-{{ i }}"
+             accept="image/*"
              style="display:none"
              onchange="previewImage(event, {{ i }})">
 
-      <!-- BOUTONS -->
-      <button class="ui button"
-              onclick="document.getElementById('input-{{ i }}').click()">
-        {{ current ? 'Modifier' : 'Ajouter' }}
-      </button>
-
-      <button class="ui button"
-              onclick="pasteImage({{ i }})">
-        📋 Paste
-      </button>
-
-      <button class="ui primary button"
-              onclick="uploadImage({{ i }})">
-        Envoyer
-      </button>
-
-      {% if current %}
-        <button class="ui red button"
-                onclick="deleteImage('{{ current.image_name }}')">
-          🗑
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
+        <button type="button"
+                class="ui button"
+                onclick="document.getElementById('input-{{ i }}').click()">
+          {{ current ? 'Modifier' : 'Ajouter' }}
         </button>
-      {% endif %}
+
+        <button type="button"
+                class="ui button"
+                onclick="pasteImage({{ i }})">
+          📋 Paste
+        </button>
+
+        <button type="button"
+                class="ui primary button"
+                onclick="uploadImage({{ i }})">
+          Envoyer
+        </button>
+
+        {% if current %}
+          <button type="button"
+                  class="ui red button"
+                  onclick="deleteImage('{{ current.image_name|e('js') }}')">
+            🗑
+          </button>
+        {% endif %}
+      </div>
 
     </div>
   </div>
@@ -72,31 +87,23 @@ const uploadUrl = "{{ path('admin_hiboutik_product_images', {id: product.product
 let selectedFiles = {};
 </script>
 
-<!-- ========================= -->
-<!-- PREVIEW FILE INPUT -->
-<!-- ========================= -->
 <script>
 function previewImage(event, id) {
-
     const file = event.target.files[0];
     if (!file) return;
 
     selectedFiles[id] = file;
 
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = function (e) {
         document.getElementById('preview-' + id).src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 </script>
 
-<!-- ========================= -->
-<!-- UPLOAD -->
-<!-- ========================= -->
 <script>
 function uploadImage(id) {
-
     if (!selectedFiles[id]) {
         alert("Choisir une image");
         return;
@@ -108,27 +115,26 @@ function uploadImage(id) {
 
     fetch(uploadUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(r => r.text()) // 🔥 DEBUG SAFE
-    .then(t => {
+    .then(function (r) { return r.text(); })
+    .then(function (t) {
         console.log("UPLOAD RESPONSE:", t);
-        alert("OK upload");
         location.reload();
     })
-    .catch(err => {
+    .catch(function (err) {
         console.error(err);
         alert("Erreur réseau upload");
     });
 }
 </script>
 
-<!-- ========================= -->
-<!-- DELETE -->
-<!-- ========================= -->
 <script>
 function deleteImage(imageName) {
-
     if (!confirm("Supprimer ?")) return;
 
     const formData = new FormData();
@@ -136,50 +142,44 @@ function deleteImage(imageName) {
 
     fetch(uploadUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(r => r.text())
-    .then(t => {
+    .then(function (r) { return r.text(); })
+    .then(function (t) {
         console.log("DELETE RESPONSE:", t);
         location.reload();
     })
-    .catch(err => {
+    .catch(function (err) {
         console.error(err);
         alert("Erreur suppression");
     });
 }
 </script>
 
-<!-- ========================= -->
-<!-- PASTE IMAGE -->
-<!-- ========================= -->
 <script>
 async function pasteImage(id) {
-
     try {
-
         const items = await navigator.clipboard.read();
 
         for (const item of items) {
-
             for (const type of item.types) {
-
                 if (type.startsWith('image/')) {
-
                     const blob = await item.getType(type);
-                    const file = new File([blob], "paste.png", { type });
+                    const file = new File([blob], "paste.png", { type: type });
 
                     selectedFiles[id] = file;
 
-                    // preview
                     const reader = new FileReader();
-                    reader.onload = e => {
+                    reader.onload = function (e) {
                         document.getElementById('preview-' + id).src = e.target.result;
                     };
                     reader.readAsDataURL(file);
 
-                    // upload (léger délai)
-                    setTimeout(() => {
+                    setTimeout(function () {
                         uploadImage(id);
                     }, 100);
 
@@ -189,11 +189,8 @@ async function pasteImage(id) {
         }
 
         alert("Aucune image copiée");
-
     } catch (err) {
-
-        console.warn("Clipboard bloqué");
-
+        console.warn("Clipboard bloqué", err);
         alert("Clique puis CTRL+V");
     }
 }

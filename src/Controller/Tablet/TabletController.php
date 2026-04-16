@@ -19,18 +19,21 @@ use App\Entity\Rachat\RachatDossier;
 use App\Service\Rachat\RachatDossierPdfGenerator;
 use App\Service\Rachat\RachatDossierSignatureManager;
 
+use App\Service\Rachat\RachatDossierFinalizeService;
+
 
 final class TabletController extends AbstractController
 {
     private const COOKIE_NAME = 'kiosk_ok';
 
     public function __construct(
-         private EntityManagerInterface $em,
+    private EntityManagerInterface $em,
     private CacheItemPoolInterface $cache,
     private RachatPdfGenerator $pdfGen,
     private HiboutikClient $hib,
     private RachatDossierPdfGenerator $dossierPdfGen,
     private RachatDossierSignatureManager $dossierSignatureManager,
+    private RachatDossierFinalizeService $dossierFinalizeService,
     ) {}
 
     // ======================
@@ -549,7 +552,6 @@ public function signDossierSubmit(int $id, Request $req): Response
 
     $token = (string) $req->request->get('token', '');
     $this->assertDossierTokenValid($id, $token);
-    $this->consumeDossierToken($id, $token);
 
     $dossier = $this->em->getRepository(RachatDossier::class)->find($id);
     if (!$dossier) {
@@ -561,38 +563,27 @@ public function signDossierSubmit(int $id, Request $req): Response
         return new Response('SIGNATURE MANQUANTE', 400);
     }
 
-    $this->dossierSignatureManager->storeSignatureDataUrl($dossier, $dataUrl);
+    $acceptedConditions = (string) $req->request->get('accept_rachat_conditions', '0') === '1';
 
-    $shop = [
-        'name' => 'Multimédia Services & Cash',
-        'address' => 'À compléter',
-        'zip' => '00000',
-        'city' => 'À compléter',
-        'country' => 'France',
-        'phone' => 'À compléter',
-        'email' => 'À compléter',
-        'site' => 'À compléter',
-        'tax_number' => '',
-        'company_number' => '',
-        'legal_status' => '',
-        'code_naf' => '',
-        'non_assujetti_tva' => '0',
-    ];
+    try {
+        $result = $this->dossierFinalizeService->finalizeFromTabletSignature(
+            $dossier,
+            $dataUrl,
+            $acceptedConditions
+        );
 
-    $res = $this->dossierPdfGen->generate($dossier, [
-        'shop' => $shop,
-        'generated_at' => new \DateTimeImmutable(),
-    ]);
+        // on consomme le token seulement après succès
+        $this->consumeDossierToken($id, $token);
 
-    $dossier->setPdfUrl((string) ($res['url'] ?? ''));
-    $this->em->flush();
-
-    return $this->render('tablet/after_sign.html.twig', [
-        'pdf_url'  => (string) ($res['url'] ?? ''),
-        'wait_url' => $this->generateUrl('tablet_wait', ['device' => 'TAB1'], UrlGeneratorInterface::ABSOLUTE_URL),
-        'r' => null,
-        'dossier' => $dossier,
-    ]);
+        return $this->render('tablet/after_sign.html.twig', [
+            'pdf_url'  => (string) ($result['pdf_url'] ?? ''),
+            'wait_url' => $this->generateUrl('tablet_wait', ['device' => 'TAB1'], UrlGeneratorInterface::ABSOLUTE_URL),
+            'r' => null,
+            'dossier' => $dossier,
+        ]);
+    } catch (\Throwable $e) {
+        return new Response('ERREUR FINALISATION : ' . $e->getMessage(), 500);
+    }
 }
 
 }

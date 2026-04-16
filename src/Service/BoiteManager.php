@@ -15,21 +15,46 @@ class BoiteManager
         private BoiteRepository $boiteRepository,
     ) {}
 
-    public function createNext(?string $notes = null): Boite
-    {
-        $boite = new Boite();
-        $boite
-            ->setCode($this->boiteRepository->nextCode())
-            ->setStatus(Boite::STATUS_AVAILABLE)
-            ->setNotes($notes)
-            ->touch();
+public function createNext(?string $notes = null, ?string $root = null): Boite
+{
+    $finalRoot = $this->normalizeRoot($root);
 
-        $this->em->persist($boite);
-        $this->em->flush();
+    $boite = new Boite();
+    $boite
+        ->setCode($this->boiteRepository->nextCodeForRoot($finalRoot))
+        ->setStatus(Boite::STATUS_AVAILABLE)
+        ->setNotes($notes)
+        ->touch();
 
-        return $boite;
+    $this->em->persist($boite);
+    $this->em->flush();
+
+    return $boite;
+}
+
+private function normalizeRoot(?string $root): string
+{
+    $root = strtoupper(trim((string) $root));
+
+    if ($root === '') {
+        return 'B';
     }
 
+    // enlève les espaces
+    $root = preg_replace('/\s+/', '', $root) ?? $root;
+
+    // enlève les chiffres finaux si l'utilisateur tape CASIER01
+    $root = preg_replace('/\d+$/', '', $root) ?? $root;
+
+    // ne garde que lettres, underscore, tiret
+    $root = preg_replace('/[^A-Z_-]/', '', $root) ?? $root;
+
+    if ($root === '') {
+        return 'B';
+    }
+
+    return $root;
+}
     public function getAvailableOrCurrent(?Boite $current = null): array
     {
         return $this->boiteRepository->findAvailableOrCurrent($current);
@@ -93,6 +118,12 @@ class BoiteManager
             $boite->getRachat()->setBoite(null);
         }
 
+        if (method_exists($boite, 'getItems')) {
+    foreach ($boite->getItems() as $ri) {
+        $ri->setBoite(null);
+    }
+}
+
         $boite
             ->setStatus(Boite::STATUS_AVAILABLE)
             ->touch();
@@ -112,4 +143,31 @@ class BoiteManager
 
         return $boite->isAvailable();
     }
+
+
+    public function refreshStatuses(): void
+{
+    $boites = $this->boiteRepository->findAll();
+
+    foreach ($boites as $boite) {
+        $occupied = false;
+
+        if ($boite->getIntervention() !== null) {
+            $occupied = true;
+        }
+
+        if ($boite->getRachat() !== null) {
+            $occupied = true;
+        }
+
+        if (method_exists($boite, 'getItems') && !$boite->getItems()->isEmpty()) {
+            $occupied = true;
+        }
+
+        $boite->setStatus($occupied ? Boite::STATUS_OCCUPIED : Boite::STATUS_AVAILABLE);
+        $boite->touch();
+    }
+
+    $this->em->flush();
+}
 }

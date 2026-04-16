@@ -70,6 +70,7 @@ class RachatDossierType extends AbstractType
                     'brands_choices' => $options['brands_choices'],
                     'categories_choices' => $options['categories_choices'],
                     'categories_disabled' => $options['categories_disabled'],
+                    'boites_choices' => $options['boites_choices'],
                 ],
                 'allow_add' => true,
                 'allow_delete' => true,
@@ -87,6 +88,7 @@ class RachatDossierType extends AbstractType
             'brands_choices' => [],
             'categories_choices' => [],
             'categories_disabled' => [],
+            'boites_choices' => [],
         ]);
     }
 }

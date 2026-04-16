@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use App\Repository\Stock\BoiteRepository;
 
 #[Route('/admin/interventions', name: 'app_admin_intervention_')]
 class InterventionController extends AbstractController
@@ -24,6 +25,7 @@ class InterventionController extends AbstractController
         private SensitiveDataCipher $cipher,
         private HiboutikClient $hib,
         private BoiteManager $boiteManager,
+        
     ) {}
 
 #[Route('', name: 'index', methods: ['GET'])]
@@ -346,75 +348,78 @@ public function new(Request $request): Response
 }
 
 
-
-  #[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
-public function edit(int $id, Request $request): Response
-{
+#[Route('/{id}/edit', name: 'edit', methods: ['GET', 'POST'])]
+public function edit(
+    int $id,
+    Request $request,
+    BoiteRepository $boiteRepository
+): Response {
     $intervention = $this->em->getRepository(Intervention::class)->find($id);
 
     if (!$intervention) {
         throw $this->createNotFoundException('Intervention introuvable.');
     }
 
-   $availableBoxes = $this->boiteManager->getAvailableOrCurrent($intervention->getBoite());
-   $nextBoxCode = $this->em->getRepository(\App\Entity\Stock\Boite::class)->nextCode();
+    $availableBoxes = $this->boiteManager->getAvailableOrCurrent($intervention->getBoite());
 
+    if ($request->isMethod('POST')) {
+        $saveAction = (string) $request->request->get('save_action', 'stay');
 
+        $manualNumber = (int) $request->request->get('intervention_number', 0);
 
-   if ($request->isMethod('POST')) {
-    $manualNumber = (int) $request->request->get('intervention_number', 0);
+        $amountTotal = trim((string) $request->request->get('amount_total', ''));
+        $amountPaid = trim((string) $request->request->get('amount_paid', ''));
+        $paymentMode = trim((string) $request->request->get('payment_mode', ''));
+        $status = trim((string) $request->request->get('status', ''));
 
-    $amountTotal = trim((string) $request->request->get('amount_total', ''));
-    $amountPaid = trim((string) $request->request->get('amount_paid', ''));
-    $paymentMode = trim((string) $request->request->get('payment_mode', ''));
-    $status = trim((string) $request->request->get('status', ''));
+        if (!in_array($status, ['Ouverte', 'En attente', 'Terminée', 'Annulée'], true)) {
+            $status = 'Ouverte';
+        }
 
-    if (!in_array($status, ['Ouverte', 'En attente', 'Terminée', 'Annulée'], true)) {
-        $status = 'Ouverte';
+        try {
+            if ($manualNumber <= 0) {
+                throw new \RuntimeException('Le numéro d’intervention est obligatoire.');
+            }
+
+            if ($amountTotal !== '' && (float) $amountTotal < 0) {
+                throw new \RuntimeException('Montant total invalide.');
+            }
+
+            if ($amountPaid !== '' && (float) $amountPaid < 0) {
+                throw new \RuntimeException('Montant versé invalide.');
+            }
+
+            $this->numberGenerator->validateManualNumber($manualNumber, $intervention->getId());
+
+            $intervention
+                ->setInterventionNumber($manualNumber)
+                ->setCustomerLastName((string) $request->request->get('customer_last_name', ''))
+                ->setCustomerFirstName((string) $request->request->get('customer_first_name', ''))
+                ->setCustomerPhone(($v = trim((string) $request->request->get('customer_phone', ''))) !== '' ? $v : null)
+                ->setDeviceLabel(($v = trim((string) $request->request->get('device_label', ''))) !== '' ? $v : null)
+                ->setWorkToDo(($v = trim((string) $request->request->get('work_to_do', ''))) !== '' ? $v : null)
+                ->setStatus($status)
+                ->setAmountTotal($amountTotal !== '' ? number_format((float) $amountTotal, 2, '.', '') : null)
+                ->setAmountPaid($amountPaid !== '' ? number_format((float) $amountPaid, 2, '.', '') : null)
+                ->setPaymentMode($paymentMode !== '' ? $paymentMode : null);
+
+            $intervention->touch();
+            $this->em->flush();
+
+            $this->numberGenerator->bumpCounterIfNeeded($manualNumber);
+
+            $this->addFlash('success', 'Intervention mise à jour.');
+
+            if ($saveAction === 'close') {
+                return $this->redirectToRoute('app_admin_intervention_index');
+            }
+
+            return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
+        } catch (\Throwable $e) {
+            $this->addFlash('error', $e->getMessage());
+            return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
+        }
     }
-
-    try {
-        if ($manualNumber <= 0) {
-            throw new \RuntimeException('Le numéro d’intervention est obligatoire.');
-        }
-
-        if ($amountTotal !== '' && (float) $amountTotal < 0) {
-            throw new \RuntimeException('Montant total invalide.');
-        }
-
-        if ($amountPaid !== '' && (float) $amountPaid < 0) {
-            throw new \RuntimeException('Montant versé invalide.');
-        }
-
-        $this->numberGenerator->validateManualNumber($manualNumber, $intervention->getId());
-
-
-
-        $intervention
-            ->setInterventionNumber($manualNumber)
-            ->setCustomerLastName((string) $request->request->get('customer_last_name', ''))
-            ->setCustomerFirstName((string) $request->request->get('customer_first_name', ''))
-            ->setCustomerPhone(($v = trim((string) $request->request->get('customer_phone', ''))) !== '' ? $v : null)
-            ->setDeviceLabel(($v = trim((string) $request->request->get('device_label', ''))) !== '' ? $v : null)
-            ->setWorkToDo(($v = trim((string) $request->request->get('work_to_do', ''))) !== '' ? $v : null)
-            ->setStatus($status)
-            ->setAmountTotal($amountTotal !== '' ? number_format((float) $amountTotal, 2, '.', '') : null)
-            ->setAmountPaid($amountPaid !== '' ? number_format((float) $amountPaid, 2, '.', '') : null)
-            ->setPaymentMode($paymentMode !== '' ? $paymentMode : null);
-
-        $intervention->touch();
-        $this->em->flush();
-
-        $this->numberGenerator->bumpCounterIfNeeded($manualNumber);
-
-        $this->addFlash('success', 'Intervention mise à jour.');
-
-        return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
-    } catch (\Throwable $e) {
-        $this->addFlash('error', $e->getMessage());
-        return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
-    }
-}
 
     $unlockData = $this->cipher->decrypt($intervention->getUnlockPayloadEncrypted());
 
@@ -433,7 +438,7 @@ public function edit(int $id, Request $request): Response
         'hibCustomer' => $hibCustomer,
         'tablet_socket_token' => (string) $this->getParameter('tablet_socket_token'),
         'availableBoxes' => $availableBoxes,
-        'nextBoxCode' => $nextBoxCode,
+        'roots' => $boiteRepository->findRoots(),
     ]);
 }
 
@@ -1104,7 +1109,6 @@ public function printTicket(int $id): Response
     ]);
 }
 
-
 #[Route('/{id}/assign-box', name: 'assign_box', methods: ['POST'])]
 public function assignBox(
     int $id,
@@ -1118,23 +1122,23 @@ public function assignBox(
         throw $this->createNotFoundException('Intervention introuvable.');
     }
 
-    $boiteValue = (string) $request->request->get('boite_id', '');
+    $boiteValue = trim((string) $request->request->get('boite_id', ''));
+    $selectedRoot = trim((string) $request->request->get('box_root', ''));
+    $newRoot = trim((string) $request->request->get('box_new_root', ''));
 
-    if ($boiteValue === '') {
-        if ($intervention->getBoite()) {
-            $boiteManager->release($intervention->getBoite());
+    // 1. Boîte existante choisie
+    if ($boiteValue !== '') {
+        $boiteId = (int) $boiteValue;
+        $boite = $boiteRepository->find($boiteId);
+
+        if (!$boite) {
+            $this->addFlash('error', 'Boîte introuvable.');
+            return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
         }
 
-        $this->addFlash('success', 'Boîte retirée.');
-        return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
-    }
-
-    if ($boiteValue === '__create__') {
         try {
-            $boite = $boiteManager->createNext();
             $boiteManager->assignToIntervention($boite, $intervention);
-
-            $this->addFlash('success', sprintf('Boîte %s créée et affectée.', $boite->getCode()));
+            $this->addFlash('success', sprintf('Boîte %s affectée.', $boite->getCode()));
         } catch (\Throwable $e) {
             $this->addFlash('error', $e->getMessage());
         }
@@ -1142,24 +1146,36 @@ public function assignBox(
         return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
     }
 
-    $boiteId = (int) $boiteValue;
-    $boite = $boiteRepository->find($boiteId);
+    // 2. Création d'une nouvelle boîte à partir d'une racine
+    $root = $newRoot !== '' ? $newRoot : $selectedRoot;
 
-    if (!$boite) {
-        $this->addFlash('error', 'Boîte introuvable.');
+    if ($root !== '') {
+        try {
+            $boite = $boiteManager->createNext(null, $root);
+            $boiteManager->assignToIntervention($boite, $intervention);
+
+            $this->addFlash('success', sprintf(
+                'Boîte %s créée et affectée.',
+                $boite->getCode()
+            ));
+        } catch (\Throwable $e) {
+            $this->addFlash('error', $e->getMessage());
+        }
+
         return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
     }
 
-    try {
-        $boiteManager->assignToIntervention($boite, $intervention);
-        $this->addFlash('success', sprintf('Boîte %s affectée.', $boite->getCode()));
-    } catch (\Throwable $e) {
-        $this->addFlash('error', $e->getMessage());
+    // 3. Rien choisi = retrait de la boîte
+    if ($intervention->getBoite()) {
+        $boiteManager->release($intervention->getBoite());
     }
+
+    $this->addFlash('success', 'Boîte retirée.');
 
     return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
 }
-#[Route('/{id}/release-box', name: 'release_box', methods: ['GET'])]
+
+#[Route('/{id}/release-box', name: 'release_box', methods: ['POST'])]
 public function releaseBox(int $id, \App\Service\BoiteManager $boiteManager): Response
 {
     $intervention = $this->em->getRepository(Intervention::class)->find($id);
@@ -1171,9 +1187,9 @@ public function releaseBox(int $id, \App\Service\BoiteManager $boiteManager): Re
     $boiteManager->release($intervention->getBoite());
 
     $this->addFlash('success', 'Boîte libérée.');
+
     return $this->redirectToRoute('app_admin_intervention_edit', ['id' => $id]);
 }
-
 }
 
     

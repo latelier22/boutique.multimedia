@@ -1,0 +1,86 @@
+<div class="ui segment">
+    <h3 class="ui header">{{ title|default('Boîte') }}</h3>
+
+    {% if mode == 'intervention' %}
+        <form method="post" action="{{ action }}" class="ui form">
+            <div class="field">
+                <label>Boîte existante</label>
+                <select name="boite_id" class="ui dropdown">
+                    <option value="">— Aucune —</option>
+
+                    {% for box in availableBoxes|default([]) %}
+                        <option value="{{ box.id }}" {{ currentBox and currentBox.id == box.id ? 'selected' : '' }}>
+                            {{ box.code }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="ui horizontal divider">ou créer une nouvelle boîte</div>
+
+            <div class="two fields">
+                <div class="field">
+                    <label>Racine existante</label>
+                    <select name="box_root" class="ui dropdown">
+                        <option value="">Choisir une racine</option>
+                        {% for root in roots|default([]) %}
+                            <option value="{{ root }}">{{ root }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Nouvelle racine</label>
+                    <input type="text" name="box_new_root" placeholder="Ex : CASIER">
+                </div>
+            </div>
+
+            <div style="margin-top:6px;font-size:12px;color:#666;">
+                Si une boîte existante est choisie, elle sera affectée.
+                Sinon, une nouvelle boîte sera créée depuis la racine choisie ou saisie.
+            </div>
+
+            <div style="margin-top:12px;">
+                <button type="submit" class="ui primary button">
+                    Affecter
+                </button>
+            </div>
+        </form>
+
+        {% if currentBox %}
+            <form method="post" action="{{ releasePath }}" style="margin-top:8px;">
+                <button type="submit" class="ui button">
+                    Libérer
+                </button>
+            </form>
+
+            <div class="ui small info message" style="margin-top:12px;">
+                Boîte actuelle : <strong>{{ currentBox.code }}</strong>
+            </div>
+        {% endif %}
+    {% elseif mode == 'item' %}
+        <div class="ui form">
+            <div class="field">
+                {{ form_row(itemForm.boite) }}
+            </div>
+
+            <div style="margin-top:6px;font-size:12px;color:#666;">
+                Choisis une boîte libre existante pour cet item.
+            </div>
+
+            <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="{{ manageBoxesPath }}" target="_blank" class="ui tiny basic button">
+                    <i class="external icon"></i>
+                    Créer / gérer les boîtes
+                </a>
+            </div>
+
+            {% set currentItemBox = itemForm.vars.data and itemForm.vars.data.boite ? itemForm.vars.data.boite : null %}
+            {% if currentItemBox %}
+                <div class="ui small info message" style="margin-top:12px;">
+                    Boîte actuelle : <strong>{{ currentItemBox.code }}</strong>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

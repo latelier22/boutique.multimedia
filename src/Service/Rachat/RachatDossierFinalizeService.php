@@ -18,8 +18,11 @@ final class RachatDossierFinalizeService
     ) {
     }
 
-    public function finalizeFromTabletSignature(RachatDossier $dossier, string $dataUrl, bool $acceptedConditions = true): array
-    {
+    public function finalizeFromTabletSignature(
+        RachatDossier $dossier,
+        string $dataUrl,
+        bool $acceptedConditions = true
+    ): array {
         if ($dossier->isLocked()) {
             throw new \RuntimeException('Ce dossier est déjà verrouillé/signé.');
         }
@@ -45,50 +48,80 @@ final class RachatDossierFinalizeService
         if (!$dossier->getReference()) {
             $this->em->persist($dossier);
             $this->em->flush();
+
             $this->manager->generateReferenceIfNeeded($dossier);
+            $this->em->flush();
         }
 
         $signatureUrl = $this->signatureManager->storeSignatureDataUrl($dossier, $dataUrl);
 
-        $this->paySeller($dossier);
-
         $storeMeta = $this->hiboutikClient->getDefaultStoreMeta();
         $stockId = (int) ($storeMeta['stock_id'] ?? $storeMeta['store_id'] ?? 1);
 
-        // À adapter si tu veux un autre fournisseur Hiboutik par défaut
         $supplierId = 3;
 
-        $inputId = (int) $this->hiboutikClient->getOrCreateMonthlyRachatInput(
-            $stockId,
-            $supplierId,
-            new \DateTimeImmutable('today')
+        $inputId = (int) ($dossier->getHibInventoryInputId() ?? 0);
+
+        if ($inputId <= 0) {
+            $resInput = $this->hiboutikClient->getOrCreateMonthlyRachatInput(
+                $stockId,
+                $supplierId,
+                new \DateTimeImmutable('today')
+            );
+
+            if (!is_array($resInput) || !($resInput['ok'] ?? false) || empty($resInput['id'])) {
+                throw new \RuntimeException('Impossible de créer ou récupérer l’arrivage mensuel Hiboutik.');
+            }
+
+            $inputId = (int) $resInput['id'];
+            $dossier->setHibInventoryInputId($inputId);
+        }
+
+        if ($dossier->getHibArrivageAddedAt() === null) {
+    foreach ($dossier->getItems() as $item) {
+        if (!$this->shouldConvertItemToHib($item)) {
+            continue;
+        }
+
+        if ($item->getHibArrivageAddedAt() !== null && (int) $item->getHibInventoryInputId() > 0) {
+            continue;
+        }
+
+        $productId = $this->ensureHiboutikProductForItem($item, $supplierId);
+
+        if ($productId <= 0) {
+            throw new \RuntimeException(sprintf(
+                'Impossible de créer le produit Hiboutik pour l’item #%d.',
+                (int) $item->getId()
+            ));
+        }
+
+        $item->setHibProductId($productId);
+
+        $unitPrice = $this->normalizeAmount($item->getPrixAchat());
+
+        $resAdd = $this->hiboutikClient->addProductToInventoryInput(
+            $inputId,
+            $productId,
+            1,
+            $unitPrice
         );
 
-        foreach ($dossier->getItems() as $item) {
-            if (!$this->shouldConvertItemToHib($item)) {
-                continue;
-            }
-
-            $productId = $this->ensureHiboutikProductForItem($item, $supplierId);
-
-            if ($productId <= 0) {
-                throw new \RuntimeException(sprintf(
-                    'Impossible de créer le produit Hiboutik pour l’item #%d.',
-                    (int) $item->getId()
-                ));
-            }
-
-            $item->setHibProductId($productId);
-
-            $unitPrice = $this->normalizeAmount($item->getPrixAchat());
-
-            $this->hiboutikClient->addProductToInventoryInput(
-                $inputId,
-                $productId,
-                1,
-                $unitPrice
-            );
+        if (!($resAdd['ok'] ?? false)) {
+            throw new \RuntimeException(sprintf(
+                'Erreur ajout à l’arrivage mensuel pour l’item #%d.',
+                (int) $item->getId()
+            ));
         }
+
+        $item->setHibInventoryInputId($inputId);
+        $item->setHibArrivageAddedAt(new \DateTimeImmutable());
+    }
+
+    $dossier->setHibArrivageAddedAt(new \DateTimeImmutable());
+}
+
+        $this->paySeller($dossier);
 
         $this->manager->markSigned($dossier);
 
@@ -127,126 +160,132 @@ final class RachatDossierFinalizeService
 
     private function paySeller(RachatDossier $dossier): void
     {
-        $amount = $this->normalizeAmount($dossier->getTotalAchat());
+        if ($dossier->getPaidAt() !== null) {
+            return;
+        }
+
+        $amount = $this->resolveDossierAmount($dossier);
 
         if ($amount <= 0) {
             throw new \RuntimeException('Le montant total du dossier doit être supérieur à zéro.');
         }
 
         $storeMeta = $this->hiboutikClient->getDefaultStoreMeta();
+        $storeId = (int) ($storeMeta['store_id'] ?? 1);
         $currency = (string) ($storeMeta['currency_code'] ?? 'EUR');
         $paidMethod = trim((string) ($dossier->getPaidMethod() ?: 'ESP'));
 
-        $comment = sprintf(
-            'RACHAT DOSSIER %s / %s %s / %.2f %s / %s',
-            $dossier->getReference() ?: ('#' . $dossier->getId()),
-            trim((string) $dossier->getNomSnapshot()),
-            trim((string) $dossier->getPrenomSnapshot()),
+        $comment = $this->buildCashOutComment($dossier, $amount, $currency, $paidMethod);
+
+        $res = $this->hiboutikClient->tillCashOut(
+            $storeId,
             $amount,
             $currency,
-            $paidMethod
+            $comment
         );
 
-        $this->hiboutikClient->tillCashOut(
-            $amount,
-            $comment,
-            $paidMethod,
-            $currency
-        );
+        $ok = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
 
-        if (method_exists($dossier, 'setPaidAt')) {
-            $dossier->setPaidAt(new \DateTimeImmutable());
+        if (!$ok) {
+            throw new \RuntimeException('Erreur Hiboutik lors de l’encaissement vendeur.');
         }
 
-        if (!$dossier->getPaidMethod()) {
-            $dossier->setPaidMethod($paidMethod);
-        }
+        $dossier->setPaidAt(new \DateTimeImmutable());
+        $dossier->setPaidMethod($paidMethod);
     }
 
     private function shouldConvertItemToHib(RachatItem $item): bool
     {
+        if (method_exists($item, 'isConvertToHib')) {
+            return (bool) $item->isConvertToHib();
+        }
+
         if (method_exists($item, 'getConvertToHib')) {
             return (bool) $item->getConvertToHib();
         }
 
-        // Tant que le booléen n'existe pas encore sur l'entité,
-        // on considère tous les items comme cochés par défaut.
         return true;
     }
 
-    private function ensureHiboutikProductForItem(RachatItem $item, int $supplierId): int
-    {
-        $existingId = (int) ($item->getHibProductId() ?? 0);
-        if ($existingId > 0) {
-            return $existingId;
+   private function ensureHiboutikProductForItem(RachatItem $item, int $supplierId): int
+{
+    $existingId = (int) ($item->getHibProductId() ?? 0);
+    if ($existingId > 0) {
+        return $existingId;
+    }
+
+    $price = $this->normalizeAmount($item->getPrixAchat());
+    $model = trim((string) ($item->getMarqueModele() ?: $item->getDesignation() ?: ('Rachat item #' . $item->getId())));
+    $brandId = (int) ($item->getHibBrandId() ?? 0);
+    $categoryId = (int) ($item->getHibCategoryId() ?? 0);
+    $imei = trim((string) ($item->getImei() ?? ''));
+
+    $payload = [
+        'product_model' => $model,
+        'product_supplier' => $supplierId,
+        'product_supply_price' => $price,
+        'product_price' => $price,
+        'product_stock_management' => 1,
+        'product_display_www' => 0,
+        'product_arch' => 0,
+        'products_ref_ext' => 'RACHAT-DOSSIER-' . ($item->getDossier()?->getId() ?? 0) . '-ITEM-' . $item->getId(),
+    ];
+
+    if ($brandId > 0) {
+        $payload['product_brand'] = $brandId;
+    }
+
+    if ($categoryId > 0) {
+        $payload['product_category'] = $categoryId;
+    }
+
+    $created = $this->hiboutikClient->createProduct($payload);
+    error_log('[HIB CREATE PRODUCT] ' . json_encode($created, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+    // On ne se fie pas uniquement à "ok"
+    $data = is_array($created) ? ($created['data'] ?? $created) : null;
+
+    $productId = 0;
+
+    if (is_array($data)) {
+        if (isset($data['product_id'])) {
+            $productId = (int) $data['product_id'];
+        } elseif (isset($data[0]) && is_array($data[0]) && isset($data[0]['product_id'])) {
+            $productId = (int) $data[0]['product_id'];
         }
+    }
 
-        $price = $this->normalizeAmount($item->getPrixAchat());
-        $model = trim((string) ($item->getMarqueModele() ?: $item->getDesignation() ?: ('Rachat item #' . $item->getId())));
-        $brandId = method_exists($item, 'getHibBrandId') ? (int) ($item->getHibBrandId() ?? 0) : 0;
-        $categoryId = method_exists($item, 'getHibCategoryId') ? (int) ($item->getHibCategoryId() ?? 0) : 0;
-        $imei = trim((string) ($item->getImei() ?? ''));
+    if ($productId <= 0 && isset($created['product_id'])) {
+        $productId = (int) $created['product_id'];
+    }
 
-        $payload = [
-            'product_model' => $model,
-            'product_supplier' => $supplierId,
-            'product_supply_price' => $price,
-            'product_price' => $price,
-            'product_stock_management' => 1,
-            'product_display_www' => 0,
-            'product_arch' => 0,
-            'products_ref_ext' => 'RACHATITEM-' . $item->getId(),
-        ];
+    if ($productId <= 0) {
+        throw new \RuntimeException('Identifiant produit Hiboutik introuvable après création.');
+    }
 
-        if ($brandId > 0) {
-            $payload['product_brand'] = $brandId;
-        }
-
-        if ($categoryId > 0) {
-            $payload['product_category'] = $categoryId;
-        }
-
-        $created = $this->hiboutikClient->createProduct($payload);
-
-        if (!($created['ok'] ?? false)) {
-            throw new \RuntimeException('Création produit Hiboutik impossible.');
-        }
-
-        $productId = (int) (
-            $created['data']['product_id']
-            ?? $created['product_id']
-            ?? 0
-        );
-
-        if ($productId <= 0) {
-            throw new \RuntimeException('Identifiant produit Hiboutik introuvable après création.');
-        }
-
-        if ($imei !== '') {
-            try {
-                if (method_exists($this->hiboutikClient, 'trySetBarcodeSmart')) {
-                    $this->hiboutikClient->trySetBarcodeSmart($productId, $imei);
-                }
-            } catch (\Throwable) {
-                // on ne bloque pas le flux pour un souci de barcode
-            }
-        }
-
+    if ($imei !== '' && method_exists($this->hiboutikClient, 'trySetBarcodeSmart')) {
         try {
-            if (method_exists($this->hiboutikClient, 'updateProductAttributes')) {
-                $misc = $this->buildMiscTextForItem($item);
-                if ($misc !== '') {
-                    $this->hiboutikClient->updateProductAttributes($productId, [
-                        'product_memo' => $misc,
-                    ]);
-                }
+            $this->hiboutikClient->trySetBarcodeSmart($productId, $imei);
+        } catch (\Throwable) {
+            // Ne pas bloquer toute la finalisation pour un souci de barcode
+        }
+    }
+
+    if (method_exists($this->hiboutikClient, 'updateProductAttributes')) {
+        try {
+            $misc = $this->buildMiscTextForItem($item);
+            if ($misc !== '') {
+                $this->hiboutikClient->updateProductAttributes($productId, [
+                    'misc_text' => $misc,
+                ]);
             }
         } catch (\Throwable) {
-            // idem : ne pas bloquer toute la finalisation pour un memo
+            // Ne pas bloquer toute la finalisation pour le misc_text
         }
-
-        return $productId;
     }
+
+    return $productId;
+}
 
     private function buildMiscTextForItem(RachatItem $item): string
     {
@@ -256,15 +295,76 @@ final class RachatDossierFinalizeService
             $parts[] = 'Désignation : ' . $item->getDesignation();
         }
 
+        if ($item->getMarqueModele()) {
+            $parts[] = 'Marque / modèle : ' . $item->getMarqueModele();
+        }
+
         if ($item->getImei()) {
             $parts[] = 'IMEI : ' . $item->getImei();
         }
 
-        if (method_exists($item, 'getAttributsJson') && $item->getAttributsJson()) {
-            $parts[] = 'Attributs : ' . (string) $item->getAttributsJson();
+        $attributes = $item->getAttributes();
+        if (!empty($attributes)) {
+            $parts[] = 'Attributs : ' . json_encode(
+                $attributes,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
         }
 
         return implode("\n", $parts);
+    }
+
+    private function buildCashOutComment(
+        RachatDossier $dossier,
+        float $amount,
+        string $currency,
+        string $paidMethod
+    ): string {
+        $labels = [];
+
+        foreach ($dossier->getItems() as $item) {
+            $label = trim((string) ($item->getMarqueModele() ?: $item->getDesignation() ?: $item->getLabel()));
+            $price = $this->normalizeAmount($item->getPrixAchat());
+
+            if ($label !== '') {
+                $labels[] = sprintf('%s %s€', $label, number_format($price, 2, ',', ' '));
+            }
+        }
+
+        if (count($labels) > 5) {
+            $labels = array_slice($labels, 0, 5);
+            $labels[] = '...';
+        }
+
+        return sprintf(
+            'RACHAT DOSSIER %s / %s %s / %s / %.2f %s / %s',
+            $dossier->getReference() ?: ('#' . $dossier->getId()),
+            trim((string) $dossier->getNomSnapshot()),
+            trim((string) $dossier->getPrenomSnapshot()),
+            implode(' / ', $labels),
+            $amount,
+            $currency,
+            $paidMethod
+        );
+    }
+
+    private function resolveDossierAmount(RachatDossier $dossier): float
+    {
+        $amount = $this->normalizeAmount($dossier->getTotalAchat());
+
+        if ($amount > 0) {
+            return round($amount, 2);
+        }
+
+        $sum = 0.0;
+
+        foreach ($dossier->getItems() as $item) {
+            $price = $this->normalizeAmount($item->getPrixAchat());
+            $qty = max(1, (int) ($item->getQuantite() ?? 1));
+            $sum += $price * $qty;
+        }
+
+        return round($sum, 2);
     }
 
     private function normalizeAmount(mixed $value): float

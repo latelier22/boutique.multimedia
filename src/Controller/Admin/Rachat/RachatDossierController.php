@@ -16,24 +16,22 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Form\Rachat\RachatDossierType;
-
 use App\Service\Rachat\RachatDossierCiManager;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
-
 use Doctrine\ORM\Tools\Pagination\Paginator;
-
 use App\Entity\Rachat\RachatItem;
 use App\Service\Rachat\RachatMediaManager;
 use App\Service\Rachat\RachatDossierSignatureManager;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Psr\Cache\CacheItemPoolInterface;
-
 use App\Service\HiboutikReferentialService;
 use App\Service\Rachat\RachatDossierFinalizeService;
+
+use App\Entity\Stock\Boite;
+use App\Service\BoiteManager;
 
 
 #[Route('/admin/rachats-v2', name: 'admin_rachats_v2_')]
@@ -49,6 +47,7 @@ final class RachatDossierController extends AbstractController
         private CacheInterface $cache,
         private HiboutikReferentialService $hibReferential,
         private RachatDossierCustomerResolver $customerResolver,
+        private BoiteManager $boiteManager,
     ) {
     }
 
@@ -920,31 +919,60 @@ private function handleForm(Request $request, RachatDossier $dossier, bool $isNe
     $brands = $this->hibReferential->getBrandsRows();
     $categoryMeta = $this->hibReferential->buildCategoryChoicesAndDisabled();
 
+    $boiteRepo = $this->em->getRepository(\App\Entity\Stock\Boite::class);
+
+$boites = $boiteRepo->findAvailable();
+
+foreach ($dossier->getItems() as $item) {
+    $currentBoite = $item->getBoite();
+    if ($currentBoite && $currentBoite->getId()) {
+        $alreadyInList = false;
+
+        foreach ($boites as $b) {
+            if ($b->getId() === $currentBoite->getId()) {
+                $alreadyInList = true;
+                break;
+            }
+        }
+
+        if (!$alreadyInList) {
+            $boites[] = $currentBoite;
+        }
+    }
+}
+
+usort($boites, static function ($a, $b) {
+    return strcmp($a->getCode(), $b->getCode());
+});
+
     $form = $this->createForm(RachatDossierType::class, $dossier, [
         'brands_choices' => $this->hibReferential->buildBrandChoices(),
         'categories_choices' => $categoryMeta['choices'],
         'categories_disabled' => $categoryMeta['disabled'],
+        'boites_choices' => $boites,
     ]);
 
     $form->handleRequest($request);
 
-    if ($form->isSubmitted() && $form->isValid()) {
-        $this->applyPostedItemBrands($request, $form);
+   if ($form->isSubmitted() && $form->isValid()) {
+    $this->applyPostedItemBrands($request, $form);
 
-        $this->manager->prepareForSave($dossier);
+    $this->manager->prepareForSave($dossier);
 
-        $this->em->persist($dossier);
-        $this->em->flush();
+    $this->em->persist($dossier);
+    $this->em->flush();
 
-        $this->manager->generateReferenceIfNeeded($dossier);
-        $this->em->flush();
+    $this->boiteManager->refreshStatuses();
 
-        $this->addFlash('success', $isNew ? 'Dossier V2 créé.' : 'Dossier V2 mis à jour.');
+    $this->manager->generateReferenceIfNeeded($dossier);
+    $this->em->flush();
 
-        return $this->redirectToRoute('admin_rachats_v2_edit', [
-            'id' => $dossier->getId(),
-        ]);
-    }
+    $this->addFlash('success', $isNew ? 'Dossier V2 créé.' : 'Dossier V2 mis à jour.');
+
+    return $this->redirectToRoute('admin_rachats_v2_edit', [
+        'id' => $dossier->getId(),
+    ]);
+}
 
     return $this->render('@SyliusAdmin/Rachat/RachatDossier/edit.html.twig', [
         'form' => $form->createView(),
@@ -1752,7 +1780,189 @@ public function deleteItemPhoto(
 
 
 
+#[Route('/{id}/encaissement-manuel', name: 'encaissement_manual', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function encaissementManual(Request $request, RachatDossier $dossier): Response
+{
+    if (!$this->isCsrfTokenValid('encaissement_dossier_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+    }
 
+    $redirect = (string) $request->request->get('_redirect', '');
+    $redirectPath = (string) (parse_url($redirect, PHP_URL_PATH) ?? '');
+
+    if ($redirect === '' || !str_starts_with($redirectPath, '/admin/rachats-v2')) {
+        $redirect = $this->generateUrl('admin_rachats_v2_index');
+    }
+
+    if ($dossier->isCancelled()) {
+        $this->addFlash('error', 'Ce dossier est annulé et ne peut pas être encaissé.');
+        return $this->redirect($redirect);
+    }
+
+    if ($dossier->getPaidAt() !== null) {
+        $this->addFlash('warning', sprintf(
+            'Le dossier %s est déjà encaissé.',
+            $dossier->getReference() ?: ('#' . $dossier->getId())
+        ));
+        return $this->redirect($redirect);
+    }
+
+    $amount = $this->resolveDossierAmount($dossier);
+
+    if ($amount <= 0) {
+        $this->addFlash('error', 'Montant invalide : impossible d’effectuer l’encaissement.');
+        return $this->redirect($redirect);
+    }
+
+    $method = trim((string) $request->request->get('method', $dossier->getPaidMethod() ?: 'ESP'));
+    $otherLabel = trim((string) $request->request->get('other_label', ''));
+
+    $meta = $this->hiboutikClient->getDefaultStoreMeta();
+    $storeId = (int) ($meta['store_id'] ?? 1);
+    $currency = (string) ($meta['currency_code'] ?? 'EUR');
+
+    $comment = $this->buildDossierCashOutComment($dossier, $method, $otherLabel);
+
+    $res = $this->hiboutikClient->tillCashOut($storeId, $amount, $currency, $comment);
+    $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
+
+    if (!$okHib) {
+        $this->addFlash('error', 'Erreur Hiboutik lors de l’encaissement manuel.');
+        return $this->redirect($redirect);
+    }
+
+    $dossier->setPaidMethod($method !== '' ? $method : 'ESP');
+    $dossier->setPaidAt(new \DateTimeImmutable());
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Encaissement effectué pour le dossier %s : %s €.',
+        $dossier->getReference() ?: ('#' . $dossier->getId()),
+        number_format($amount, 2, ',', ' ')
+    ));
+
+    return $this->redirect($redirect);
+}
+
+
+#[Route('/{id}/annuler-encaissement-manuel', name: 'annuler_encaissement_manual', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function annulerEncaissementManual(Request $request, RachatDossier $dossier): Response
+{
+    if (!$this->isCsrfTokenValid('annuler_encaissement_dossier_' . $dossier->getId(), (string) $request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+    }
+
+    $redirect = (string) $request->request->get('_redirect', '');
+    $redirectPath = (string) (parse_url($redirect, PHP_URL_PATH) ?? '');
+
+    if ($redirect === '' || !str_starts_with($redirectPath, '/admin/rachats-v2')) {
+        $redirect = $this->generateUrl('admin_rachats_v2_index');
+    }
+
+    if ($dossier->getPaidAt() === null) {
+        $this->addFlash('warning', 'Ce dossier n’est pas marqué comme encaissé.');
+        return $this->redirect($redirect);
+    }
+
+    $amount = $this->resolveDossierAmount($dossier);
+
+    if ($amount <= 0) {
+        $this->addFlash('error', 'Montant invalide : impossible d’annuler l’encaissement.');
+        return $this->redirect($redirect);
+    }
+
+    $meta = $this->hiboutikClient->getDefaultStoreMeta();
+    $storeId = (int) ($meta['store_id'] ?? 1);
+    $currency = (string) ($meta['currency_code'] ?? 'EUR');
+
+    $comment = 'ANNULATION ' . $this->buildDossierCashOutComment(
+        $dossier,
+        $dossier->getPaidMethod() ?: 'ESP',
+        null
+    );
+
+    $res = $this->hiboutikClient->tillCashIn($storeId, $amount, $currency, $comment);
+    $okHib = ($res['ok'] ?? false) || !empty($res['data']['till_id'] ?? null);
+
+    if (!$okHib) {
+        $this->addFlash('error', 'Erreur Hiboutik lors de l’annulation de l’encaissement.');
+        return $this->redirect($redirect);
+    }
+
+    $dossier->setPaidAt(null);
+    $dossier->setPaidMethod(null);
+    $this->em->flush();
+
+    $this->addFlash('success', sprintf(
+        'Encaissement annulé pour le dossier %s.',
+        $dossier->getReference() ?: ('#' . $dossier->getId())
+    ));
+
+    return $this->redirect($redirect);
+}
+
+
+private function resolveDossierAmount(RachatDossier $dossier): float
+{
+    $amount = (float) str_replace(',', '.', (string) ($dossier->getTotalAchat() ?? '0'));
+
+    if ($amount > 0) {
+        return round($amount, 2);
+    }
+
+    $sum = 0.0;
+
+    foreach ($dossier->getItems() as $item) {
+        $price = (float) str_replace(',', '.', (string) ($item->getPrixAchat() ?? '0'));
+        $qty = max(1, (int) ($item->getQuantite() ?? 1));
+        $sum += $price * $qty;
+    }
+
+    return round($sum, 2);
+}
+
+private function buildDossierCashOutComment(
+    RachatDossier $dossier,
+    ?string $method = null,
+    ?string $otherLabel = null
+): string {
+    $labels = [];
+
+    foreach ($dossier->getItems() as $item) {
+        $label = trim((string) ($item->getMarqueModele() ?: $item->getDesignation() ?: $item->getLabel()));
+        $price = (float) str_replace(',', '.', (string) ($item->getPrixAchat() ?? '0'));
+
+        if ($label !== '') {
+            $labels[] = sprintf('%s %s€', $label, number_format($price, 2, ',', ' '));
+        }
+    }
+
+    if (count($labels) > 5) {
+        $labels = array_slice($labels, 0, 5);
+        $labels[] = '...';
+    }
+
+    $comment = sprintf(
+        'RACHAT DOSSIER %s / %s %s / %s',
+        $dossier->getReference() ?: ('#' . $dossier->getId()),
+        (string) ($dossier->getNomSnapshot() ?? ''),
+        (string) ($dossier->getPrenomSnapshot() ?? ''),
+        implode(' / ', $labels)
+    );
+
+    $method = trim((string) $method);
+    $otherLabel = trim((string) $otherLabel);
+
+    if ($method !== '') {
+        $comment .= ' — ' . $method;
+
+        if (strtoupper($method) === 'AUTRE' && $otherLabel !== '') {
+            $comment .= ' (' . $otherLabel . ')';
+        }
+    }
+
+    return $comment;
+}
 
 
 private function requestString(Request $request, array $keys, string $fallback = ''): string

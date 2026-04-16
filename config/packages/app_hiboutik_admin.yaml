@@ -57,6 +57,24 @@ parameters:
                 method: "GET"
                 class: "primary-link"
 
+        - key: "recondionnement"
+          position: 15
+          title: ""
+          menu_label: "recondionnement"
+          top_label: "🔧 RECONDIONNEMENT"
+          text: "Gestion des produits à reconditionner"
+          icon: "shop icon"
+          icon_text: "🔧"
+          sidebar_icon: "mobile alternate"
+          color: "dashboard-card--blue"
+          route: "admin_reconditioning_index"
+          active_prefixes: ["admin_recondioning_"]
+          actions:
+              - label: "Ouvrir"
+                route: "admin_reconditioning_index"
+                method: "GET"
+                class: "primary-link"
+
         - key: "caisse"
           position: 30
           title: "Caisse"

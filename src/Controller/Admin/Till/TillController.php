@@ -35,13 +35,17 @@ public function index(Request $request): Response
 
     // 2) On filtre localement sur "RACHAT" dans comments
     $movements = array_values(array_filter($all, function (array $row): bool {
-        $comments = strtoupper((string)($row['comments'] ?? ''));
-        // garde "RACHAT", "ANNULATION RACHAT", etc.
+        $comments = strtoupper((string) ($row['comments'] ?? ''));
         return str_contains($comments, 'RACHAT');
     }));
 
-    // (tu peux garder ça un moment pour vérifier)
-    // dump($movements);
+    // 3) Tri du plus récent au plus ancien par ID décroissant
+usort($movements, static function (array $a, array $b): int {
+    $idA = (int) ($a['id'] ?? $a['till_id'] ?? $a['movement_id'] ?? 0);
+    $idB = (int) ($b['id'] ?? $b['till_id'] ?? $b['movement_id'] ?? 0);
+
+    return $idB <=> $idA;
+});
 
     return $this->render('@SyliusAdmin/Till/index.html.twig', [
         'storeId'      => $storeId,

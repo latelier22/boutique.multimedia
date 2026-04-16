@@ -135,7 +135,79 @@
     scroll-margin-top: calc(var(--hib-sticky-top) + 18px);
   }
 
+  /* Alternance */
+  #hibTable tbody tr.hib-row.row-odd td{
+    background:#ffffff;
+  }
+
+  #hibTable tbody tr.hib-row.row-even td{
+    background:#f8fafc;
+  }
+
+  /* Alternance + pas d'image */
+  #hibTable tbody tr.hib-row.row-odd.no-image td{
+    background:#fff7ed;
+  }
+
+  #hibTable tbody tr.hib-row.row-even.no-image td{
+    background:#ffedd5;
+  }
+
+  #hibTable tbody tr.hib-row:hover td{
+    background:#e0f2fe !important;
+  }
+
+  .thumb-box{
+    width:40px;
+    height:40px;
+    border-radius:8px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#f1f5f9;
+    border:1px solid rgba(0,0,0,.08);
+  }
+
+  .thumb-box img{
+    width:40px;
+    height:40px;
+    object-fit:cover;
+    display:block;
+  }
+
+  .thumb-box.no-image{
+    background:#fff7ed;
+    border-color:#fdba74;
+    color:#9a3412;
+    font-size:11px;
+    font-weight:700;
+  }
+
   .cardsWrap{display:none;}
+
+  .cardRow{
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:12px;
+    padding:10px;
+    margin-bottom:10px;
+  }
+
+  .cardRow.row-odd{
+    background:#ffffff;
+  }
+
+  .cardRow.row-even{
+    background:#f8fafc;
+  }
+
+  .cardRow.no-image.row-odd{
+    background:#fff7ed;
+  }
+
+  .cardRow.no-image.row-even{
+    background:#ffedd5;
+  }
 
   @media (max-width: 768px){
     table#hibTable{display:none;}
@@ -146,7 +218,6 @@
     #filtersRow .ui.icon.input, #filtersRow select{width:100%;}
   }
 </style>
-
 <div id="stickyTop">
   <div class="sticky-inner">
 
@@ -330,27 +401,41 @@
   {% for p in products %}
     {% set pid = (p.product_id ?? 0) + 0 %}
     {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
-   {% set imgs = p.images ?? [] %}
-{% set mini = (imgs|length > 0) ? imgs[0] : '' %}
+    {% set imgs = p.images ?? [] %}
 
+    {% set rawMini = '' %}
+    {% if imgs|length > 0 %}
+      {% set firstImg = imgs[0] %}
+      {% if firstImg is iterable %}
+        {% set rawMini = firstImg.url|default(firstImg.src|default(firstImg.image|default(''))) %}
+      {% else %}
+        {% set rawMini = firstImg %}
+      {% endif %}
+    {% endif %}
 
-    {# ✅ marque : Hiboutik renvoie souvent product_brand_name #}
-   {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
+   {% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
+{% set mini = rawMini ? imageProxyBase ~ (rawMini|url_encode) : '' %}
 
-    {# ✅ tags robustes #}
-   {# ✅ TAGS (sans break) #}
+    {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
+    {% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
 
+    <tr id="p-{{ pid }}" class="hib-row {{ loop.index is odd ? 'row-odd' : 'row-even' }} {{ mini ? '' : 'no-image' }}">
+      <td class="select-col">
+        <input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form">
+      </td>
 
-    <tr id="p-{{ pid }}" style="{{ mini ? '' : 'background:#fff7ed' }}">
-      <td class="select-col"><input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></td>
       <td class="nowrap mono">#{{ pid }}</td>
-     <td>
-  {% if mini %}
-    <img src="{{ mini }}" style="width:40px;height:40px;object-fit:cover;">
-  {% else %}
-    NO IMG
-  {% endif %}
-</td>
+
+      <td>
+        {% if mini %}
+          <div class="thumb-box">
+            <img src="{{ mini }}" alt="mini {{ pid }}">
+          </div>
+        {% else %}
+          <div class="thumb-box no-image">NO IMG</div>
+        {% endif %}
+      </td>
+
       <td class="trunc">{{ p.product_model ?? '—' }}</td>
       <td class="trunc">{{ brandName }}</td>
       <td class="nowrap">{{ p.product_price ?? '—' }}</td>
@@ -358,20 +443,18 @@
       <td class="trunc">{{ p.supplier_name ?? '—' }}</td>
 
       <td>
-{% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
-
-{% if tagsList|length %}
-  {% for t in tagsList|slice(0,4) %}
-    <span class="pill pill-info">
-      <i class="tag icon"></i> {{ t }}
-    </span>
-  {% endfor %}
-  {% if tagsList|length > 4 %}
-    <span class="muted">+{{ tagsList|length - 4 }}</span>
-  {% endif %}
-{% else %}
-  <span class="muted">—</span>
-{% endif %}
+        {% if tagsList|length %}
+          {% for t in tagsList|slice(0,4) %}
+            <span class="pill pill-info">
+              <i class="tag icon"></i> {{ t }}
+            </span>
+          {% endfor %}
+          {% if tagsList|length > 4 %}
+            <span class="muted">+{{ tagsList|length - 4 }}</span>
+          {% endif %}
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
       </td>
 
       <td class="nowrap">
@@ -389,9 +472,11 @@
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="11" class="muted">Aucun produit.</td></tr>
+    <tr>
+      <td colspan="11" class="muted">Aucun produit.</td>
+    </tr>
   {% endfor %}
-  </tbody>
+</tbody>
 </table>
 
 {# ===================== CARDS MOBILE/TABLET ===================== #}
@@ -400,21 +485,37 @@
     {% set pid = (p.product_id ?? 0) + 0 %}
     {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
     {% set imgs = p.images ?? [] %}
-    {% set mini = (imgs|length > 0) ? (imgs[0].url ?? '') : '' %}
-    {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
 
-    {% set tagsList = [] %}
-    {% if p.tags_labels is defined and p.tags_labels %}
-      {% set tagsList = p.tags_labels %}
-    {% elseif p.tags is iterable %}
-      {% set tagsList = p.tags %}
-    {% else %}
-      {% set tagsList = [] %}
+    {% set rawMini = '' %}
+    {% if imgs|length > 0 %}
+      {% set firstImg = imgs[0] %}
+      {% if firstImg is iterable %}
+        {% set rawMini = firstImg.url|default(firstImg.src|default(firstImg.image|default(''))) %}
+      {% else %}
+        {% set rawMini = firstImg %}
+      {% endif %}
     {% endif %}
 
-    <div class="cardRow" id="p-{{ pid }}">
-      <div class="cardCheck"><input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form"></div>
-      <div class="cardThumb">{% if mini %}<img src="{{ mini }}" alt="mini {{ pid }}">{% endif %}</div>
+    {% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
+{% set mini = rawMini ? imageProxyBase ~ (rawMini|url_encode) : '' %}
+
+    {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
+    {% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
+
+    <div class="cardRow {{ loop.index is odd ? 'row-odd' : 'row-even' }} {{ mini ? '' : 'no-image' }}" id="p-{{ pid }}">
+      <div class="cardCheck">
+        <input type="checkbox" class="js-label-product-checkbox" name="ids[]" value="{{ pid }}" form="hib_form">
+      </div>
+
+      <div class="cardThumb">
+        {% if mini %}
+          <div class="thumb-box">
+            <img src="{{ mini }}" alt="mini {{ pid }}">
+          </div>
+        {% else %}
+          <div class="thumb-box no-image">NO IMG</div>
+        {% endif %}
+      </div>
 
       <div class="cardMain">
         <div class="cardTop">
@@ -438,15 +539,16 @@
             <span class="pill pill-off"><i class="globe icon"></i> WWW Non</span>
           {% endif %}
 
-         {% set tagsList = (p.tags is iterable) ? p.tags : [] %}
-{% if tagsList|length %}
-  {% for t in tagsList|slice(0,4) %}
-    <span class="pill pill-info"><i class="tag icon"></i> {{ t.tag_label }}</span>
-  {% endfor %}
-  {% if tagsList|length > 4 %}<span class="muted">+{{ tagsList|length - 4 }}</span>{% endif %}
-{% else %}
-  <span class="muted">—</span>
-{% endif %}
+          {% if tagsList|length %}
+            {% for t in tagsList|slice(0,4) %}
+              <span class="pill pill-info"><i class="tag icon"></i> {{ t }}</span>
+            {% endfor %}
+            {% if tagsList|length > 4 %}
+              <span class="muted">+{{ tagsList|length - 4 }}</span>
+            {% endif %}
+          {% else %}
+            <span class="muted">—</span>
+          {% endif %}
         </div>
       </div>
     </div>

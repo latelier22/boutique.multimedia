@@ -4,6 +4,8 @@ namespace App\Entity\Rachat;
 
 use Doctrine\ORM\Mapping as ORM;
 
+use App\Entity\Stock\Boite;
+
 /**
  * @ORM\Entity()
  * @ORM\Table(name="rachat_items")
@@ -11,6 +13,13 @@ use Doctrine\ORM\Mapping as ORM;
  */
 class RachatItem
 {
+
+public const RECONDITIONING_NONE = 'none';
+public const RECONDITIONING_TODO = 'todo';
+public const RECONDITIONING_IN_PROGRESS = 'in_progress';
+public const RECONDITIONING_DONE = 'done';
+public const RECONDITIONING_FAILED = 'failed';
+public const RECONDITIONING_PARTS = 'parts';
 
     public function __construct()
     {
@@ -243,8 +252,62 @@ class RachatItem
         return $this;
     }
 
+    /**
+     * ID de l'arrivage Hiboutik dans lequel l'item a été ajouté
+     *
+     * @ORM\Column(name="hib_inventory_input_id", type="integer", nullable=true)
+     */
+    private ?int $hibInventoryInputId = null;
+
+    /**
+     * Date d'ajout de l'item à l'arrivage Hiboutik
+     *
+     * @ORM\Column(name="hib_arrivage_added_at", type="datetime_immutable", nullable=true)
+     */
+    private ?\DateTimeImmutable $hibArrivageAddedAt = null;
 
 
+        /**
+     * Boîte / emplacement physique de l'item
+     *
+     * @ORM\ManyToOne(targetEntity=Boite::class, inversedBy="items")
+     * @ORM\JoinColumn(name="boite_id", referencedColumnName="id", nullable=true, onDelete="SET NULL")
+     */
+    private ?Boite $boite = null;
+
+        public function getBoite(): ?Boite
+    {
+        return $this->boite;
+    }
+
+    public function setBoite(?Boite $boite): self
+    {
+        $this->boite = $boite;
+        return $this;
+    }
+
+
+    public function getHibInventoryInputId(): ?int
+    {
+        return $this->hibInventoryInputId;
+    }
+
+    public function setHibInventoryInputId(?int $hibInventoryInputId): self
+    {
+        $this->hibInventoryInputId = $hibInventoryInputId;
+        return $this;
+    }
+
+    public function getHibArrivageAddedAt(): ?\DateTimeImmutable
+    {
+        return $this->hibArrivageAddedAt;
+    }
+
+    public function setHibArrivageAddedAt(?\DateTimeImmutable $hibArrivageAddedAt): self
+    {
+        $this->hibArrivageAddedAt = $hibArrivageAddedAt;
+        return $this;
+    }
 
     /** @ORM\PrePersist */
     public function onPrePersist(): void
@@ -298,6 +361,100 @@ public function setLegacyRachatId(?int $legacyRachatId): self
     $this->legacyRachatId = $legacyRachatId;
     return $this;
 }
+
+    /**
+     * Statut atelier / reconditionnement
+     *
+     * @ORM\Column(name="reconditioning_status", type="string", length=32, options={"default":"none"})
+     */
+    private string $reconditioningStatus = self::RECONDITIONING_NONE;
+
+
+    public function getReconditioningStatus(): string
+    {
+        return $this->reconditioningStatus;
+    }
+
+    public function setReconditioningStatus(string $reconditioningStatus): self
+    {
+        $allowed = [
+            self::RECONDITIONING_NONE,
+            self::RECONDITIONING_TODO,
+            self::RECONDITIONING_IN_PROGRESS,
+            self::RECONDITIONING_DONE,
+            self::RECONDITIONING_FAILED,
+            self::RECONDITIONING_PARTS,
+        ];
+
+        if (!in_array($reconditioningStatus, $allowed, true)) {
+            $reconditioningStatus = self::RECONDITIONING_NONE;
+        }
+
+        $this->reconditioningStatus = $reconditioningStatus;
+        return $this;
+    }
+
+    public function isToRecondition(): bool
+    {
+        return $this->reconditioningStatus === self::RECONDITIONING_TODO;
+    }
+
+    public function isReconditioningInProgress(): bool
+    {
+        return $this->reconditioningStatus === self::RECONDITIONING_IN_PROGRESS;
+    }
+
+    public function isReconditioned(): bool
+    {
+        return $this->reconditioningStatus === self::RECONDITIONING_DONE;
+    }
+
+    public function isReconditioningFailed(): bool
+    {
+        return $this->reconditioningStatus === self::RECONDITIONING_FAILED;
+    }
+
+    public function isForParts(): bool
+    {
+        return $this->reconditioningStatus === self::RECONDITIONING_PARTS;
+    }
+
+
+/**
+ * @ORM\Column(name="reconditioning_work_to_do", type="text", nullable=true)
+ */
+private ?string $reconditioningWorkToDo = null;
+
+/**
+ * @ORM\Column(name="reconditioning_notes", type="text", nullable=true)
+ */
+private ?string $reconditioningNotes = null;
+
+
+
+public function getReconditioningWorkToDo(): ?string
+{
+    return $this->reconditioningWorkToDo;
+}
+
+public function setReconditioningWorkToDo(?string $reconditioningWorkToDo): self
+{
+    $this->reconditioningWorkToDo = $reconditioningWorkToDo;
+    return $this;
+}
+
+public function getReconditioningNotes(): ?string
+{
+    return $this->reconditioningNotes;
+}
+
+public function setReconditioningNotes(?string $reconditioningNotes): self
+{
+    $this->reconditioningNotes = $reconditioningNotes;
+    return $this;
+}
+
+
 
 
     // ===== Getters / Setters =====
