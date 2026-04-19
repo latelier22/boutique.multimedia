@@ -1,0 +1,113 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Documents arrivages{% endblock %}
+
+{% block content %}
+
+<h1 class="ui header">
+    <i class="mail icon"></i>
+    Documents arrivages reçus
+</h1>
+
+
+<form method="post" action="{{ path('admin_arrivages_documents_fetch_mails') }}" style="display:inline-block; margin-bottom:1rem;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('fetch_arrivage_mails') }}">
+    <button type="submit" class="ui primary button">
+        <i class="mail icon"></i>
+        Relever le courrier
+    </button>
+</form>
+
+<form method="post" action="{{ path('admin_arrivages_documents_latest_pdf') }}" style="display:inline-block; margin-right:10px;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('latest_arrivage_pdf') }}">
+    <button type="submit" class="ui button">
+        <i class="file pdf icon"></i>
+        Voir le dernier PDF
+    </button>
+</form>
+
+<form method="post" action="{{ path('admin_arrivages_documents_latest_pdf_prepare') }}" style="display:inline-block;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('latest_arrivage_pdf_prepare') }}">
+    <button type="submit" class="ui primary button">
+        <i class="play icon"></i>
+        Préparer le dernier PDF
+    </button>
+</form>
+
+
+
+<table class="ui celled table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Reçu le</th>
+            <th>Expéditeur</th>
+            <th>Sujet</th>
+            <th>Type</th>
+            <th>N°</th>
+            <th>Date doc</th>
+            <th>Fournisseur</th>
+            <th>Pièces</th>
+            <th>IMEI</th>
+            <th>Statut</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for doc in documents %}
+        <tr>
+            <td>{{ doc.id }}</td>
+
+            <td>
+                {{ doc.receivedAt ? doc.receivedAt|date('d/m/Y H:i') : '-' }}
+            </td>
+
+            <td>{{ doc.fromEmail }}</td>
+
+            <td>{{ doc.subject }}</td>
+
+            <td>
+                {% if doc.documentType %}
+                    <span class="ui label">{{ doc.documentType }}</span>
+                {% else %}
+                    <span class="ui grey label">?</span>
+                {% endif %}
+            </td>
+
+            <td>{{ doc.documentNumber ?? '-' }}</td>
+
+            <td>
+                {{ doc.documentDate ? doc.documentDate|date('d/m/Y') : '-' }}
+            </td>
+
+            <td>{{ doc.supplierName ?? '-' }}</td>
+
+            <td>
+                {{ doc.attachments|length }}
+            </td>
+
+            <td>
+                {% if doc.hasImei %}
+                    <span class="ui green label">Oui</span>
+                {% else %}
+                    <span class="ui label">Non</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <span class="ui label">{{ doc.processingStatus }}</span>
+            </td>
+
+            <td>
+                <a href="{{ path('admin_arrivages_documents_show', {id: doc.id}) }}"
+                   class="ui button tiny primary">
+                    Voir
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

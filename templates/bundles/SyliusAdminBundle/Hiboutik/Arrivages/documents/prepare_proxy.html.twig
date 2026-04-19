@@ -1,0 +1,13 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block content %}
+<form id="auto-prepare-form" method="post" action="{{ path('admin_arrivages_documents_prepare', {id: document.id}) }}">
+</form>
+
+<div class="ui active inline loader"></div>
+Préparation en cours...
+
+<script>
+    document.getElementById('auto-prepare-form').submit();
+</script>
+{% endblock %}

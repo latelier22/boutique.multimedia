@@ -1,0 +1,45 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Nouveau fichier import mobiles{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <h1 class="ui header">
+        <i class="file excel outline icon"></i>
+        <div class="content">
+            Import mobiles
+            <div class="sub header">Charge un bon de livraison ou un bon de commande</div>
+        </div>
+    </h1>
+</div>
+
+<div class="ui segment">
+    <form method="post" enctype="multipart/form-data" class="ui form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_upload') }}">
+
+        <div class="field">
+            <label>Fichier Excel</label>
+            <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+        </div>
+
+        <div class="ui info message">
+            <div class="header">Formats attendus</div>
+            <ul class="list">
+                <li><strong>Bon de livraison</strong> : avec colonne IMEI</li>
+                <li><strong>Bon de commande</strong> : sans IMEI, préparation de la réception</li>
+            </ul>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button type="submit" class="ui primary button">
+                <i class="upload icon"></i>
+                Importer le fichier
+            </button>
+
+            <a href="{{ path('admin_hib_mobile_import_index') }}" class="ui button">
+                Retour
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

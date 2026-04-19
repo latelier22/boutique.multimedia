@@ -1,0 +1,126 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Test parser PDF Utopya{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <h1 class="ui header">
+        <i class="file pdf outline icon"></i>
+        <div class="content">
+            Test parser PDF Utopya
+            <div class="sub header">
+                Upload direct d’un PDF et affichage brut du résultat du parser
+            </div>
+        </div>
+    </h1>
+</div>
+
+<div class="ui segment">
+    <form method="post" enctype="multipart/form-data" class="ui form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('utopya_pdf_test') }}">
+
+        <div class="field">
+            <label>Choisir un fichier PDF</label>
+            <input type="file" name="pdf_file" accept="application/pdf,.pdf" required>
+        </div>
+
+        <button type="submit" class="ui primary button">
+            <i class="play icon"></i>
+            Parser le PDF
+        </button>
+    </form>
+</div>
+
+{% if error %}
+    <div class="ui negative message">
+        <div class="header">Erreur</div>
+        <p>{{ error }}</p>
+    </div>
+{% endif %}
+
+{% if result is not null %}
+    <div class="ui positive message">
+        <div class="header">Parsing terminé</div>
+        <p>
+            Fichier :
+            <strong>{{ uploadedName ?: 'PDF' }}</strong>
+        </p>
+        <p>
+            Rows :
+            <strong>{{ result.rows|length }}</strong>
+            —
+            Matched :
+            <strong>{{ result.matched_lines|length }}</strong>
+            —
+            Unmatched :
+            <strong>{{ result.unmatched_candidates|length }}</strong>
+            —
+            Raw lines :
+            <strong>{{ result.raw_lines|length }}</strong>
+        </p>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui dividing header">Rows</h3>
+
+        {% if result.rows is empty %}
+            <div class="ui message">Aucune ligne reconnue.</div>
+        {% else %}
+            <table class="ui celled compact small table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>SKU</th>
+                        <th>Label</th>
+                        <th>Qty</th>
+                        <th>Prix unitaire</th>
+                        <th>Total HT</th>
+                        <th>TVA</th>
+                        <th>EAN</th>
+                        <th>IMEI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for row in result.rows %}
+                    <tr>
+                        <td>{{ row.line_number ?? loop.index }}</td>
+                        <td>{{ row.sku ?? '—' }}</td>
+                        <td>{{ row.label ?? '—' }}</td>
+                        <td>{{ row.qty ?? '—' }}</td>
+                        <td>{{ row.unit_price ?? '—' }}</td>
+                        <td>{{ row.total_ht ?? '—' }}</td>
+                        <td>{{ row.vat ?? '—' }}</td>
+                        <td>{{ row.ean ?? '—' }}</td>
+                        <td>{{ row.imei ?? '—' }}</td>
+                    </tr>
+                    {% if row.source_lines is defined and row.source_lines is not empty %}
+                        <tr>
+                            <td></td>
+                            <td colspan="8">
+                                <strong>Source lines :</strong>
+                                <pre style="white-space:pre-wrap;margin:8px 0 0 0;">{{ row.source_lines|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                            </td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui dividing header">Matched lines</h3>
+        <pre style="white-space:pre-wrap;">{{ result.matched_lines|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui dividing header">Unmatched candidates</h3>
+        <pre style="white-space:pre-wrap;">{{ result.unmatched_candidates|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+    </div>
+
+    <div class="ui segment">
+        <h3 class="ui dividing header">Raw lines</h3>
+        <pre style="white-space:pre-wrap;">{{ result.raw_lines|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+    </div>
+{% endif %}
+{% endblock %}

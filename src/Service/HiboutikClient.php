@@ -311,6 +311,8 @@ public function listBrands(): array
     public function createProduct(array $payload): array
     {
         $res = $this->req('POST', 'products/', ['json' => $payload]);
+
+        
         return $res['data'] ?? [];
     }
 
@@ -1110,6 +1112,35 @@ public function listInventoryInputsByPrefix(string $prefix, int $maxPages = 10):
 
     return $out;
 }
+
+/** Récupère toutes les pages (jusqu’à $maxPages) et filtre par prefix */
+public function listAllInventoryInputs(int $maxPages = 10): array
+{
+    $out = [];
+
+    for ($p = 1; $p <= $maxPages; $p++) {
+        $res = $this->listInventoryInputs($p);
+        $list = $this->normalizeList($res['data'] ?? []);
+
+        if (!$list) break;
+
+        foreach ($list as $row) {
+            $label = (string)($row['inventory_input_label'] ?? '');
+           
+                // cast safe pour routes Twig
+                $row['inventory_input_id'] = (int)($row['inventory_input_id'] ?? 0);
+                $out[] = $row;
+           
+        }
+    }
+
+    return $out;
+}
+
+
+
+
+
 
 // Dans App\Service\HiboutikClient
 
@@ -2182,5 +2213,329 @@ public function createCategory(array $fields): array
 }
 
 
+public function duplicateProductImages(int $sourceProductId, int $targetProductId): array
+{
+    if ($sourceProductId <= 0 || $targetProductId <= 0) {
+        return [
+            'ok' => false,
+            'error' => 'invalid_product_id',
+            'copied' => 0,
+            'errors' => [],
+        ];
+    }
+
+    $listRes = $this->listProductImages($sourceProductId);
+
+    if (!($listRes['ok'] ?? false)) {
+        return [
+            'ok' => false,
+            'error' => 'list_source_images_failed',
+            'status' => $listRes['status'] ?? 0,
+            'raw' => $listRes['raw'] ?? null,
+            'copied' => 0,
+            'errors' => [],
+        ];
+    }
+
+    $rows = $listRes['data'] ?? [];
+    if (!is_array($rows)) {
+        $rows = [];
+    }
+
+    $copied = 0;
+    $errors = [];
+
+    foreach ($rows as $index => $img) {
+        if (!is_array($img)) {
+            continue;
+        }
+
+        $imageName = trim((string)($img['image_name'] ?? ''));
+        $imageUrl  = trim((string)($img['url'] ?? ''));
+
+        if ($imageUrl === '') {
+            $errors[] = sprintf('Image #%d sans URL', $index + 1);
+            continue;
+        }
+
+        $imageId = (int)($img['image_id'] ?? 0);
+        if ($imageId <= 0) {
+            $imageId = self::inferImageIdFromName($imageName) ?? ($index + 1);
+        }
+
+        if ($imageId <= 0) {
+            $imageId = $index + 1;
+        }
+
+        $tmpFile = null;
+
+        try {
+            $response = $this->httpClient->request('GET', $imageUrl, [
+                'timeout' => 20,
+            ]);
+
+            $content = $response->getContent();
+
+            $ext = pathinfo(parse_url($imageUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION);
+            if (!$ext) {
+                $ext = pathinfo($imageName, PATHINFO_EXTENSION);
+            }
+            if (!$ext) {
+                $ext = 'jpg';
+            }
+
+            $tmpFile = tempnam(sys_get_temp_dir(), 'hib_dup_');
+            if ($tmpFile === false) {
+                throw new \RuntimeException('Impossible de créer un fichier temporaire');
+            }
+
+            $finalTmpFile = $tmpFile . '.' . $ext;
+            if (!@rename($tmpFile, $finalTmpFile)) {
+                throw new \RuntimeException('Impossible de renommer le fichier temporaire');
+            }
+            $tmpFile = $finalTmpFile;
+
+            if (@file_put_contents($tmpFile, $content) === false) {
+                throw new \RuntimeException('Impossible d’écrire le fichier temporaire');
+            }
+
+            $originalName = $imageName !== '' ? $imageName : ('image-' . $imageId . '.' . $ext);
+
+            $uploadRes = $this->uploadProductImage(
+                $targetProductId,
+                $tmpFile,
+                $imageId,
+                $originalName
+            );
+
+            if (!($uploadRes['ok'] ?? false)) {
+                $errors[] = sprintf(
+                    'Upload image_id=%d échoué (status %s) : %s',
+                    $imageId,
+                    (string)($uploadRes['status'] ?? '?'),
+                    (string)($uploadRes['raw'] ?? $uploadRes['error'] ?? 'erreur inconnue')
+                );
+                continue;
+            }
+
+            $copied++;
+        } catch (\Throwable $e) {
+            $errors[] = sprintf(
+                'Copie image_id=%d impossible : %s',
+                $imageId,
+                $e->getMessage()
+            );
+        } finally {
+            if ($tmpFile && is_file($tmpFile)) {
+                @unlink($tmpFile);
+            }
+        }
+    }
+
+    return [
+        'ok' => count($errors) === 0,
+        'copied' => $copied,
+        'errors' => $errors,
+    ];
+}
+
+public function duplicateProductTagsFromSource(array $sourceProduct, int $targetProductId): array
+{
+    $tagIds = [];
+
+    foreach (($sourceProduct['tags'] ?? []) as $tag) {
+        if (!is_array($tag)) {
+            continue;
+        }
+
+        $tagId = (int)($tag['tag_id'] ?? 0);
+        if ($tagId > 0) {
+            $tagIds[$tagId] = $tagId;
+        }
+    }
+
+    $added = 0;
+    $errors = [];
+
+    foreach ($tagIds as $tagId) {
+        $res = $this->addTagToProduct($targetProductId, $tagId);
+
+        if (!($res['ok'] ?? false)) {
+            $errors[] = sprintf(
+                'tag #%d (status %s)',
+                $tagId,
+                (string)($res['status'] ?? '?')
+            );
+            continue;
+        }
+
+        $added++;
+    }
+
+    return [
+        'ok' => count($errors) === 0,
+        'added' => $added,
+        'errors' => $errors,
+    ];
+}
+
+private function downloadRemoteFileToTemp(string $url, string $fallbackName = 'image.jpg'): array
+{
+    $host = (string)(parse_url($url, PHP_URL_HOST) ?? '');
+
+    $options = [
+        'timeout' => 30,
+        'headers' => [
+            'Accept' => '*/*',
+        ],
+    ];
+
+    // si l'image vient du domaine Hiboutik du compte, on ajoute l'auth
+    if ($host === $this->hibAccount . '.hiboutik.com') {
+        $options['auth_basic'] = [$this->hibLogin, $this->hibApiKey];
+    }
+
+    $response = $this->httpClient->request('GET', $url, $options);
+    $status = $response->getStatusCode();
+
+    if ($status < 200 || $status >= 300) {
+        throw new \RuntimeException('Téléchargement image HTTP ' . $status);
+    }
+
+    $content = $response->getContent();
+
+    $nameFromUrl = basename((string)(parse_url($url, PHP_URL_PATH) ?? ''));
+    $originalName = $nameFromUrl !== '' ? $nameFromUrl : $fallbackName;
+
+    if (!str_contains($originalName, '.')) {
+        $originalName .= '.jpg';
+    }
+
+    $tmp = tempnam(sys_get_temp_dir(), 'hibdup_');
+    if ($tmp === false) {
+        throw new \RuntimeException('tempnam failed');
+    }
+
+    $ext = pathinfo($originalName, PATHINFO_EXTENSION);
+    $tmpWithExt = $tmp . ($ext ? '.' . $ext : '.jpg');
+
+    if (!@rename($tmp, $tmpWithExt)) {
+        @unlink($tmp);
+        throw new \RuntimeException('rename temp file failed');
+    }
+
+    if (@file_put_contents($tmpWithExt, $content) === false) {
+        @unlink($tmpWithExt);
+        throw new \RuntimeException('write temp file failed');
+    }
+
+    return [
+        'path' => $tmpWithExt,
+        'original_name' => $originalName,
+    ];
+}
+
+public function duplicateProductImagesFromSource(array $sourceProduct, int $targetProductId): array
+{
+    $images = $sourceProduct['images'] ?? [];
+
+    if (!is_array($images) || !$images) {
+        return [
+            'ok' => true,
+            'copied' => 0,
+            'errors' => [],
+        ];
+    }
+
+    $copied = 0;
+    $errors = [];
+
+    foreach (array_values($images) as $index => $img) {
+        if (!is_array($img)) {
+            continue;
+        }
+
+        $imageUrl = trim((string)(
+            $img['url']
+            ?? $img['image_url']
+            ?? $img['src']
+            ?? ''
+        ));
+
+        $imageName = trim((string)(
+            $img['image_name']
+            ?? basename((string)(parse_url($imageUrl, PHP_URL_PATH) ?? ''))
+            ?? ''
+        ));
+
+        if ($imageUrl === '') {
+            $errors[] = sprintf('image #%d sans url', $index + 1);
+            continue;
+        }
+
+        $imageId = (int)($img['image_id'] ?? 0);
+
+        if ($imageId <= 0) {
+            $imageId = self::inferImageIdFromName($imageName) ?? ($index + 1);
+        }
+
+        if ($imageId <= 0) {
+            $imageId = $index + 1;
+        }
+
+        $tmpPath = null;
+
+        try {
+            $tmp = $this->downloadRemoteFileToTemp(
+                $imageUrl,
+                $imageName !== '' ? $imageName : ('image-' . $imageId . '.jpg')
+            );
+
+            $tmpPath = $tmp['path'];
+            $originalName = $tmp['original_name'];
+
+            $upload = $this->uploadProductImage(
+                $targetProductId,
+                $tmpPath,
+                $imageId,
+                $originalName
+            );
+
+            if (!($upload['ok'] ?? false)) {
+                $errors[] = sprintf(
+                    'upload image_id=%d status=%s raw=%s error=%s',
+                    $imageId,
+                    (string)($upload['status'] ?? '?'),
+                    (string)($upload['raw'] ?? ''),
+                    (string)($upload['error'] ?? '')
+                );
+                continue;
+            }
+
+            $copied++;
+        } catch (\Throwable $e) {
+            $errors[] = sprintf(
+                'copy image_id=%d failed: %s',
+                $imageId,
+                $e->getMessage()
+            );
+        } finally {
+            if ($tmpPath && is_file($tmpPath)) {
+                @unlink($tmpPath);
+            }
+        }
+    }
+
+    return [
+        'ok' => count($errors) === 0,
+        'copied' => $copied,
+        'errors' => $errors,
+    ];
+}
+
+public function clearProductBarcode(int $productId): array
+{
+    return $this->putProductAttribute($productId, 'product_barcode', '');
+}
 
 }

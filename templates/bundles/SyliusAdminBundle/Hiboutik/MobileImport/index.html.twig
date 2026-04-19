@@ -1,0 +1,90 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Import mobiles Hiboutik{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="mobile alternate icon"></i>
+            <div class="content">
+                Import mobiles Hiboutik
+                <div class="sub header">Bons de livraison et bons de commande</div>
+            </div>
+        </h1>
+
+        <a href="{{ path('admin_arrivages_documents_import_pdf') }}" class="ui primary button">
+            <i class="upload icon"></i>
+            Nouveau fichier
+        </a>
+    </div>
+</div>
+
+<div class="ui segment">
+    {% if sessions is empty %}
+        <div class="ui message">
+            <div class="header">Aucune session</div>
+            <p>Aucun import n’a encore été créé.</p>
+        </div>
+    {% else %}
+        <table class="ui celled table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Fichier</th>
+                    <th>Code</th>
+                    <th>Fournisseur</th>
+                    <th>Arrivage Hiboutik</th>
+                    <th>Statut</th>
+                    <th>Créée le</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                    <tr>
+                        <td>#{{ session.id }}</td>
+                        <td>
+                            {% if session.sourceType == 'delivery_note' %}
+                                <span class="ui teal label">Bon de livraison</span>
+                            {% else %}
+                                <span class="ui orange label">Bon de commande</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ session.sourceFilename }}</td>
+                        <td>{{ session.documentCode ?: '—' }}</td>
+                        <td>{{ session.supplierId ?: '—' }}</td>
+                        <td>
+                            {% if session.hibInventoryInputId %}
+                                #{{ session.hibInventoryInputId }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if session.status == 'draft' %}
+                                <span class="ui grey label">Brouillon</span>
+                            {% elseif session.status == 'prepared' %}
+                                <span class="ui blue label">Préparée</span>
+                            {% elseif session.status == 'imported' %}
+                                <span class="ui green label">Importée</span>
+                            {% elseif session.status == 'error' %}
+                                <span class="ui red label">Erreur</span>
+                            {% else %}
+                                <span class="ui label">{{ session.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ session.createdAt|date('d/m/Y H:i') }}</td>
+                        <td class="right aligned collapsing">
+                            <a href="{{ path('admin_hib_mobile_import_show', {id: session.id}) }}" class="ui small button">
+                                Ouvrir
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

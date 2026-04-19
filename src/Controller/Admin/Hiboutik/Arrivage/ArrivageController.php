@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Controller\Admin\Rachat;
+namespace App\Controller\Admin\Hiboutik\Arrivage;
 
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +22,18 @@ final class ArrivageController extends AbstractController
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
+    {
+        // 🔎 Récupération et filtrage “RACHAT”
+        $arrivages = $this->hib->listAllInventoryInputs();
+        // dd($arrivages);
+
+        return $this->render('@SyliusAdmin/Arrivages/index.html.twig', [
+            'arrivages' => $arrivages,
+        ]);
+    }
+
+     #[Route('', name: 'rachats', methods: ['GET'])]
+    public function rachats(): Response
     {
         // 🔎 Récupération et filtrage “RACHAT”
         $arrivages = $this->hib->listRachatInputs();

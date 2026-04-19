@@ -1,0 +1,324 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Préparation import CSV #{{ session.id }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <h1 class="ui header">
+        <i class="tasks icon"></i>
+        <div class="content">
+            Préparation import CSV #{{ session.id }}
+            <div class="sub header">
+                {{ session.sourceFilename }} — {{ session.documentCode ?: 'Sans code document' }}
+            </div>
+        </div>
+    </h1>
+</div>
+
+<div class="ui segment">
+    <div class="ui list">
+        <div class="item"><strong>Type :</strong> {{ session.sourceType }}</div>
+        <div class="item"><strong>Code document :</strong> {{ session.documentCode ?: '—' }}</div>
+        <div class="item"><strong>Fournisseur :</strong> {{ session.supplierId ?: '—' }}</div>
+        <div class="item"><strong>Arrivage Hiboutik :</strong> {{ session.hibInventoryInputId ?: '—' }}</div>
+        <div class="item"><strong>Statut :</strong> {{ session.status }}</div>
+        <div class="item"><strong>Lignes :</strong> {{ session.rows|length }}</div>
+    </div>
+</div>
+
+<div class="ui segment">
+    <form method="post" action="{{ path('admin_hib_mobile_import_import_all', {id: session.id}) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_all_' ~ session.id) }}">
+        <button type="submit" class="ui green button">
+            <i class="play icon"></i>
+            Importer toutes les lignes prêtes
+        </button>
+    </form>
+</div>
+
+<div class="ui segment">
+    <table class="ui celled compact table">
+        <thead>
+            <tr>
+                <th>Ligne</th>
+                <th>Produit brut</th>
+                <th>IMEI</th>
+                <th>Prix achat</th>
+                <th>Base</th>
+                <th>Statut</th>
+                <th>Produit créé</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in session.rows %}
+            <tr {% if row.status == 'error' %}class="error"{% elseif row.status == 'imported' %}class="positive"{% endif %}>
+                <td>
+                    {{ row.lineNumber }}
+                    {% if row.unitIndex %}
+                        <div style="font-size:11px;color:#666;">Unité {{ row.unitIndex }}</div>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <strong>{{ row.rawLabel }}</strong>
+                    <div style="font-size:11px;color:#666;">
+                        {{ row.parsedBrand ?: '—' }} /
+                        {{ row.parsedModel ?: '—' }} /
+                        {{ row.parsedStorage ?: '—' }} /
+                        {{ row.parsedColor ?: '—' }} /
+                        {{ row.parsedGrade ?: '—' }}
+                    </div>
+                </td>
+
+                <td>
+                    {% if row.imei %}
+                        <span class="ui tiny green label">{{ row.imei }}</span>
+                    {% else %}
+                        <span class="ui tiny red label">Absent</span>
+                    {% endif %}
+                </td>
+
+                <td>{{ row.buyPrice|number_format(2, ',', ' ') }} {{ row.currencyCode ?: 'EUR' }}</td>
+
+                <td>
+    <div id="base-display-{{ row.id }}">
+        {% if row.baseProductId %}
+            <span class="ui tiny blue label">#{{ row.baseProductId }}</span>
+        {% else %}
+            <span class="ui tiny grey label">Aucune base</span>
+        {% endif %}
+    </div>
+
+    <button
+        type="button"
+        class="ui tiny button js-open-base-modal"
+        data-row-id="{{ row.id }}"
+        data-search-url="{{ path('admin_hib_mobile_import_modal_search_base', {rowId: row.id}) }}"
+        data-save-url="{{ path('admin_hib_mobile_import_ajax_set_base', {rowId: row.id}) }}"
+        data-csrf="{{ csrf_token('hib_mobile_ajax_set_base_' ~ row.id) }}"
+    >
+        Choisir une base
+    </button>
+</td>
+
+                <td>
+                    {% if row.status == 'draft' %}
+                        <span class="ui tiny grey label">Brouillon</span>
+                    {% elseif row.status == 'ready' %}
+                        <span class="ui tiny blue label">Prête</span>
+                    {% elseif row.status == 'imported' %}
+                        <span class="ui tiny green label">Importée</span>
+                    {% elseif row.status == 'error' %}
+                        <span class="ui tiny red label">Erreur</span>
+                    {% else %}
+                        <span class="ui tiny label">{{ row.status }}</span>
+                    {% endif %}
+
+                    {% if row.errorMessage %}
+                        <div style="margin-top:6px;color:#b03060;font-size:12px;">
+                            {{ row.errorMessage }}
+                        </div>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if row.createdProductId %}
+                        <strong>#{{ row.createdProductId }}</strong>
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <td>
+                    <form method="post" action="{{ path('admin_hib_mobile_import_import_row', {rowId: row.id}) }}" style="display:inline-block;">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_row_' ~ row.id) }}">
+                        <button type="submit" class="ui tiny primary button">
+                            Importer
+                        </button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="ui large modal" id="base-product-modal">
+    <i class="close icon"></i>
+    <div class="header">Choisir un produit Hiboutik de base</div>
+
+    <div class="scrolling content">
+        <div id="base-modal-loading" style="display:none;">
+            <div class="ui active inline loader"></div> Chargement...
+        </div>
+
+        <div id="base-modal-body" style="display:none;">
+            <div class="ui segment">
+                <h4 class="ui dividing header">Ligne à préparer</h4>
+                <div id="base-modal-row-summary"></div>
+            </div>
+
+            <div class="ui segment">
+                <h4 class="ui dividing header">Produits Hiboutik proposés</h4>
+                <div id="base-modal-results"></div>
+            </div>
+        </div>
+
+        <div id="base-modal-empty" style="display:none;">
+            <div class="ui warning message">Aucun produit de base proposé.</div>
+        </div>
+    </div>
+</div>
+<script>
+(function () {
+    const modalEl = document.getElementById('base-product-modal');
+    const loadingEl = document.getElementById('base-modal-loading');
+    const bodyEl = document.getElementById('base-modal-body');
+    const emptyEl = document.getElementById('base-modal-empty');
+    const summaryEl = document.getElementById('base-modal-row-summary');
+    const resultsEl = document.getElementById('base-modal-results');
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function buildFieldPreview(row, product) {
+        const filled = [
+            ['Catégorie', product.product_category || '—'],
+            ['Marque', product.product_brand || '—'],
+            ['TVA', product.product_vat || '—'],
+            ['Compte comptable', product.accounting_account || '—'],
+            ['misc_text', product.misc_text ? 'repris' : 'vide'],
+            ['Barcode final', row.imei || '— (IMEI manquant)'],
+            ['Prix achat', row.buy_price ?? '—'],
+        ];
+
+        const stillEmpty = [];
+
+        if (!row.parsed_color) stillEmpty.push('couleur');
+        if (!row.parsed_grade) stillEmpty.push('grade');
+        if (!row.imei) stillEmpty.push('imei');
+        if (!product.misc_text) stillEmpty.push('attributs techniques');
+
+        return `
+            <div class="ui two column grid">
+                <div class="column">
+                    <strong>Champs repris depuis la base</strong>
+                    <div class="ui bulleted list" style="margin-top:8px;">
+                        ${filled.map(item => `<div class="item">${escapeHtml(item[0])} : ${escapeHtml(item[1])}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="column">
+                    <strong>Champs restant vides / à compléter</strong>
+                    <div class="ui bulleted list" style="margin-top:8px;">
+                        ${stillEmpty.length
+                            ? stillEmpty.map(item => `<div class="item">${escapeHtml(item)}</div>`).join('')
+                            : '<div class="item">Aucun point bloquant détecté</div>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function saveBase(saveUrl, csrf, baseProductId, rowId) {
+        const formData = new FormData();
+        formData.append('_csrf_token', csrf);
+        formData.append('base_product_id', baseProductId);
+
+        const res = await fetch(saveUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        return await res.json();
+    }
+
+    document.querySelectorAll('.js-open-base-modal').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const searchUrl = this.dataset.searchUrl;
+            const saveUrl = this.dataset.saveUrl;
+            const csrf = this.dataset.csrf;
+            const rowId = this.dataset.rowId;
+
+            loadingEl.style.display = 'block';
+            bodyEl.style.display = 'none';
+            emptyEl.style.display = 'none';
+            summaryEl.innerHTML = '';
+            resultsEl.innerHTML = '';
+
+            $('#base-product-modal').modal('show');
+
+          try {
+    const res = await fetch(searchUrl);
+    const text = await res.text();
+
+    let json = null;
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        loadingEl.style.display = 'none';
+        bodyEl.style.display = 'block';
+        resultsEl.innerHTML = `<div class="ui negative message"><pre style="white-space:pre-wrap;">Réponse non JSON:\n${escapeHtml(text)}</pre></div>`;
+        return;
+    }
+
+    loadingEl.style.display = 'none';
+
+    if (!json.ok) {
+        bodyEl.style.display = 'block';
+        resultsEl.innerHTML = `
+            <div class="ui negative message">
+                <div class="header">Erreur recherche</div>
+                <pre style="white-space:pre-wrap;">${escapeHtml(JSON.stringify(json, null, 2))}</pre>
+            </div>
+        `;
+        return;
+    }
+
+    const row = json.row;
+
+    summaryEl.innerHTML = `
+    <p><strong>Requête retenue :</strong> ${escapeHtml(json.query || '—')}</p>
+    <p><strong>Requêtes testées :</strong> ${escapeHtml((json.queries_tried || []).join(' | '))}</p>
+    <p><strong>Produit brut :</strong> ${escapeHtml(row.raw_label)}</p>
+    <p><strong>Détection :</strong> ${escapeHtml(row.parsed_brand || '—')} / ${escapeHtml(row.parsed_model || '—')} / ${escapeHtml(row.parsed_storage || '—')}</p>
+    <p><strong>IMEI :</strong> ${escapeHtml(row.imei || '—')}</p>
+`;
+
+    if (!json.results || json.results.length === 0) {
+        bodyEl.style.display = 'block';
+        resultsEl.innerHTML = `
+            <div class="ui warning message">
+                <div class="header">0 résultat affichable</div>
+                <pre style="white-space:pre-wrap;">raw_sample = ${escapeHtml(JSON.stringify(json.raw_sample || [], null, 2))}</pre>
+            </div>
+        `;
+        return;
+    }
+
+    resultsEl.innerHTML = json.results.map(product => `
+        <div class="ui fluid card" style="margin-bottom:12px;">
+            <div class="content">
+                <div class="header">#${product.product_id} — ${escapeHtml(product.product_model)}</div>
+                <div class="meta">${escapeHtml(product.product_brand_name || '—')} / barcode ${escapeHtml(product.product_barcode || '—')}</div>
+            </div>
+        </div>
+    `).join('');
+
+    bodyEl.style.display = 'block';
+
+} catch (e) {
+    loadingEl.style.display = 'none';
+    bodyEl.style.display = 'block';
+    resultsEl.innerHTML = `<div class="ui negative message"><pre style="white-space:pre-wrap;">Erreur JS:\n${escapeHtml(String(e))}</pre></div>`;
+}
+        });
+    });
+})();
+</script>
+{% endblock %}

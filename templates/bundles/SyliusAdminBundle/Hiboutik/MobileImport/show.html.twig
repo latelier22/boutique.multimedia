@@ -1,0 +1,484 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Session import #{{ session.id }}
+{% endblock %}
+
+{% block content %}
+	<div class="ui segment">
+		<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+			<h1 class="ui header" style="margin:0;">
+				<i class="tasks icon"></i>
+				<div class="content">
+					Session import #{{ session.id }}
+					<div class="sub header">
+						{{ session.sourceFilename }}
+						—
+						{{ session.sourceType }}
+					</div>
+				</div>
+			</h1>
+
+			<a href="{{ path('admin_hib_mobile_import_index') }}" class="ui button">Retour à la liste</a>
+		</div>
+	</div>
+
+	<form id="grid-form" method="post" action="{{ path('admin_hib_mobile_import_save_grid', {id: session.id}) }}" data-turbo="false">
+		<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_save_grid_' ~ session.id) }}">
+	</form>
+
+	{% for item in rowsView %}
+		{% set row = item.row %}
+		{% if not row.createdProductId %}
+			<form id="import-row-{{ row.id }}" method="post" action="{{ path('admin_hib_mobile_import_import_row', {rowId: row.id}) }}" data-turbo="false">
+				<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_row_' ~ row.id) }}">
+			</form>
+		{% endif %}
+	{% endfor %}
+
+
+	<div class="ui segment">
+		<h3 class="ui dividing header">Informations session</h3>
+		<div class="ui list">
+			<div class="item">
+				<strong>Fichier :</strong>
+				{{ session.sourceFilename }}</div>
+			<div class="item">
+				<strong>Code document :</strong>
+				{{ session.documentCode ?: '—' }}</div>
+			<div class="item">
+				<strong>Fournisseur :</strong>
+				{{ session.supplierId ?: '—' }}</div>
+			<div class="item">
+				<strong>Arrivage Hiboutik :</strong>
+				{% if session.hibInventoryInputId %}#{{ session.hibInventoryInputId }}{% else %}—
+				{% endif %}
+			</div>
+			<div class="item">
+				<strong>Lignes :</strong>
+				{{ session.rows|length }}</div>
+		</div>
+	</div>
+
+	<div class="ui segment">
+		<h3 class="ui dividing header">Créer / préparer l’arrivage Hiboutik</h3>
+
+		<form method="post" action="{{ path('admin_hib_mobile_import_prepare_arrival', {id: session.id}) }}" class="ui form" data-turbo="false">
+			<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_prepare_' ~ session.id) }}">
+
+			<div class="field">
+				<label>Code document</label>
+				<input type="text" name="document_code" value="{{ session.documentCode }}" required>
+			</div>
+
+			<div class="field">
+				<label>Fournisseur Hiboutik</label>
+				<select name="supplier_id" class="ui dropdown" required>
+					<option value="">Choisir...</option>
+					{% for s in suppliers %}
+						<option value="{{ s.supplier_id }}" {% if session.supplierId and session.supplierId == s.supplier_id %} selected {% endif %}>
+							{{ s.supplier_name }}
+						</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<button type="submit" class="ui primary button">
+				{% if session.hibInventoryInputId %}Recréer l’arrivage{% else %}Créer l’arrivage
+				{% endif %}
+			</button>
+		</form>
+	</div>
+
+	<div class="ui segment">
+		<button type="submit" class="ui primary button" form="grid-form">
+			<i class="save icon"></i>
+			Enregistrer la grille
+		</button>
+
+		<form method="post" action="{{ path('admin_hib_mobile_import_import_all', {id: session.id}) }}" style="display:inline-block;margin-left:8px;" data-turbo="false">
+			<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_all_' ~ session.id) }}">
+			<button type="submit" class="ui green button" {% if not session.hibInventoryInputId %} disabled {% endif %}>
+				<i class="play icon"></i>
+				Tout importer
+			</button>
+		</form>
+	</div>
+</div>
+
+
+<div class="ui segment">
+	<h3 class="ui dividing header">Actions de masse</h3>
+
+	<div class="ui form">
+		<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
+			<div class="field">
+				<label><input type="checkbox" id="check-all-rows">
+					Tout cocher</label>
+			</div>
+
+			<div class="field">
+				<label>TVA</label>
+				<select id="bulk-vat" class="ui dropdown">
+					<option value="">—</option>
+					<option value="20">20</option>
+					<option value="0">0</option>
+				</select>
+			</div>
+
+			<div class="field">
+				<label>Compte compta</label>
+				<select id="bulk-accounting" class="ui dropdown">
+					<option value="">—</option>
+					<option value="707002">707002</option>
+					<option value="707001">707001</option>
+				</select>
+			</div>
+
+			<div class="field">
+				<label>Supplier</label>
+				<select id="bulk-supplier" class="ui dropdown">
+					<option value="">—</option>
+					{% for s in suppliers %}
+						<option value="{{ s.supplier_id }}">{{ s.supplier_name }}</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<div class="field">
+				<label>Catégorie</label>
+				<select id="bulk-category" class="ui dropdown">
+					<option value="">—</option>
+					{% for c in categories %}
+						<option value="{{ c.category_id }}">{{ c.category_name ?? c.category_label ?? ('Catégorie #' ~ c.category_id) }}</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<div class="field">
+				<label>Marque</label>
+				<select id="bulk-brand" class="ui dropdown">
+					<option value="">—</option>
+					{% for b in brands %}
+						<option value="{{ b.brand_id }}">{{ b.brand_name ?? ('Marque #' ~ b.brand_id) }}</option>
+					{% endfor %}
+				</select>
+			</div>
+
+			<div class="field">
+				<label>Coeff PV</label>
+				<input type="text" id="bulk-price-coeff" value="1.8">
+			</div>
+
+			<div class="field">
+    <label>Prix vente fixe</label>
+    <input type="text" id="bulk-sell-price" placeholder="Ex: 19,90">
+</div>
+
+
+			<div class="field">
+				<button type="button" class="ui button" id="apply-bulk-values">Appliquer à la sélection</button>
+			</div>
+
+			<div class="field">
+				<button type="button" class="ui button" id="apply-price-coeff">PV = PA × coeff</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="ui segment">
+	{% if rowsView is empty %}
+		<div class="ui message">Aucune ligne.</div>
+	{% else %}
+		<div style="overflow-x:auto;">
+			<table class="ui celled compact very small table">
+				<thead>
+					<tr>
+						<th></th>
+						<th>Ligne</th>
+						<th>Libellé brut</th>
+						<th>SKU</th>
+						<th>IMEI</th>
+						<th>EAN</th>
+						<th>Qté</th>
+						<th>Nom final</th>
+						<th>Barcode final</th>
+						<th>Ref ext</th>
+						<th>PA</th>
+						<th>PV</th>
+						<th>TVA</th>
+						<th>Compte</th>
+						<th>Catégorie</th>
+						<th>Marque</th>
+						<th>Supplier</th>
+						<th>Ignorer</th>
+						<th>Prêt</th>
+						<th>Bloqué</th>
+						<th>Raison</th>
+						<th>Produit créé</th>
+						<th>Action</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for item in rowsView %}
+						{% set row = item.row %}
+						<tr {% if row.isBlocked %} class="error" {% elseif row.createdProductId %} class="positive" {% endif %}>
+							<td>
+							<input type="checkbox"
+       class="row-check"
+       data-row-id="{{ row.id }}"
+       name="selected_ids[]"
+       value="{{ row.id }}"
+       form="grid-form">
+							</td>
+							<td>{{ row.lineNumber }}</td>
+							<td style="min-width:220px;">{{ row.rawLabel }}</td>
+							<td>{{ row.sku ?: '—' }}</td>
+							<td>{{ row.imei ?: '—' }}</td>
+							<td>{{ row.ean ?: '—' }}</td>
+							<td>{{ row.quantity }}</td>
+
+							<td style="min-width:220px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedName]" value="{{ row.resolvedName ?: row.rawLabel }}" form="grid-form" class="row-resolved-name" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:150px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedBarcode]" value="{{ row.resolvedBarcode ?: row.imei ?: row.ean }}" form="grid-form" class="row-resolved-barcode" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:150px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedProductsRefExt]" value="{{ row.resolvedProductsRefExt ?: row.sku }}" form="grid-form" class="row-resolved-refext" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:90px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedBuyPrice]" value="{{ row.resolvedBuyPrice ?: row.buyPrice }}" form="grid-form" class="row-resolved-buy" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:90px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedSellPrice]" value="{{ row.resolvedSellPrice ?: row.buyPrice }}" form="grid-form" class="row-resolved-sell" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:70px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedVat]" value="{{ row.resolvedVat ?: '20' }}" form="grid-form" class="row-resolved-vat" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:90px;">
+								<input type="text" name="rows[{{ row.id }}][resolvedAccountingAccount]" value="{{ row.resolvedAccountingAccount ?: '707002' }}" form="grid-form" class="row-resolved-accounting" data-row-id="{{ row.id }}" style="width:100%;">
+							</td>
+
+							<td style="min-width:160px;">
+								<select name="rows[{{ row.id }}][resolvedCategoryId]" form="grid-form" class="row-resolved-category" data-row-id="{{ row.id }}" style="width:100%;">
+									<option value="">—</option>
+									{% for c in categories %}
+										{% set cid = c.category_id %}
+										<option value="{{ cid }}" {% if row.resolvedCategoryId and row.resolvedCategoryId == cid %} selected {% endif %}>
+											{{ c.category_name ?? c.category_label ?? ('Catégorie #' ~ cid) }}
+										</option>
+									{% endfor %}
+								</select>
+							</td>
+
+							<td style="min-width:160px;">
+								<select name="rows[{{ row.id }}][resolvedBrandId]" form="grid-form" class="row-resolved-brand" data-row-id="{{ row.id }}" style="width:100%;">
+									<option value="">—</option>
+									{% for b in brands %}
+										{% set bid = b.brand_id %}
+										<option value="{{ bid }}" {% if row.resolvedBrandId and row.resolvedBrandId == bid %} selected {% endif %}>
+											{{ b.brand_name ?? ('Marque #' ~ bid) }}
+										</option>
+									{% endfor %}
+								</select>
+							</td>
+
+							<td style="min-width:160px;">
+								<select name="rows[{{ row.id }}][resolvedSupplierId]" form="grid-form" class="row-resolved-supplier" data-row-id="{{ row.id }}" style="width:100%;">
+									<option value="">—</option>
+									{% for s in suppliers %}
+										{% set sid = s.supplier_id %}
+										<option value="{{ sid }}" {% if row.resolvedSupplierId and row.resolvedSupplierId == sid %} selected {% endif %}>
+											{{ s.supplier_name }}
+										</option>
+									{% endfor %}
+								</select>
+							</td>
+
+							<td style="text-align:center;">
+								<input type="checkbox" name="rows[{{ row.id }}][isIgnored]" value="1" form="grid-form" {% if row.isIgnored %} checked {% endif %}>
+							</td>
+
+							<td>
+								{% if row.isReady %}
+									<span class="ui tiny green label">Oui</span>
+								{% else %}
+									<span class="ui tiny grey label">Non</span>
+								{% endif %}
+							</td>
+							<td>
+								{% if row.isBlocked %}
+									<span class="ui tiny red label">Oui</span>
+								{% else %}
+									<span class="ui tiny grey label">Non</span>
+								{% endif %}
+							</td>
+							<td>{{ row.blockReason ?: '—' }}</td>
+
+							<td>
+								{% if row.createdProductId %}
+									<a class="ui tiny button" target="_blank" href="{{ path('admin_hiboutik_product_edit', {id: row.createdProductId}) }}">
+										#{{ row.createdProductId }}
+									</a>
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td>
+								{% if row.createdProductId %}
+									<span style="color:#888;">Déjà traité</span>
+								{% else %}
+									<button type="submit" class="ui tiny primary button" form="import-row-{{ row.id }}" {% if not session.hibInventoryInputId %} disabled {% endif %}>
+										Importer
+									</button>
+								{% endif %}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+
+		<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button type="submit" class="ui primary button" form="grid-form">
+        <i class="save icon"></i>
+        Enregistrer la grille
+    </button>
+
+    <button type="submit"
+            class="ui orange button"
+            form="grid-form"
+            formaction="{{ path('admin_hib_mobile_import_import_selected', {id: session.id}) }}">
+        <i class="check square outline icon"></i>
+        Importer la sélection
+    </button>
+	<button type="submit"
+        class="ui teal button"
+        form="grid-form"
+        formaction="{{ path('admin_hib_mobile_import_reapply_selected', {id: session.id}) }}">
+    <i class="refresh icon"></i>
+    Réappliquer la sélection
+</button>
+</div>
+	{% endif %}
+
+
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkAll = document.getElementById('check-all-rows');
+    const gridForm = document.getElementById('grid-form');
+
+    function rowChecks() {
+        return Array.from(document.querySelectorAll('.row-check'));
+    }
+
+    function getCheckedRowIds() {
+        return rowChecks()
+            .filter(cb => cb.checked)
+            .map(cb => cb.dataset.rowId);
+    }
+
+    function setValueForRows(rowIds, selector, value) {
+        rowIds.forEach(id => {
+            const input = document.querySelector(selector + '[data-row-id="' + id + '"]');
+            if (input) {
+                input.value = value;
+            }
+        });
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', function () {
+            rowChecks().forEach(cb => {
+                cb.checked = checkAll.checked;
+            });
+        });
+    }
+
+    const applyBulkBtn = document.getElementById('apply-bulk-values');
+    if (applyBulkBtn) {
+        applyBulkBtn.addEventListener('click', function () {
+            const rowIds = getCheckedRowIds();
+            if (!rowIds.length) {
+                alert('Aucune ligne cochée.');
+                return;
+            }
+
+            const vat = document.getElementById('bulk-vat')?.value || '';
+            const accounting = document.getElementById('bulk-accounting')?.value || '';
+            const supplier = document.getElementById('bulk-supplier')?.value || '';
+            const category = document.getElementById('bulk-category')?.value || '';
+            const brand = document.getElementById('bulk-brand')?.value || '';
+            const sellPrice = (document.getElementById('bulk-sell-price')?.value || '').trim();
+
+            if (vat !== '') setValueForRows(rowIds, '.row-resolved-vat', vat);
+            if (accounting !== '') setValueForRows(rowIds, '.row-resolved-accounting', accounting);
+            if (supplier !== '') setValueForRows(rowIds, '.row-resolved-supplier', supplier);
+            if (category !== '') setValueForRows(rowIds, '.row-resolved-category', category);
+            if (brand !== '') setValueForRows(rowIds, '.row-resolved-brand', brand);
+            if (sellPrice !== '') setValueForRows(rowIds, '.row-resolved-sell', sellPrice);
+        });
+    }
+
+    const applyCoeffBtn = document.getElementById('apply-price-coeff');
+    if (applyCoeffBtn) {
+        applyCoeffBtn.addEventListener('click', function () {
+            const rowIds = getCheckedRowIds();
+            if (!rowIds.length) {
+                alert('Aucune ligne cochée.');
+                return;
+            }
+
+            const coeffRaw = document.getElementById('bulk-price-coeff')?.value || '1';
+            const coeff = parseFloat(coeffRaw.replace(',', '.'));
+
+            if (isNaN(coeff) || coeff <= 0) {
+                alert('Coefficient invalide.');
+                return;
+            }
+
+            rowIds.forEach(id => {
+                const buyInput = document.querySelector('.row-resolved-buy[data-row-id="' + id + '"]');
+                const sellInput = document.querySelector('.row-resolved-sell[data-row-id="' + id + '"]');
+
+                if (buyInput && sellInput) {
+                    const buy = parseFloat(String(buyInput.value).replace(',', '.'));
+                    if (!isNaN(buy)) {
+                        sellInput.value = (buy * coeff).toFixed(2);
+                    }
+                }
+            });
+        });
+    }
+
+    if (gridForm) {
+        gridForm.addEventListener('submit', function (e) {
+            const submitter = e.submitter;
+            if (!submitter) {
+                return;
+            }
+
+            const action = submitter.getAttribute('formaction') || '';
+            if (!action.includes('/import-selected') && !action.includes('/reapply-selected')) {
+                return;
+            }
+
+            const checked = document.querySelectorAll('.row-check:checked');
+            if (!checked.length) {
+                e.preventDefault();
+                alert('Aucune ligne cochée.');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

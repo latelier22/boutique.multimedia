@@ -36,7 +36,9 @@ parameters:
     Je confirme recevoir le montant indiqué selon le mode de paiement mentionné sur le bon de cession.
 
 
-
+  arrivage_mailbox_host: '%env(string:ARRIVAGE_MAILBOX_HOST)%'
+  arrivage_mailbox_user: '%env(string:ARRIVAGE_MAILBOX_USER)%'
+  arrivage_mailbox_password: '%env(string:ARRIVAGE_MAILBOX_PASSWORD)%'
 
   rachats_columns:
     columns:
@@ -206,3 +208,17 @@ services:
         arguments:
             $apiCacheBaseUrl: '%env(string:API_CACHE_BASE_URL)%'
             $webhook_secret: '%webhook_secret%'
+    
+    App\Service\Hiboutik\MobileImportParser: ~
+
+    App\Service\Hiboutik\MobileImportProductCreator:
+        arguments:
+            - '@App\Service\HiboutikClient'
+
+
+
+    App\Service\Hiboutik\ArrivageMailFetcher:
+        arguments:
+            $arrivageMailboxHost: '%arrivage_mailbox_host%'
+            $arrivageMailboxUser: '%arrivage_mailbox_user%'
+            $arrivageMailboxPassword: '%arrivage_mailbox_password%'

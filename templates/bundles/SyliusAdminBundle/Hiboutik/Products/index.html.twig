@@ -330,50 +330,72 @@
     <form id="hib_form" method="post" action="{{ path('admin_hiboutik_product_batch') }}" style="margin:0">
       <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_batch') }}"/>
 
-      <div id="bar">
-        <button type="submit" name="val" value="1" class="btn">
-          <i class="check icon"></i> WWW=Oui
-        </button>
+    <div id="bar">
+  <button type="submit" name="val" value="1" class="btn">
+    <i class="check icon"></i> WWW=Oui
+  </button>
 
-        <button type="submit" name="val" value="0" class="btn btn-secondary">
-          <i class="ban icon"></i> WWW=Non
-        </button>
+  <button type="submit" name="val" value="0" class="btn btn-secondary">
+    <i class="ban icon"></i> WWW=Non
+  </button>
 
-        <select name="discount_percent" class="ui dropdown">
-          <option value="">💸 Promo</option>
-          <option value="10">-10%</option>
-          <option value="20">-20%</option>
-          <option value="30">-30%</option>
-        </select>
+  <button
+    type="submit"
+    name="val"
+    value="1"
+    formaction="{{ path('admin_hiboutik_product_arch_batch') }}"
+    formmethod="post"
+    class="btn"
+  >
+    <i class="archive icon"></i> ARCH=Oui
+  </button>
 
-        <button type="submit" name="action" value="apply_discount" class="btn">
-          💸 Appliquer promo
-        </button>
+  <button
+    type="submit"
+    name="val"
+    value="0"
+    formaction="{{ path('admin_hiboutik_product_arch_batch') }}"
+    formmethod="post"
+    class="btn btn-secondary"
+  >
+    <i class="undo icon"></i> ARCH=Non
+  </button>
 
-        <button type="submit" name="action" value="reset_discount" class="btn btn-secondary">
-          ♻️ Reset promo
-        </button>
+  <select name="discount_percent" class="ui dropdown">
+    <option value="">💸 Promo</option>
+    <option value="10">-10%</option>
+    <option value="20">-20%</option>
+    <option value="30">-30%</option>
+  </select>
 
-        <select name="tag_id" class="ui dropdown">
-          <option value="">🏷️ Tag</option>
-          {% for label,id in tagChoices %}
-            <option value="{{ id }}">{{ label }}</option>
-          {% endfor %}
-        </select>
+  <button type="submit" name="action" value="apply_discount" class="btn">
+    💸 Appliquer promo
+  </button>
 
-        <button type="submit" name="action" value="add_tag" class="btn">
-          ➕ Ajouter tag
-        </button>
+  <button type="submit" name="action" value="reset_discount" class="btn btn-secondary">
+    ♻️ Reset promo
+  </button>
 
-        <button type="submit" name="action" value="remove_tag" class="btn btn-secondary">
-          ➖ Retirer tag
-        </button>
+  <select name="tag_id" class="ui dropdown">
+    <option value="">🏷️ Tag</option>
+    {% for label,id in tagChoices %}
+      <option value="{{ id }}">{{ label }}</option>
+    {% endfor %}
+  </select>
 
-        <span class="muted">
-          <i class="info circle icon"></i>
-          Sélectionne des lignes puis clique
-        </span>
-      </div>
+  <button type="submit" name="action" value="add_tag" class="btn">
+    ➕ Ajouter tag
+  </button>
+
+  <button type="submit" name="action" value="remove_tag" class="btn btn-secondary">
+    ➖ Retirer tag
+  </button>
+
+  <span class="muted">
+    <i class="info circle icon"></i>
+    Sélectionne des lignes puis clique
+  </span>
+</div>
     </form>
 
   </div>

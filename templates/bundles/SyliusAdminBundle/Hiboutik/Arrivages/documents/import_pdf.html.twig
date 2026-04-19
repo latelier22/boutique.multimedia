@@ -1,0 +1,297 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Test parser PDF{% endblock %}
+
+{% block content %}
+    <style>
+        .pdf-test-wrap {
+            padding: 20px;
+        }
+
+        .pdf-test-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
+            margin-bottom: 20px;
+        }
+
+        .pdf-test-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            background: #fff;
+        }
+
+        .pdf-test-table th,
+        .pdf-test-table td {
+            border: 1px solid #dcdcdc;
+            padding: 8px 10px;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        .pdf-test-table th {
+            background: #1f2937;
+            color: #fff;
+            text-align: left;
+        }
+
+        .pdf-test-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+
+        .ok-cell {
+            background: #dcfce7 !important;
+            color: #166534;
+            font-weight: 700;
+        }
+
+        .bad-cell {
+            background: #fee2e2 !important;
+            color: #991b1b;
+            font-weight: 700;
+        }
+
+        .mono {
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .muted {
+            color: #6b7280;
+        }
+
+        details {
+            margin-top: 14px;
+        }
+
+        summary {
+            cursor: pointer;
+            font-weight: 700;
+        }
+    </style>
+
+    <div class="pdf-test-wrap">
+        <div class="pdf-test-card">
+            <h1 class="ui header">
+                <i class="file pdf icon"></i>
+                <div class="content">
+                    Test parser PDF
+                    <div class="sub header">Upload direct d’une facture PDF et affichage immédiat du parse</div>
+                </div>
+            </h1>
+
+            <form method="post"
+      enctype="multipart/form-data"
+      action="{{ path('admin_arrivages_documents_import_pdf') }}"
+      class="ui form"
+      style="margin-top:20px;"
+      data-turbo="false">
+    <div class="field">
+        <label>Choisir un PDF</label>
+        <input type="file" name="pdf_file" accept=".pdf,application/pdf" required>
+    </div>
+
+    <button class="ui primary button" type="submit">
+        <i class="search icon"></i>
+        Parser ce PDF
+    </button>
+
+    <button class="ui green button"
+            type="submit"
+            formaction="{{ path('admin_arrivages_documents_import_pdf_to_session') }}">
+        <i class="plus icon"></i>
+        Créer une session d'import
+    </button>
+
+    <div class="field">
+    <label>Fournisseur / Parser</label>
+    <select name="parser_key" class="ui dropdown" required>
+        <option value="">Choisir...</option>
+        <option value="utopya">Utopya</option>
+        <option value="jens_mobile">Jens Mobile</option>
+        <option value="mobilesentrix">MobileSentrix</option>
+        <option value="generic_spreadsheet">Tableur générique</option>
+    </select>
+</div>
+</form>
+
+{% for message in app.flashes('error') %}
+    <div class="ui negative message" style="margin-top:16px;">
+        <p>{{ message }}</p>
+    </div>
+{% endfor %}
+
+{% for message in app.flashes('success') %}
+    <div class="ui positive message" style="margin-top:16px;">
+        <p>{{ message }}</p>
+    </div>
+{% endfor %}
+
+            {% if error %}
+                <div class="ui negative message" style="margin-top:16px;">
+                    <div class="header">Erreur</div>
+                    <p>{{ error }}</p>
+                </div>
+            {% endif %}
+
+            <p style="margin-top:16px;"><strong>Fichier :</strong> <span class="mono">{{ file ?: '—' }}</span></p>
+            <p><strong>Nombre de lignes parsées :</strong> {{ rows|length }}</p>
+            <p><strong>Lignes matchées :</strong> {{ matched|length }}</p>
+            <p><strong>Lignes non reconnues :</strong> {{ unmatched|length }}</p>
+        </div>
+
+        {% if rows is not empty or matched is not empty or unmatched is not empty or rawLines is not empty %}
+            <div class="pdf-test-card">
+                <h2 class="ui dividing header">Lignes produits</h2>
+
+                <table class="pdf-test-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>SKU</th>
+                            <th>Libellé</th>
+                            <th>Qté</th>
+                            <th>P.U.</th>
+                            <th>Total HT</th>
+                            <th>TVA</th>
+                            <th>EAN</th>
+                            <th>IMEI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            {% set sku = row.sku ?? '' %}
+                            {% set label = row.label ?? row.raw_label ?? '' %}
+                            {% set qty = row.qty ?? row.quantity ?? '' %}
+                            {% set unitPrice = row.unit_price ?? row.buy_price ?? '' %}
+                            {% set totalHt = row.total_ht ?? '' %}
+                            {% set vat = row.vat ?? (row.raw_data.vat ?? '') %}
+                            {% set ean = row.ean ?? '' %}
+                            {% set imei = row.imei ?? '' %}
+
+                            {% set imeiRequired = false %}
+                            {% if label matches '/iPhone|Galaxy|Pixel|Redmi|Dell|Grade|Go/i' %}
+                                {% set imeiRequired = true %}
+                            {% endif %}
+
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td class="mono">{{ sku }}</td>
+                                <td>{{ label }}</td>
+                                <td>{{ qty }}</td>
+                                <td>{{ unitPrice }}</td>
+                                <td>{{ totalHt }}</td>
+                                <td>{{ vat }}</td>
+                                <td class="mono">
+                                    {% if ean %}
+                                        {{ ean }}
+                                    {% else %}
+                                        <span class="muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="mono {{ imei ? 'ok-cell' : (imeiRequired ? 'bad-cell' : '') }}">
+                                    {% if imei %}
+                                        {{ imei }}
+                                    {% else %}
+                                        <span class="muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="9">Aucune ligne parsée.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pdf-test-card">
+                <h2 class="ui dividing header">Lignes matchées</h2>
+
+                <table class="pdf-test-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Index PDF</th>
+                            <th>Ligne reconnue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in matched %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ m.type ?? '' }}</td>
+                                <td>{{ m.index ?? '' }}</td>
+                                <td class="mono">{{ m.line ?? '' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4">Aucune ligne matchée.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pdf-test-card">
+                <h2 class="ui dividing header">Lignes non reconnues</h2>
+
+                <table class="pdf-test-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Index PDF</th>
+                            <th>Brut</th>
+                            <th>Normalisé</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in unmatched %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ u.index ?? '' }}</td>
+                                <td class="mono">{{ u.raw ?? '' }}</td>
+                                <td class="mono">{{ u.normalized ?? '' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="4">Aucune ligne non reconnue.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pdf-test-card">
+                <details>
+                    <summary>Afficher toutes les lignes brutes du PDF ({{ rawLines|length }})</summary>
+
+                    <table class="pdf-test-table" style="margin-top:12px;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Ligne brute</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in rawLines %}
+                                <tr>
+                                    <td>{{ loop.index0 }}</td>
+                                    <td class="mono">{{ line }}</td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="2">Aucune ligne brute.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

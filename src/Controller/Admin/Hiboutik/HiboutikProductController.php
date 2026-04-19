@@ -185,12 +185,12 @@ foreach ($categoryOptions as $opt) {
 
     }
 
-    usort($final, function ($a, $b) {
-    $aTime = strtotime($a['updatedAt'] ?? $a['updated_at'] ?? '1970-01-01');
-    $bTime = strtotime($b['updatedAt'] ?? $b['updated_at'] ?? '1970-01-01');
+    // usort($final, function ($a, $b) {
+    // $aTime = strtotime($a['updatedAt'] ?? $a['updated_at'] ?? '1970-01-01');
+    // $bTime = strtotime($b['updatedAt'] ?? $b['updated_at'] ?? '1970-01-01');
 
-    return $bTime <=> $aTime;
-    });
+    // return $bTime <=> $aTime;
+    // });
 
     // -------------------------
     // Etiquettes : format et nombre de slots configurés
@@ -251,13 +251,102 @@ foreach ($categoryOptions as $opt) {
 
         foreach ($ids as $pid) {
             $res = $this->hib->putProductAttributeSingle($pid, 'product_display_www', $val);
-            if (($res['ok'] ?? false)) $ok++; else $ko++;
+            if (($res['ok'] ?? false)) 
+                {$ok++;
+                $this->refreshProduct($pid);} 
+            else {$ko++;}
         }
 
         $this->addFlash('success', sprintf('Batch WWW=%s : %d OK / %d KO', $val, $ok, $ko));
         return $this->redirectToRoute('admin_hiboutik_product_index', ['focus' => $firstId]);
     }
 
+
+#[Route('/arch-batch', name: 'arch_batch', methods: ['POST'])]
+public function archBatch(Request $request): RedirectResponse
+{
+    if (!$this->isCsrfTokenValid('hib_batch', (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $val = (string) $request->request->get('val', '');
+    if ($val !== '0' && $val !== '1') {
+        $this->addFlash('error', 'Valeur batch invalide.');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
+    }
+
+    $ids = $request->request->all('ids');
+    $ids = array_values(array_filter(array_map('intval', (array) $ids), fn ($x) => $x > 0));
+
+    if (!$ids) {
+        $this->addFlash('error', 'Sélection requise.');
+        return $this->redirectToRoute('admin_hiboutik_product_index');
+    }
+
+    $ok = 0;
+    $ko = 0;
+    $firstId = $ids[0];
+
+    foreach ($ids as $pid) {
+        $res = $this->hib->putProductAttributeSingle($pid, 'product_arch', $val);
+        if (($res['ok'] ?? false)) {
+            $ok++;
+            $this->refreshProduct($pid);
+        } else {
+            $ko++;
+        }
+    }
+
+
+
+    $this->addFlash(
+        'success',
+        sprintf(
+            '%s : %d OK / %d KO',
+            $val === '1' ? 'Archivage batch' : 'Désarchivage batch',
+            $ok,
+            $ko
+        )
+    );
+
+    return $this->redirectToRoute('admin_hiboutik_product_index', ['focus' => $firstId]);
+}
+
+#[Route('/{id}/archiver', name: 'arch_single', methods: ['POST'])]
+public function archSingle(int $id, Request $request): RedirectResponse
+{
+    if (!$this->isCsrfTokenValid('hib_arch_single_' . $id, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $val = (string) $request->request->get('val', '');
+    if ($val !== '0' && $val !== '1') {
+        $this->addFlash('error', 'Valeur invalide.');
+        return $this->redirectToRoute('admin_hiboutik_product_index', ['focus' => $id]);
+    }
+
+    $res = $this->hib->putProductAttributeSingle($id, 'product_arch', $val);
+
+    if (($res['ok'] ?? false)) {
+        $this->refreshProduct($id);
+
+        $this->addFlash(
+            'success',
+            $val === '1'
+                ? sprintf('Produit #%d archivé.', $id)
+                : sprintf('Produit #%d désarchivé.', $id)
+        );
+    } else {
+        $this->addFlash(
+            'error',
+            $val === '1'
+                ? sprintf('Échec archivage produit #%d.', $id)
+                : sprintf('Échec désarchivage produit #%d.', $id)
+        );
+    }
+
+    return $this->redirectToRoute('admin_hiboutik_product_index', ['focus' => $id]);
+}
 
 #[Route('/new', name: 'new', methods: ['POST'])]
 public function new(Request $request): Response
@@ -340,6 +429,7 @@ public function new(Request $request): Response
 public function edit(int $id, Request $request): Response
 {
     $product = $this->hib->getProduct($id);
+
 
     if (!$product) {
         $this->addFlash('error', "Produit Hiboutik #$id introuvable.");
@@ -2271,6 +2361,159 @@ private function resolveHiboutikVatCodeFromVat(string $vatChoice): string
         : (string) self::HIB_VAT_CODE_0;
 }
 
+
+#[Route('/{id}/duplicate', name: 'duplicate', requirements: ['id' => '\d+'], methods: ['POST'])]
+public function duplicateProduct(int $id, Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('hiboutik_duplicate_' . $id, (string) $request->request->get('_token'))) {
+        throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+    }
+
+    $newProductId = 0;
+
+    try {
+        $source = $this->hib->getProduct($id);
+
+        if (!is_array($source) || empty($source['product_id'])) {
+            throw new \RuntimeException('Produit source introuvable.');
+        }
+
+        $newName = trim((string) ($source['product_model'] ?? 'Produit'));
+        if ($newName === '') {
+            $newName = 'Produit';
+        }
+        $newName .= ' (copie)';
+
+        $payload = [
+            'product_model'            => $newName,
+            'product_supplier'         => (int) ($source['product_supplier'] ?? 0),
+            'product_brand'            => (int) ($source['product_brand'] ?? 0),
+            'product_category'         => (int) ($source['product_category'] ?? 0),
+            'product_supply_price'     => number_format($this->normalizeAmount($source['product_supply_price'] ?? 0), 2, '.', ''),
+            'product_price'            => number_format($this->normalizeAmount($source['product_price'] ?? 0), 2, '.', ''),
+            'product_stock_management' => 1,
+            'product_display_www'      => 0,
+            'product_arch'             => 0,
+        ];
+
+        if (isset($source['product_vat']) && $source['product_vat'] !== '' && $source['product_vat'] !== null) {
+            $payload['product_vat'] = (string) $source['product_vat'];
+        }
+
+        if (isset($source['accounting_account']) && trim((string) $source['accounting_account']) !== '') {
+            $payload['accounting_account'] = trim((string) $source['accounting_account']);
+        }
+
+        $payload = array_filter($payload, static function ($value, $key) {
+            if (in_array($key, ['product_supplier', 'product_brand', 'product_category'], true)) {
+                return (int) $value > 0;
+            }
+
+            return $value !== null && $value !== '';
+        }, ARRAY_FILTER_USE_BOTH);
+
+        $created = $this->hib->createProduct($payload);
+
+        if (!is_array($created)) {
+            throw new \RuntimeException('Réponse createProduct invalide.');
+        }
+
+        if (isset($created['product_id'])) {
+            $newProductId = (int) $created['product_id'];
+        } elseif (isset($created[0]) && is_array($created[0]) && isset($created[0]['product_id'])) {
+            $newProductId = (int) $created[0]['product_id'];
+        }
+
+        if ($newProductId <= 0) {
+            throw new \RuntimeException('Produit créé mais product_id introuvable.');
+        }
+
+       $updateAttributes = [
+    'product_discount_price' => '0.00',
+];
+
+if (isset($source['misc_text']) && trim((string) $source['misc_text']) !== '') {
+    $updateAttributes['misc_text'] = (string) $source['misc_text'];
+}
+
+if (isset($source['product_vat']) && $source['product_vat'] !== '' && $source['product_vat'] !== null) {
+    $updateAttributes['product_vat'] = (string) $source['product_vat'];
+}
+
+if (isset($source['accounting_account']) && trim((string) $source['accounting_account']) !== '') {
+    $updateAttributes['accounting_account'] = trim((string) $source['accounting_account']);
+}
+
+$updateRes = $this->hib->updateProductAttributes($newProductId, $updateAttributes);
+if (!($updateRes['ok'] ?? false)) {
+    $this->addFlash('warning', 'Le produit a été créé, mais certains attributs n’ont pas pu être copiés.');
+}
+
+$clearBarcodeRes = $this->hib->clearProductBarcode($newProductId);
+if (!($clearBarcodeRes['ok'] ?? false)) {
+    $this->addFlash('warning', 'Le produit a été créé, mais le barcode n’a pas pu être vidé.');
+}
+
+        $tagCopyRes = $this->hib->duplicateProductTagsFromSource($source, $newProductId);
+        if (!($tagCopyRes['ok'] ?? true)) {
+            $this->addFlash(
+                'warning',
+                'Certains tags n’ont pas pu être copiés : ' . implode(' | ', array_slice($tagCopyRes['errors'] ?? [], 0, 5))
+            );
+        }
+
+        $imageCopyRes = $this->hib->duplicateProductImagesFromSource($source, $newProductId);
+        if (!($imageCopyRes['ok'] ?? true)) {
+            $this->addFlash(
+                'warning',
+                'Certaines images n’ont pas pu être copiées : ' . implode(' | ', array_slice($imageCopyRes['errors'] ?? [], 0, 5))
+            );
+        }
+
+        $this->refreshProduct($newProductId);
+
+        $this->addFlash('success', sprintf(
+            'Produit Hiboutik #%d dupliqué en #%d.',
+            $id,
+            $newProductId
+        ));
+
+        return $this->redirectToRoute('admin_hiboutik_product_edit', [
+            'id' => $newProductId,
+        ]);
+    } catch (\Throwable $e) {
+        if ($newProductId > 0) {
+            $this->addFlash('warning', 'Le produit a été créé, mais la duplication n’est pas complète : ' . $e->getMessage());
+
+            return $this->redirectToRoute('admin_hiboutik_product_edit', [
+                'id' => $newProductId,
+            ]);
+        }
+
+        $this->addFlash('error', 'Duplication impossible : ' . $e->getMessage());
+
+        return $this->redirectToRoute('admin_hiboutik_product_edit', [
+            'id' => $id,
+        ]);
+    }
+}
+
+private function normalizeAmount(mixed $value): float
+{
+    if ($value === null || $value === '') {
+        return 0.0;
+    }
+
+    if (is_int($value) || is_float($value)) {
+        return (float) $value;
+    }
+
+    $normalized = str_replace("\xc2\xa0", ' ', (string) $value);
+    $normalized = str_replace(' ', '', $normalized);
+    $normalized = str_replace(',', '.', $normalized);
+
+    return is_numeric($normalized) ? (float) $normalized : 0.0;
+}
 
 
 }

@@ -127,6 +127,19 @@ parameters:
                 route: "admin_arrivages_index"
                 method: "GET"
                 class: "primary-link"
+              - label: "Documents d’arrivage"
+                route: "admin_arrivages_documents_index"
+                method: "GET"
+                class: "primary-link" 
+              - label: "Sessions d’arrivage"
+                route: "admin_hib_mobile_import_index"
+                method: "GET"
+                class: "primary-link" 
+              - label: "Importer un document d'arrivage"
+                route: "admin_arrivages_documents_import_pdf"
+                method: "GET"
+                class: "primary-link" 
+                
 
         # - key: "vendeurs"
         #   position: 45

@@ -4,21 +4,23 @@
 
 {% block content %}
 
+{% set currentId = product.product_id ?? id %}
+
 <div class="ui breadcrumb">
   <h1 class="ui header">
     <i class="edit icon"></i>
-    Éditer produit Hiboutik #{{ product.product_id ?? id }}
+    Éditer produit Hiboutik #{{ currentId }}
   </h1>
 
-  <a class="section" href="https://shop.multimedia-services.fr/produits/{{ product.product_id ?? id }}" target="_blank">
+  <a class="section" href="https://shop.multimedia-services.fr/produits/{{ currentId }}" target="_blank">
     Voir {{ product.product_model ?? '' }} en ligne
   </a>
 
-  <a class="ui button primary" href="{{ path('admin_hiboutik_product_labels_a5_x4', {id: product.product_id ?? id}) }}" target="_blank">
+  <a class="ui button primary" href="{{ path('admin_hiboutik_product_labels_a5_x4', {id: currentId}) }}" target="_blank">
     <i class="tags icon"></i> Étiquettes A5 x4
   </a>
 
-  <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_add', {id: product.product_id ?? id}) }}" style="display:inline-block;">
+  <form method="post" action="{{ path('admin_hiboutik_product_labels_builder_add', {id: currentId}) }}" style="display:inline-block;">
     <button class="ui button" type="submit">
       <i class="plus icon"></i>
       Ajouter à la planche
@@ -31,6 +33,23 @@
   </a>
 
   <i class="right angle icon divider"></i>
+
+  <form method="post" action="{{ path('admin_hiboutik_product_duplicate', { id: currentId }) }}" style="display:inline-block;">
+    <input type="hidden" name="_token" value="{{ csrf_token('hiboutik_duplicate_' ~ currentId) }}">
+    <button class="ui button orange" type="submit" onclick="return confirm('Dupliquer ce produit Hiboutik ?');">
+      <i class="copy icon"></i>
+      Dupliquer
+    </button>
+  </form>
+
+  <form method="post" action="{{ path('admin_hiboutik_product_arch_single', {id: currentId}) }}" style="display:inline-block;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_arch_single_' ~ currentId) }}">
+    <input type="hidden" name="val" value="1">
+    <button type="submit" class="ui button red" onclick="return confirm('Archiver ce produit ?');">
+      <i class="archive icon"></i>
+      Archiver
+    </button>
+  </form>
 </div>
 
 {% if error %}
@@ -41,7 +60,7 @@
 {% endif %}
 
 <form class="ui form" method="post" id="hibProductEditForm">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hiboutik_edit_' ~ (product.product_id ?? id)) }}"/>
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token('hiboutik_edit_' ~ currentId) }}"/>
   <input type="hidden" name="misc_values_json" id="miscValuesJson" value="{}" />
 
   <div class="ui stackable grid">
@@ -55,7 +74,7 @@
         <div class="three fields">
           <div class="field">
             <label>Référence (product_id)</label>
-            <input name="product_id" value="{{ product.product_id ?? '' }}" disabled />
+            <input name="product_id" value="{{ currentId }}" disabled />
           </div>
 
           <div class="field">
@@ -291,7 +310,7 @@
     </div>
   </div>
 
-  <div class="ui segment">
+    <div class="ui segment">
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button class="ui primary button" type="submit">
         <i class="save icon"></i>
@@ -301,9 +320,19 @@
       <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}">
         Retour liste
       </a>
+
+      <form method="post" action="{{ path('admin_hiboutik_product_duplicate', { id: currentId }) }}" style="display:inline-block;">
+        <input type="hidden" name="_token" value="{{ csrf_token('hiboutik_duplicate_' ~ currentId) }}">
+        <button class="ui button orange" type="submit" onclick="return confirm('Dupliquer ce produit Hiboutik ?');">
+          <i class="copy icon"></i>
+          Dupliquer
+        </button>
+      </form>
     </div>
   </div>
 </form>
+
+
 
 <div class="ui divider"></div>
 

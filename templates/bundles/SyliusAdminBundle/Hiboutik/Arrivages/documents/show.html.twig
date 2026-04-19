@@ -1,0 +1,51 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Document #{{ document.id }}{% endblock %}
+
+{% block content %}
+
+<h2 class="ui header">
+    Document #{{ document.id }}
+</h2>
+
+<div class="ui segment">
+
+    <p><b>Expéditeur :</b> {{ document.fromEmail }}</p>
+    <p><b>Sujet :</b> {{ document.subject }}</p>
+    <p><b>Reçu le :</b> {{ document.receivedAt|date('d/m/Y H:i') }}</p>
+
+    <p><b>Type :</b> {{ document.documentType ?? '-' }}</p>
+    <p><b>Numéro :</b> {{ document.documentNumber ?? '-' }}</p>
+    <p><b>Date :</b> {{ document.documentDate ? document.documentDate|date('d/m/Y') : '-' }}</p>
+    <p><b>Fournisseur :</b> {{ document.supplierName ?? '-' }}</p>
+
+</div>
+
+<h3 class="ui dividing header">Pièces jointes</h3>
+
+<div class="ui list">
+    {% for att in document.attachments %}
+        <div class="item">
+            <i class="file icon"></i>
+            <div class="content">
+                <div class="header">{{ att.originalFilename }}</div>
+
+                <a href="{{ path('admin_arrivages_documents_attachment', {filename: att.storedFilename}) }}"
+                   class="ui button tiny">
+                    Ouvrir
+                </a>
+
+                <form method="post" action="{{ path('admin_arrivages_documents_prepare', {id: document.id}) }}">
+    <button type="submit" class="ui green button">
+        <i class="cogs icon"></i>
+        Préparer
+    </button>
+</form>
+            </div>
+        </div>
+    {% else %}
+        <p>Aucune pièce jointe</p>
+    {% endfor %}
+</div>
+
+{% endblock %}
