@@ -581,10 +581,17 @@ class MobileImportRow
     }
 
     public function setResolvedVat(?string $resolvedVat): self
-    {
-        $this->resolvedVat = $resolvedVat ? trim($resolvedVat) : null;
+{
+    if ($resolvedVat === null) {
+        $this->resolvedVat = null;
         return $this;
     }
+
+    $resolvedVat = trim($resolvedVat);
+    $this->resolvedVat = $resolvedVat === '' ? null : $resolvedVat;
+
+    return $this;
+}
 
     public function getResolvedAccountingAccount(): ?string
     {
@@ -737,7 +744,7 @@ class MobileImportRow
             return false;
         }
 
-        if (!$this->resolvedVat || trim($this->resolvedVat) === '') {
+        if ($this->resolvedVat === null || trim($this->resolvedVat) === '') {
             return false;
         }
 

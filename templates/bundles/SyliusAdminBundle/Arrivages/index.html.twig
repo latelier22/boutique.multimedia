@@ -3,7 +3,6 @@
 {% block title %}Arrivages Rachat Mensuel{% endblock %}
 
 {% block content %}
-{# Top menu dans le pre_content du Layout Admin #}
 <h1 class="ui header">📦 Arrivages Rachat Mensuel</h1>
 
 <form method="post" action="{{ path('admin_arrivages_create') }}" style="margin-bottom: 1em;">
@@ -24,33 +23,54 @@
   </thead>
   <tbody>
   {% for a in arrivages %}
+    {% set id = a.inventory_input_id|default(0) %}
+
     <tr>
       <td>{{ a.inventory_input_id ?? '—' }}</td>
       <td>{{ a.inventory_input_label ?? '—' }}</td>
       <td>{{ a.inventory_input_supplier_id ?? '—' }}</td>
       <td>{{ a.inventory_input_date ?? '—' }}</td>
       <td>
-      {% set id = a.inventory_input_id|default(0) %}
+        <form method="post"
+              action="{{ id > 0 ? path('admin_arrivages_validate', { id: id }) : '#' }}"
+              style="display:inline;">
+          <button class="ui blue mini button" {% if id <= 0 %}disabled{% endif %}>
+            <i class="check icon"></i> Valider
+          </button>
+        </form>
 
-<form method="post"
-      action="{{ (id > 0) ? path('admin_arrivages_validate', { id: id }) : '#' }}"
-      style="display:inline;">
-  <button class="ui blue mini button" {% if id <= 0 %}disabled{% endif %}>
-    <i class="check icon"></i> Valider
+        <form method="post"
+              action="{{ id > 0 ? path('admin_arrivages_session', { id: id }) : '#' }}"
+              style="display:inline-block; margin-left:6px;">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_' ~ id) }}">
+          <button type="submit" class="ui teal mini button" {% if id <= 0 %}disabled{% endif %}>
+            <i class="tasks icon"></i> Session
+          </button>
+        </form>
+
+        <form method="post"
+      action="{{ id > 0 ? path('admin_arrivages_session_rebuild', { id: id }) : '#' }}"
+      style="display:inline-block; margin-left:6px;"
+      onsubmit="return confirm('Recharger la session depuis l’arrivage ? Cela remplacera la session existante liée à cet arrivage.');">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_rebuild_' ~ id) }}">
+  <button type="submit" class="ui orange mini button" {% if id <= 0 %}disabled{% endif %}>
+    <i class="refresh icon"></i> Recharger session
   </button>
 </form>
 
-{% if id > 0 %}
-  <a href="{{ path('admin_arrivages_details', { id: id }) }}" class="ui grey mini button">
-    <i class="eye icon"></i> Détails
-  </a>
-{% else %}
-  <span class="ui tiny grey label">ID manquant</span>
-{% endif %}
+        {% if id > 0 %}
+          <a href="{{ path('admin_arrivages_details', { id: id }) }}" class="ui grey mini button">
+            <i class="eye icon"></i> Détails
+          </a>
+        {% else %}
+          <span class="ui tiny grey label">ID manquant</span>
+        {% endif %}
       </td>
     </tr>
   {% else %}
-    <tr><td colspan="5" class="center aligned">Aucun arrivage trouvé</td></tr>
+    <tr>
+      <td colspan="5" class="center aligned">Aucun arrivage trouvé</td>
+    </tr>
   {% endfor %}
   </tbody>
 </table>
