@@ -20,71 +20,146 @@
     </div>
 </div>
 
+<div class="ui secondary menu" style="margin-bottom:1rem;flex-wrap:wrap;">
+    <a class="{% if scope == 'active' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'active'}) }}">Actives</a>
+    <a class="{% if scope == 'draft' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'draft'}) }}">Brouillons</a>
+    <a class="{% if scope == 'with_arrival' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'with_arrival'}) }}">Avec arrivage</a>
+    <a class="{% if scope == 'without_arrival' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'without_arrival'}) }}">Sans arrivage</a>
+    <a class="{% if scope == 'cancelled' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'cancelled'}) }}">Annulées</a>
+    <a class="{% if scope == 'archived' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'archived'}) }}">Archivées</a>
+    <a class="{% if scope == 'all' %}active {% endif %}item" href="{{ path('admin_hib_mobile_import_index', {scope: 'all'}) }}">Toutes</a>
+</div>
+
 <div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+        <div class="ui tiny message" style="margin:0;">
+            <strong>{{ sessions|length }}</strong> session(s) affichée(s) ·
+            <strong>{{ eligibleDraftCount }}</strong> brouillon(s) supprimable(s) dans cette vue
+        </div>
+
+        <form method="post" action="{{ path('admin_hib_mobile_import_cleanup_drafts') }}" onsubmit="return confirm('Supprimer tous les brouillons supprimables de cette vue ?');" style="margin:0;">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_cleanup_drafts') }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+            <button type="submit" class="ui red button" {% if eligibleDraftCount == 0 %}disabled{% endif %}>
+                <i class="trash icon"></i>
+                Supprimer tous les brouillons supprimables
+            </button>
+        </form>
+    </div>
+
     {% if sessions is empty %}
         <div class="ui message">
             <div class="header">Aucune session</div>
             <p>Aucun import n’a encore été créé.</p>
         </div>
     {% else %}
-        <table class="ui celled table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Type</th>
-                    <th>Fichier</th>
-                    <th>Code</th>
-                    <th>Fournisseur</th>
-                    <th>Arrivage Hiboutik</th>
-                    <th>Statut</th>
-                    <th>Créée le</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for session in sessions %}
+        <form method="post" action="{{ path('admin_hib_mobile_import_bulk_action') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_bulk_action') }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:1rem;">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="select-all-sessions">
+                    <label for="select-all-sessions">Tout sélectionner</label>
+                </div>
+
+                <select name="bulk_action" class="ui dropdown">
+                    <option value="">Action de masse…</option>
+                    <option value="delete_draft">Supprimer les brouillons sélectionnés</option>
+                    <option value="archive">Archiver les sessions sélectionnées</option>
+                    <option value="cancel">Annuler les sessions sélectionnées</option>
+                </select>
+
+                <button type="submit" class="ui button primary" onclick="return confirm('Appliquer l'action de masse aux sessions sélectionnées ?');">
+                    Appliquer
+                </button>
+            </div>
+
+            <table class="ui celled table">
+                <thead>
                     <tr>
-                        <td>#{{ session.id }}</td>
-                        <td>
-                            {% if session.sourceType == 'delivery_note' %}
-                                <span class="ui teal label">Bon de livraison</span>
-                            {% else %}
-                                <span class="ui orange label">Bon de commande</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ session.sourceFilename }}</td>
-                        <td>{{ session.documentCode ?: '—' }}</td>
-                        <td>{{ session.supplierId ?: '—' }}</td>
-                        <td>
-                            {% if session.hibInventoryInputId %}
-                                #{{ session.hibInventoryInputId }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if session.status == 'draft' %}
-                                <span class="ui grey label">Brouillon</span>
-                            {% elseif session.status == 'prepared' %}
-                                <span class="ui blue label">Préparée</span>
-                            {% elseif session.status == 'imported' %}
-                                <span class="ui green label">Importée</span>
-                            {% elseif session.status == 'error' %}
-                                <span class="ui red label">Erreur</span>
-                            {% else %}
-                                <span class="ui label">{{ session.status }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ session.createdAt|date('d/m/Y H:i') }}</td>
-                        <td class="right aligned collapsing">
-                            <a href="{{ path('admin_hib_mobile_import_show', {id: session.id}) }}" class="ui small button">
-                                Ouvrir
-                            </a>
-                        </td>
+                        <th class="collapsing"></th>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Fichier</th>
+                        <th>Code</th>
+                        <th>Fournisseur</th>
+                        <th>Arrivage Hiboutik</th>
+                        <th>Statut</th>
+                        <th>Créée le</th>
+                        <th></th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                        <tr>
+                            <td class="collapsing center aligned">
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="ids[]" value="{{ session.id }}" class="session-checkbox">
+                                    <label></label>
+                                </div>
+                            </td>
+                            <td>#{{ session.id }}</td>
+                            <td>
+                                {% if session.sourceType == 'delivery_note' %}
+                                    <span class="ui teal label">Bon de livraison</span>
+                                {% else %}
+                                    <span class="ui orange label">Bon de commande</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ session.sourceFilename }}</td>
+                            <td>{{ session.documentCode ?: '—' }}</td>
+                            <td>{{ session.supplierId ?: '—' }}</td>
+                            <td>
+                                {% if session.hibInventoryInputId %}
+                                    #{{ session.hibInventoryInputId }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if session.status == 'draft' %}
+                                    <span class="ui grey label">Brouillon</span>
+                                {% elseif session.status == 'prepared' %}
+                                    <span class="ui blue label">Préparée</span>
+                                {% elseif session.status == 'imported' %}
+                                    <span class="ui green label">Importée</span>
+                                {% elseif session.status == 'archived' %}
+                                    <span class="ui label">Archivée</span>
+                                {% elseif session.status == 'cancelled' %}
+                                    <span class="ui orange label">Annulée</span>
+                                {% elseif session.status == 'error' %}
+                                    <span class="ui red label">Erreur</span>
+                                {% else %}
+                                    <span class="ui label">{{ session.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ session.createdAt|date('d/m/Y H:i') }}</td>
+                            <td class="right aligned collapsing">
+                                <a href="{{ path('admin_hib_mobile_import_show', {id: session.id}) }}" class="ui small button">
+                                    Ouvrir
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const selectAll = document.getElementById('select-all-sessions');
+                if (!selectAll) {
+                    return;
+                }
+
+                selectAll.addEventListener('change', function () {
+                    document.querySelectorAll('.session-checkbox').forEach(function (checkbox) {
+                        checkbox.checked = selectAll.checked;
+                    });
+                });
+            });
+        </script>
     {% endif %}
 </div>
 {% endblock %}

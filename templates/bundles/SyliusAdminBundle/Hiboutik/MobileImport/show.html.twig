@@ -54,9 +54,77 @@
 				{% endif %}
 			</div>
 			<div class="item">
+				<strong>Statut :</strong>
+				{% if session.status == 'draft' %}
+					<span class="ui grey label">Brouillon</span>
+				{% elseif session.status == 'prepared' %}
+					<span class="ui blue label">Préparée</span>
+				{% elseif session.status == 'imported' %}
+					<span class="ui green label">Importée</span>
+				{% elseif session.status == 'archived' %}
+					<span class="ui label">Archivée</span>
+				{% elseif session.status == 'cancelled' %}
+					<span class="ui orange label">Annulée</span>
+				{% elseif session.status == 'error' %}
+					<span class="ui red label">Erreur</span>
+				{% else %}
+					<span class="ui label">{{ session.status }}</span>
+				{% endif %}
+			</div>
+			<div class="item">
 				<strong>Lignes :</strong>
 				{{ session.rows|length }}</div>
 		</div>
+	</div>
+
+	<div class="ui segment">
+		<h3 class="ui dividing header">Nettoyage session</h3>
+
+		<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+			{% if session.status != 'cancelled' %}
+				<form method="post" action="{{ path('admin_hib_mobile_import_cancel', {id: session.id}) }}" data-turbo="false" onsubmit="return confirm('Annuler cette session ?');">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_cancel_' ~ session.id) }}">
+					<button type="submit" class="ui orange button">
+						<i class="ban icon"></i>
+						Annuler la session
+					</button>
+				</form>
+			{% endif %}
+
+			{% if session.status != 'archived' %}
+				<form method="post" action="{{ path('admin_hib_mobile_import_archive', {id: session.id}) }}" data-turbo="false" onsubmit="return confirm('Archiver cette session ?');">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_archive_' ~ session.id) }}">
+					<button type="submit" class="ui button">
+						<i class="archive icon"></i>
+						Archiver
+					</button>
+				</form>
+			{% endif %}
+
+			{% if canDeleteDraft %}
+				<form method="post" action="{{ path('admin_hib_mobile_import_delete_draft', {id: session.id}) }}" data-turbo="false" onsubmit="return confirm('Supprimer définitivement ce brouillon local ?');">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_delete_draft_' ~ session.id) }}">
+					<button type="submit" class="ui red button">
+						<i class="trash icon"></i>
+						Supprimer le brouillon
+					</button>
+				</form>
+			{% else %}
+				<div class="ui small message" style="margin:0;">
+					Suppression locale autorisée seulement pour un brouillon sans arrivage Hiboutik et sans import réel.
+				</div>
+			{% endif %}
+		</div>
+
+		{% if session.hibInventoryInputId %}
+			<div class="ui info message" style="margin-top:12px;">
+				L’arrivage Hiboutik lié n’est jamais supprimé automatiquement avec la session.
+			</div>
+		{% elseif hasImportedProducts %}
+			<div class="ui info message" style="margin-top:12px;">
+				Des produits ont déjà été importés depuis cette session : privilégier l’archivage plutôt que la suppression.
+			</div>
+		{% endif %}
 	</div>
 
 	<div class="ui segment">

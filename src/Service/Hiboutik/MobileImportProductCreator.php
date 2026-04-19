@@ -278,7 +278,7 @@ class MobileImportProductCreator
             $fields['products_ref_ext'] = $refExt;
         }
 
-        $supplierId = (int) ($row->getResolvedSupplierId() ?: $row->getSession()?->getSupplierId() ?: 0);
+        $supplierId = (int) ($row->getSession()?->getSupplierId() ?: 0);
         if ($supplierId > 0) {
             $fields['product_supplier'] = (string) $supplierId;
         }

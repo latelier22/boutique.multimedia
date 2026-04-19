@@ -61,6 +61,20 @@ class IncomingDocumentController extends AbstractController
   #[Route('/{id}/prepare', name: 'prepare', requirements: ['id' => '\d+'], methods: ['POST'])]
 public function prepare(IncomingSupplierDocument $document): Response
 {
+    $existingSessionId = $document->getImportSessionId();
+    if ($existingSessionId) {
+        $existingSession = $this->em->getRepository(MobileImportSession::class)->find($existingSessionId);
+        if ($existingSession) {
+            $this->addFlash('info', 'Une session de préparation existe déjà pour ce document (#' . $existingSession->getId() . ').');
+
+            return $this->redirectToRoute('admin_hib_mobile_import_show', [
+                'id' => $existingSession->getId(),
+            ]);
+        }
+
+        $document->setImportSessionId(null);
+    }
+
     $attachment = null;
     $pdfPreferred = null;
     $spreadsheetFallback = null;
@@ -262,24 +276,7 @@ public function prepare(IncomingSupplierDocument $document): Response
     $row->setParsedGrade($rowData['parsed_grade'] ?? null);
     $row->setRequiresImei((bool) ($rowData['requires_imei'] ?? false));
     $row->setStatus((string) ($rowData['status'] ?? 'draft'));
-    $row->setResolvedName($row->getRawLabel());
-$row->setResolvedBarcode($row->getImei() ?: ($row->getEan() ?: null));
-$row->setResolvedProductsRefExt($row->getSku());
-$row->setResolvedBuyPrice($row->getBuyPrice());
-$row->setResolvedSellPrice(round($row->getBuyPrice() * 1.8, 2));
-$row->setResolvedVat('20');
-$row->setResolvedAccountingAccount('707002');
-$row->setResolvedSupplierId($session->getSupplierId());
-$row->setResolvedCategoryId(null);
-$row->setResolvedCategoryLabel(null);
-$row->setResolvedBrandId(null);
-$row->setResolvedBrandLabel(null);
-$row->setMatchType('none');
-$row->setMatchedProductId(null);
-$row->setIsIgnored(false);
-$row->setIsBlocked(false);
-$row->setBlockReason(null);
-$row->setIsReady($row->isReadyToCreate());
+    $this->initializeResolvedDefaults($row, $session);
 
     $session->addRow($row);
 }
@@ -549,24 +546,7 @@ public function importPdfToSession(Request $request): Response
     $row->setParsedGrade($rowData['parsed_grade'] ?? null);
     $row->setRequiresImei((bool) ($rowData['requires_imei'] ?? false));
     $row->setStatus((string) ($rowData['status'] ?? 'draft'));
-    $row->setResolvedName($row->getRawLabel());
-$row->setResolvedBarcode($row->getImei() ?: ($row->getEan() ?: null));
-$row->setResolvedProductsRefExt($row->getSku());
-$row->setResolvedBuyPrice($row->getBuyPrice());
-$row->setResolvedSellPrice(round($row->getBuyPrice() * 1.8, 2));
-$row->setResolvedVat('20');
-$row->setResolvedAccountingAccount('707002');
-$row->setResolvedSupplierId($session->getSupplierId());
-$row->setResolvedCategoryId(null);
-$row->setResolvedCategoryLabel(null);
-$row->setResolvedBrandId(null);
-$row->setResolvedBrandLabel(null);
-$row->setMatchType('none');
-$row->setMatchedProductId(null);
-$row->setIsIgnored(false);
-$row->setIsBlocked(false);
-$row->setBlockReason(null);
-$row->setIsReady($row->isReadyToCreate());
+    $this->initializeResolvedDefaults($row, $session);
 
     $session->addRow($row);
 }
@@ -579,6 +559,29 @@ $row->setIsReady($row->isReadyToCreate());
     return $this->redirectToRoute('admin_hib_mobile_import_show', [
         'id' => $session->getId(),
     ]);
+}
+
+
+private function initializeResolvedDefaults(MobileImportRow $row, MobileImportSession $session): void
+{
+    $row->setResolvedName($row->getRawLabel() !== '' ? $row->getRawLabel() : null);
+    $row->setResolvedBarcode($row->getImei() ?: ($row->getEan() ?: null));
+    $row->setResolvedProductsRefExt($row->getSku());
+    $row->setResolvedBuyPrice($row->getBuyPrice());
+    $row->setResolvedSellPrice(round($row->getBuyPrice() * 1.8, 2));
+    $row->setResolvedVat('20');
+    $row->setResolvedAccountingAccount('707002');
+    $row->setResolvedSupplierId($session->getSupplierId());
+    $row->setResolvedCategoryId(null);
+    $row->setResolvedCategoryLabel(null);
+    $row->setResolvedBrandId(null);
+    $row->setResolvedBrandLabel(null);
+    $row->setMatchType('none');
+    $row->setMatchedProductId(null);
+    $row->setIsIgnored(false);
+    $row->setIsBlocked(false);
+    $row->setBlockReason(null);
+    $row->setIsReady($row->isReadyToCreate());
 }
 
 

@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin\Hiboutik;
 
+use App\Entity\Hiboutik\IncomingSupplierDocument;
 use App\Entity\Hiboutik\MobileImportRow;
 use App\Entity\Hiboutik\MobileImportSession;
 use App\Service\CacheApiClient;
@@ -28,13 +29,171 @@ class MobileImportController extends AbstractController
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
-    {
-        $sessions = $this->em->getRepository(MobileImportSession::class)->findBy([], ['id' => 'DESC']);
+public function index(Request $request): Response
+{
+    $scope = (string) $request->query->get('scope', 'active');
+    $allowedScopes = ['active', 'draft', 'with_arrival', 'without_arrival', 'archived', 'cancelled', 'all'];
 
-        return $this->render('@SyliusAdmin/Hiboutik/MobileImport/index.html.twig', [
-            'sessions' => $sessions,
-        ]);
+    if (!in_array($scope, $allowedScopes, true)) {
+        $scope = 'active';
+    }
+
+    $allSessions = $this->em->getRepository(MobileImportSession::class)->findBy([], ['id' => 'DESC']);
+    $sessions = array_values(array_filter(
+        $allSessions,
+        fn (MobileImportSession $session): bool => $this->matchesSessionScope($session, $scope)
+    ));
+
+    $eligibleDraftCount = count(array_filter(
+        $sessions,
+        fn (MobileImportSession $session): bool => $this->canDeleteDraftSession($session)
+    ));
+
+    return $this->render('@SyliusAdmin/Hiboutik/MobileImport/index.html.twig', [
+        'sessions' => $sessions,
+        'scope' => $scope,
+        'eligibleDraftCount' => $eligibleDraftCount,
+    ]);
+}
+
+    #[Route('/bulk-action', name: 'bulk_action', methods: ['POST'])]
+    public function bulkAction(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('hib_mobile_bulk_action', (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        $action = (string) $request->request->get('bulk_action', '');
+        $scope = (string) $request->request->get('scope', 'active');
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $request->request->all('ids')), static fn (int $id): bool => $id > 0)));
+
+        if ($ids === []) {
+            $this->addFlash('error', 'Aucune session sélectionnée.');
+            return $this->redirectToRoute('admin_hib_mobile_import_index', ['scope' => $scope]);
+        }
+
+        if (!in_array($action, ['archive', 'cancel', 'delete_draft'], true)) {
+            $this->addFlash('error', 'Action de masse inconnue.');
+            return $this->redirectToRoute('admin_hib_mobile_import_index', ['scope' => $scope]);
+        }
+
+        /** @var MobileImportSession[] $sessions */
+        $sessions = $this->em->getRepository(MobileImportSession::class)->findBy(['id' => $ids]);
+        $processed = 0;
+        $skipped = 0;
+        $detachedDocuments = 0;
+
+        foreach ($sessions as $session) {
+            if (!$session instanceof MobileImportSession) {
+                continue;
+            }
+
+            if ($action === 'archive') {
+                if ($session->getStatus() === 'archived') {
+                    $skipped++;
+                    continue;
+                }
+
+                $session->setStatus('archived');
+                $processed++;
+                continue;
+            }
+
+            if ($action === 'cancel') {
+                if ($session->getStatus() === 'cancelled') {
+                    $skipped++;
+                    continue;
+                }
+
+                $session->setStatus('cancelled');
+                $processed++;
+                continue;
+            }
+
+            if (!$this->canDeleteDraftSession($session)) {
+                $skipped++;
+                continue;
+            }
+
+            $detachedDocuments += $this->detachIncomingDocumentsFromSession($session);
+            $this->deleteStoredSessionFile($session);
+            $this->em->remove($session);
+            $processed++;
+        }
+
+        $this->em->flush();
+
+        if ($action === 'delete_draft') {
+            $message = sprintf('Nettoyage terminé : %d brouillon(s) supprimé(s)', $processed);
+            if ($detachedDocuments > 0) {
+                $message .= sprintf(', %d document(s) détaché(s)', $detachedDocuments);
+            }
+            if ($skipped > 0) {
+                $message .= sprintf(', %d ignoré(s)', $skipped);
+            }
+            $this->addFlash($processed > 0 ? 'success' : 'warning', $message . '.');
+        } else {
+            $label = $action === 'archive' ? 'archivée(s)' : 'annulée(s)';
+            $message = sprintf('%d session(s) %s', $processed, $label);
+            if ($skipped > 0) {
+                $message .= sprintf(', %d ignorée(s)', $skipped);
+            }
+            $this->addFlash($processed > 0 ? 'success' : 'warning', $message . '.');
+        }
+
+        return $this->redirectToRoute('admin_hib_mobile_import_index', ['scope' => $scope]);
+    }
+
+    #[Route('/cleanup-drafts', name: 'cleanup_drafts', methods: ['POST'])]
+    public function cleanupDrafts(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('hib_mobile_cleanup_drafts', (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        $scope = (string) $request->request->get('scope', 'draft');
+        $allowedScopes = ['active', 'draft', 'with_arrival', 'without_arrival', 'archived', 'cancelled', 'all'];
+        if (!in_array($scope, $allowedScopes, true)) {
+            $scope = 'draft';
+        }
+
+        /** @var MobileImportSession[] $sessions */
+        $sessions = $this->em->getRepository(MobileImportSession::class)->findBy([], ['id' => 'DESC']);
+        $removed = 0;
+        $detachedDocuments = 0;
+
+        foreach ($sessions as $session) {
+            if (!$session instanceof MobileImportSession) {
+                continue;
+            }
+
+            if (!$this->matchesSessionScope($session, $scope)) {
+                continue;
+            }
+
+            if (!$this->canDeleteDraftSession($session)) {
+                continue;
+            }
+
+            $detachedDocuments += $this->detachIncomingDocumentsFromSession($session);
+            $this->deleteStoredSessionFile($session);
+            $this->em->remove($session);
+            $removed++;
+        }
+
+        $this->em->flush();
+
+        if ($removed > 0) {
+            $message = sprintf('%d brouillon(s) supprimé(s)', $removed);
+            if ($detachedDocuments > 0) {
+                $message .= sprintf(', %d document(s) détaché(s)', $detachedDocuments);
+            }
+            $this->addFlash('success', $message . '.');
+        } else {
+            $this->addFlash('info', 'Aucun brouillon supprimable à nettoyer.');
+        }
+
+        return $this->redirectToRoute('admin_hib_mobile_import_index', ['scope' => $scope]);
     }
 
     #[Route('/upload', name: 'upload', methods: ['GET', 'POST'])]
@@ -138,14 +297,98 @@ public function show(int $id): Response
     $brandsRes = $this->hib->listBrands();
     $brands = is_array($brandsRes['data'] ?? null) ? $brandsRes['data'] : [];
 
-    return $this->render('@SyliusAdmin/Hiboutik/MobileImport/show.html.twig', [
+        return $this->render('@SyliusAdmin/Hiboutik/MobileImport/show.html.twig', [
         'session' => $session,
         'suppliers' => $suppliers,
         'categories' => $categories,
         'brands' => $brands,
         'rowsView' => $this->buildRowsView($session),
+        'canDeleteDraft' => $this->canDeleteDraftSession($session),
+        'hasImportedProducts' => $this->hasImportedProducts($session),
     ]);
 }
+
+
+    #[Route('/{id}/archive', name: 'archive', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function archive(int $id, Request $request): Response
+    {
+        /** @var MobileImportSession|null $session */
+        $session = $this->em->getRepository(MobileImportSession::class)->find($id);
+        if (!$session) {
+            throw $this->createNotFoundException('Session introuvable');
+        }
+
+        if (!$this->isCsrfTokenValid('hib_mobile_archive_' . $id, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        if ($session->getStatus() !== 'archived') {
+            $session->setStatus('archived');
+            $this->em->flush();
+            $this->addFlash('success', 'Session archivée.');
+        } else {
+            $this->addFlash('info', 'Cette session est déjà archivée.');
+        }
+
+        return $this->redirectToRoute('admin_hib_mobile_import_index');
+    }
+
+    #[Route('/{id}/cancel', name: 'cancel', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function cancel(int $id, Request $request): Response
+    {
+        /** @var MobileImportSession|null $session */
+        $session = $this->em->getRepository(MobileImportSession::class)->find($id);
+        if (!$session) {
+            throw $this->createNotFoundException('Session introuvable');
+        }
+
+        if (!$this->isCsrfTokenValid('hib_mobile_cancel_' . $id, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        if ($session->getStatus() !== 'cancelled') {
+            $session->setStatus('cancelled');
+            $this->em->flush();
+            $this->addFlash('success', 'Session annulée.');
+        } else {
+            $this->addFlash('info', 'Cette session est déjà annulée.');
+        }
+
+        return $this->redirectToRoute('admin_hib_mobile_import_index');
+    }
+
+    #[Route('/{id}/delete-draft', name: 'delete_draft', requirements: ['id' => '\d+'], methods: ['POST'])]
+    public function deleteDraft(int $id, Request $request): Response
+    {
+        /** @var MobileImportSession|null $session */
+        $session = $this->em->getRepository(MobileImportSession::class)->find($id);
+        if (!$session) {
+            throw $this->createNotFoundException('Session introuvable');
+        }
+
+        if (!$this->isCsrfTokenValid('hib_mobile_delete_draft_' . $id, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        if (!$this->canDeleteDraftSession($session)) {
+            $this->addFlash('error', 'Suppression refusée : la session a déjà un arrivage Hiboutik, un import réel, ou n’est plus un simple brouillon.');
+            return $this->redirectToRoute('admin_hib_mobile_import_show', ['id' => $id]);
+        }
+
+        $detachedDocuments = $this->detachIncomingDocumentsFromSession($session);
+        $this->deleteStoredSessionFile($session);
+
+        $this->em->remove($session);
+        $this->em->flush();
+
+        if ($detachedDocuments > 0) {
+            $this->addFlash('success', sprintf('Brouillon supprimé. %d document(s) entrant(s) ont été détachés.', $detachedDocuments));
+        } else {
+            $this->addFlash('success', 'Brouillon supprimé.');
+        }
+
+        return $this->redirectToRoute('admin_hib_mobile_import_index');
+    }
 
     #[Route('/{id}/prepare-arrival', name: 'prepare_arrival', requirements: ['id' => '\d+'], methods: ['POST'])]
     public function prepareArrival(int $id, Request $request): Response
@@ -346,6 +589,79 @@ public function show(int $id): Response
         $this->addFlash('success', sprintf('Import terminé : %d OK / %d KO', $ok, $ko));
 
         return $this->redirectToRoute('admin_hib_mobile_import_show', ['id' => $id]);
+    }
+
+
+    private function matchesSessionScope(MobileImportSession $session, string $scope): bool
+    {
+        return match ($scope) {
+            'all' => true,
+            'draft' => $session->getStatus() === 'draft',
+            'with_arrival' => $session->getHibInventoryInputId() !== null,
+            'without_arrival' => $session->getHibInventoryInputId() === null,
+            'archived' => $session->getStatus() === 'archived',
+            'cancelled' => $session->getStatus() === 'cancelled',
+            'active' => !in_array($session->getStatus(), ['archived', 'cancelled'], true),
+            default => true,
+        };
+    }
+
+    private function hasImportedProducts(MobileImportSession $session): bool
+    {
+        foreach ($session->getRows() as $row) {
+            if ($row->getCreatedProductId()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function canDeleteDraftSession(MobileImportSession $session): bool
+    {
+        if ($session->getHibInventoryInputId() !== null) {
+            return false;
+        }
+
+        if (!in_array($session->getStatus(), ['draft', 'error', 'cancelled'], true)) {
+            return false;
+        }
+
+        return !$this->hasImportedProducts($session);
+    }
+
+    private function detachIncomingDocumentsFromSession(MobileImportSession $session): int
+    {
+        $documents = $this->em->getRepository(IncomingSupplierDocument::class)->findBy([
+            'importSessionId' => $session->getId(),
+        ]);
+
+        foreach ($documents as $document) {
+            if (!$document instanceof IncomingSupplierDocument) {
+                continue;
+            }
+
+            $document->setImportSessionId(null);
+
+            if ($document->getProcessingStatus() === 'prepared') {
+                $document->setProcessingStatus('parsed');
+            }
+        }
+
+        return count($documents);
+    }
+
+    private function deleteStoredSessionFile(MobileImportSession $session): void
+    {
+        $storedFilename = trim((string) $session->getStoredFilename());
+        if ($storedFilename === '') {
+            return;
+        }
+
+        $path = $this->getParameter('kernel.project_dir') . '/var/mobile-imports/' . $storedFilename;
+        if (is_file($path)) {
+            @unlink($path);
+        }
     }
 
     /**
