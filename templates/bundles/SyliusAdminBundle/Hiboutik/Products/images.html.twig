@@ -2,8 +2,6 @@
 
 {% block content %}
 
-{% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
-
 <h2 class="ui header">
   Images produit #{{ product.product_id }}
 </h2>
@@ -17,28 +15,29 @@ const uploadUrl = "{{ path('admin_hiboutik_product_images', {id: product.product
 {% for i in 1..4 %}
 
   {% set current = null %}
+  {% set expectedNameJpg = 'big_' ~ product.product_id ~ '-' ~ i ~ '.jpg' %}
+  {% set expectedNameJpeg = 'big_' ~ product.product_id ~ '-' ~ i ~ '.jpeg' %}
 
   {% for img in images %}
-    {% if 'big_' in img.image_name and '-' ~ i ~ '.' in img.image_name %}
+    {% set imageName = img.image_name|default('') %}
+    {% if imageName == expectedNameJpg or imageName == expectedNameJpeg %}
       {% set current = img %}
     {% endif %}
   {% endfor %}
 
-  {% set previewUrl = '' %}
-  {% if current and current.url is defined and current.url %}
-    {% if current.url starts with imageProxyBase %}
-      {% set previewUrl = current.url %}
-    {% else %}
-      {% set previewUrl = imageProxyBase ~ (current.url|url_encode) %}
-    {% endif %}
-  {% endif %}
+  {% set previewUrl = path('admin_hiboutik_product_image_preview', {
+    id: product.product_id,
+    slot: i,
+    t: 'now'|date('U')
+  }) %}
 
   <div class="four wide column">
     <div class="ui segment center aligned" data-slot="{{ i }}">
 
       <img id="preview-{{ i }}"
            src="{{ previewUrl }}"
-           style="max-width:100%; min-height:150px; background:#f5f5f5; object-fit:contain">
+           style="max-width:100%; min-height:150px; background:#f5f5f5; object-fit:contain"
+           onerror="this.src=''; this.style.background='#fff7ed';">
 
       <div style="margin-top:8px;">Image {{ i }}</div>
 

@@ -263,13 +263,17 @@ final class RachatDossierFinalizeService
         throw new \RuntimeException('Identifiant produit Hiboutik introuvable après création.');
     }
 
-    if ($imei !== '' && method_exists($this->hiboutikClient, 'trySetBarcodeSmart')) {
-        try {
-            $this->hiboutikClient->trySetBarcodeSmart($productId, $imei);
-        } catch (\Throwable) {
-            // Ne pas bloquer toute la finalisation pour un souci de barcode
-        }
+    if ($imei !== '' && method_exists($this->hiboutikClient, 'putProductAttributeSingle')) {
+    try {
+        $this->hiboutikClient->putProductAttributeSingle(
+            $productId,
+            'product_barcode',
+            $imei
+        );
+    } catch (\Throwable) {
+        // Ne pas bloquer toute la finalisation pour un souci de barcode
     }
+}
 
     if (method_exists($this->hiboutikClient, 'updateProductAttributes')) {
         try {

@@ -445,9 +445,9 @@
       <th class="nowrap">Prix</th>
       <th>Catégorie</th>
       <th>Fournisseur</th>
-      <th>Tags</th>
-      
-      <th class="nowrap">WWW</th>
+<th>Arrivage</th>
+<th>Tags</th>
+<th class="nowrap">WWW</th>
       <th class="nowrap">⚙️</th>
     </tr>
   </thead>
@@ -455,20 +455,15 @@
   {% for p in products %}
     {% set pid = (p.product_id ?? 0) + 0 %}
     {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
-    {% set imgs = p.images ?? [] %}
+    
 
-    {% set rawMini = '' %}
-    {% if imgs|length > 0 %}
-      {% set firstImg = imgs[0] %}
-      {% if firstImg is iterable %}
-        {% set rawMini = firstImg.url|default(firstImg.src|default(firstImg.image|default(''))) %}
-      {% else %}
-        {% set rawMini = firstImg %}
-      {% endif %}
-    {% endif %}
-
-   {% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
-{% set mini = rawMini ? imageProxyBase ~ (rawMini|url_encode) : '' %}
+   {% set imgs = p.images ?? [] %}
+{% set hasImageHint = (imgs|length > 0) or (p.thumb|default('') != '') or (p.image|default('') != '') %}
+{% set mini = hasImageHint ? path('admin_hiboutik_product_image_preview', {
+  id: pid,
+  slot: 1,
+  t: 'now'|date('U')
+}) : '' %}
 
     {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
     {% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
@@ -481,23 +476,40 @@
       <td class="nowrap mono">#{{ pid }}</td>
 
       <td>
-        {% if mini %}
-          <div class="thumb-box">
-            <img src="{{ mini }}" alt="mini {{ pid }}">
-          </div>
-        {% else %}
-          <div class="thumb-box no-image">NO IMG</div>
-        {% endif %}
-      </td>
+ 
+  {% if mini %}
+    <div class="thumb-box">
+      <img
+        src="{{ mini }}"
+        alt="mini {{ pid }}"
+        onerror="this.parentNode.classList.add('no-image'); this.parentNode.innerHTML='NO IMG';"
+      >
+    </div>
+  {% else %}
+    <div class="thumb-box no-image">NO IMG</div>
+  {% endif %}
+</td>
 
       <td class="trunc">{{ p.product_model ?? '—' }}</td>
       <td class="trunc">{{ brandName }}</td>
      <td class="nowrap mono">{{ p.product_barcode ?? '—' }}</td>
       <td class="nowrap">{{ p.product_price ?? '—' }}</td>
       <td class="trunc">{{ p.category_name ?? '—' }}</td>
-      <td class="trunc">{{ p.supplier_name ?? '—' }}</td>
+<td class="trunc">{{ p.supplier_name ?? '—' }}</td>
 
-      <td>
+<td>
+  {% if p.last_purchase_history %}
+    <div><strong>{{ p.last_purchase_label ?? '—' }}</strong></div>
+    <div class="muted">{{ p.last_purchase_date ?? '—' }}</div>
+    <div class="muted">{{ p.last_purchase_supplier_name ?? '—' }}</div>
+  {% else %}
+    <span class="muted">—</span>
+  {% endif %}
+</td>
+
+<td>
+
+      
         {% if tagsList|length %}
           {% for t in tagsList|slice(0,4) %}
             <span class="pill pill-info">
@@ -528,7 +540,7 @@
     </tr>
   {% else %}
     <tr>
-      <td colspan="12" class="muted">Aucun produit.</td>
+      <td colspan="13" class="muted">Aucun produit.</td>
     </tr>
   {% endfor %}
 </tbody>
@@ -540,20 +552,13 @@
   {% for p in products %}
     {% set pid = (p.product_id ?? 0) + 0 %}
     {% set www = (p.product_display_www ?? 0) ? 1 : 0 %}
-    {% set imgs = p.images ?? [] %}
-
-    {% set rawMini = '' %}
-    {% if imgs|length > 0 %}
-      {% set firstImg = imgs[0] %}
-      {% if firstImg is iterable %}
-        {% set rawMini = firstImg.url|default(firstImg.src|default(firstImg.image|default(''))) %}
-      {% else %}
-        {% set rawMini = firstImg %}
-      {% endif %}
-    {% endif %}
-
-    {% set imageProxyBase = 'https://shop.multimedia-services.fr/api/hiboutik/image?src=' %}
-{% set mini = rawMini ? imageProxyBase ~ (rawMini|url_encode) : '' %}
+   {% set imgs = p.images ?? [] %}
+{% set hasImageHint = (imgs|length > 0) or (p.thumb|default('') != '') or (p.image|default('') != '') %}
+{% set mini = hasImageHint ? path('admin_hiboutik_product_image_preview', {
+  id: pid,
+  slot: 1,
+  t: 'now'|date('U')
+}) : '' %}
 
     {% set brandName = (p.product_brand_name|default('')|trim != '') ? p.product_brand_name|trim : (p.brand_name|default('—')) %}
     {% set tagsList = p.tags_slug is iterable ? p.tags_slug : [] %}
@@ -564,14 +569,18 @@
       </div>
 
       <div class="cardThumb">
-        {% if mini %}
-          <div class="thumb-box">
-            <img src="{{ mini }}" alt="mini {{ pid }}">
-          </div>
-        {% else %}
-          <div class="thumb-box no-image">NO IMG</div>
-        {% endif %}
-      </div>
+  {% if mini %}
+    <div class="thumb-box">
+      <img
+        src="{{ mini }}"
+        alt="mini {{ pid }}"
+        onerror="this.parentNode.classList.add('no-image'); this.parentNode.innerHTML='NO IMG';"
+      >
+    </div>
+  {% else %}
+    <div class="thumb-box no-image">NO IMG</div>
+  {% endif %}
+</div>
 
       <div class="cardMain">
         <div class="cardTop">
@@ -589,7 +598,10 @@
           <span class="badge"><i class="euro sign icon"></i> {{ p.product_price ?? '—' }}</span>
           <span class="badge"><i class="folder icon"></i> {{ p.category_name ?? '—' }}</span>
           <span class="badge"><i class="user icon"></i> {{ p.supplier_name ?? '—' }}</span>
-
+{% if p.last_purchase_history %}
+  <span class="badge"><i class="truck icon"></i> {{ p.last_purchase_label ?? '—' }}</span>
+  <span class="badge"><i class="calendar icon"></i> {{ p.last_purchase_date ?? '—' }}</span>
+{% endif %}
           {% if www %}
             <span class="pill pill-ok"><i class="globe icon"></i> WWW Oui</span>
           {% else %}

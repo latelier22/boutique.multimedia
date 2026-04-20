@@ -2538,4 +2538,41 @@ public function clearProductBarcode(int $productId): array
     return $this->putProductAttribute($productId, 'product_barcode', '');
 }
 
+
+public function downloadProductImageBySlot(int $productId, int $slot): ?array
+{
+    $slot = max(1, min(4, $slot));
+
+    foreach (['jpg', 'jpeg', 'png', 'webp'] as $ext) {
+        $url = sprintf(
+            'https://%s.hiboutik.com/api/products_images/big_%d-%d.%s',
+            $this->hibAccount,
+            $productId,
+            $slot,
+            $ext
+        );
+
+        $r = $this->httpClient->request('GET', $url, $this->auth([
+            'headers' => [
+                'Accept' => '*/*',
+            ],
+        ]));
+
+        $status = $r->getStatusCode();
+
+        if ($status >= 200 && $status < 300) {
+            $headers = $r->getHeaders(false);
+
+            return [
+                'content' => $r->getContent(),
+                'content_type' => $headers['content-type'][0] ?? 'image/jpeg',
+                'url' => $url,
+            ];
+        }
+    }
+
+    return null;
+}
+
+
 }
