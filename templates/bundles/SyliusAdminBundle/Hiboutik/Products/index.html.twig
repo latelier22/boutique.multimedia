@@ -209,6 +209,36 @@
     background:#ffedd5;
   }
 
+    .hibTableWrap{
+    position: relative;
+    overflow: visible;
+  }
+
+  table#hibTable{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    background:#fff;
+  }
+
+  table#hibTable th,
+  table#hibTable td{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    text-align:left;
+    vertical-align:middle;
+  }
+
+  table#hibTable thead th{
+    position: sticky;
+    top: var(--hib-sticky-top);
+    background:#0d6efd;
+    color:#fff;
+    z-index:1200;
+    box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    background-clip: padding-box;
+  }
+
   @media (max-width: 768px){
     table#hibTable{display:none;}
     .cardsWrap{display:block;}
@@ -402,6 +432,7 @@
 </div>
 
 {# ===================== TABLE DESKTOP ===================== #}
+<div class="hibTableWrap">
 <table id="hibTable">
   <thead>
     <tr>
@@ -410,6 +441,7 @@
       <th class="nowrap">🖼️</th>
       <th>Nom</th>
       <th>Marque</th>
+      <th class="nowrap">Code barre</th>
       <th class="nowrap">Prix</th>
       <th>Catégorie</th>
       <th>Fournisseur</th>
@@ -460,6 +492,7 @@
 
       <td class="trunc">{{ p.product_model ?? '—' }}</td>
       <td class="trunc">{{ brandName }}</td>
+     <td class="nowrap mono">{{ p.product_barcode ?? '—' }}</td>
       <td class="nowrap">{{ p.product_price ?? '—' }}</td>
       <td class="trunc">{{ p.category_name ?? '—' }}</td>
       <td class="trunc">{{ p.supplier_name ?? '—' }}</td>
@@ -495,11 +528,12 @@
     </tr>
   {% else %}
     <tr>
-      <td colspan="11" class="muted">Aucun produit.</td>
+      <td colspan="12" class="muted">Aucun produit.</td>
     </tr>
   {% endfor %}
 </tbody>
 </table>
+</div>
 
 {# ===================== CARDS MOBILE/TABLET ===================== #}
 <div class="cardsWrap">
@@ -549,8 +583,9 @@
           </div>
         </div>
 
-        <div class="cardMeta">
+                <div class="cardMeta">
           <span class="badge"><i class="tag icon"></i> {{ brandName }}</span>
+          <span class="badge"><i class="barcode icon"></i> {{ p.product_barcode ?? '—' }}</span>
           <span class="badge"><i class="euro sign icon"></i> {{ p.product_price ?? '—' }}</span>
           <span class="badge"><i class="folder icon"></i> {{ p.category_name ?? '—' }}</span>
           <span class="badge"><i class="user icon"></i> {{ p.supplier_name ?? '—' }}</span>

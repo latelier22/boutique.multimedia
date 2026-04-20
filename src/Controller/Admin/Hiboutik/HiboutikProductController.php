@@ -155,6 +155,14 @@ foreach ($categoryOptions as $opt) {
         $pSup   = (int)($p['product_supplier'] ?? 0);
         $pBrand = (int)($p['product_brand'] ?? 0);
 
+        $lastPurchase = is_array($p['last_purchase_history'] ?? null)
+    ? $p['last_purchase_history']
+    : null;
+
+$lastPurchaseSupplierId = (int)($lastPurchase['inventory_input_supplier_id'] ?? 0);
+
+$p['last_purchase_supplier_name'] = $supMapName[$lastPurchaseSupplierId] ?? '—';
+
         // noms lisibles
         $p['category_name'] = $catMapName[$pCat] ?? '—';
         $p['supplier_name'] = $supMapName[$pSup] ?? '—';
@@ -164,6 +172,8 @@ foreach ($categoryOptions as $opt) {
         if ($www !== '' && $pWww !== $www) continue;
         if ($wantSup > 0 && $pSup !== $wantSup) continue;
         if ($wantBrand > 0 && $pBrand !== $wantBrand) continue;
+
+        
 
         // recherche
         if ($qLower !== '') {

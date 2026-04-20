@@ -5,89 +5,145 @@
 
 {% block content %}
 	<div class="ui segment">
-		<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-			<h1 class="ui header" style="margin:0;">
-				<i class="tasks icon"></i>
-				<div class="content">
-					Session import #{{ session.id }}
-					<div class="sub header">
-						{{ session.sourceFilename }}
-						—
-						{{ session.sourceType }}
-					</div>
-				</div>
-			</h1>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+    <div>
+      <h1 class="ui header" style="margin:0 0 6px 0;">
+        <i class="tasks icon"></i>
+        <div class="content">
+          Session import #{{ session.id }}
+          <div class="sub header">
+            {{ session.sourceFilename ?: 'Document sans nom' }}
+          </div>
+        </div>
+      </h1>
 
-			<a href="{{ path('admin_hib_mobile_import_index') }}" class="ui button">Retour à la liste</a>
-		</div>
-	</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <span class="ui small label">
+          Type :
+          {% if session.sourceType == 'purchase_order' %}
+            Bon de commande
+          {% elseif session.sourceType == 'delivery_note' %}
+            Bon de livraison
+          {% elseif session.sourceType == 'hib_inventory_input' %}
+            Arrivage Hiboutik
+          {% else %}
+            {{ session.sourceType ?: '—' }}
+          {% endif %}
+        </span>
 
-	<form id="grid-form" method="post" action="{{ path('admin_hib_mobile_import_save_grid', {id: session.id}) }}" data-turbo="false">
-		<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_save_grid_' ~ session.id) }}">
-	</form>
+        <span class="ui small label">
+          Lignes : {{ session.rows|length }}
+        </span>
 
-	{% for item in rowsView %}
-		{% set row = item.row %}
-		{% if not row.createdProductId %}
-			<form id="import-row-{{ row.id }}" method="post" action="{{ path('admin_hib_mobile_import_import_row', {rowId: row.id}) }}" data-turbo="false">
-				<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_import_row_' ~ row.id) }}">
-			</form>
-		{% endif %}
-	{% endfor %}
+        {% if session.hibInventoryInputId %}
+          <span class="ui small green label">
+            Arrivage lié #{{ session.hibInventoryInputId }}
+          </span>
+        {% else %}
+          <span class="ui small orange label">
+            Aucun arrivage lié
+          </span>
+        {% endif %}
+      </div>
+    </div>
 
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="submit" class="ui primary button" form="grid-form">
+        <i class="save icon"></i>
+        Enregistrer la grille
+      </button>
 
-	<div class="ui segment">
-		<h3 class="ui dividing header">Informations session</h3>
-		<div class="ui list">
-			<div class="item">
-				<strong>Fichier :</strong>
-				{{ session.sourceFilename }}</div>
-			<div class="item">
-				<strong>Code document :</strong>
-				{{ session.documentCode ?: '—' }}</div>
-			<div class="item">
-				<strong>Fournisseur :</strong>
-				{{ session.supplierId ?: '—' }}</div>
-			<div class="item">
-				<strong>Arrivage Hiboutik :</strong>
-				{% if session.hibInventoryInputId %}#{{ session.hibInventoryInputId }}{% else %}—
-				{% endif %}
-			</div>
-			<div class="item">
-				<strong>Lignes :</strong>
-				{{ session.rows|length }}</div>
-		</div>
-	</div>
+      <a href="{{ path('admin_hib_mobile_import_index') }}" class="ui button">
+        Retour à la liste
+      </a>
+    </div>
+  </div>
+</div>
 
-	<div class="ui segment">
-		<h3 class="ui dividing header">Créer / préparer l’arrivage Hiboutik</h3>
+<div class="ui three stackable cards">
+  <div class="card">
+    <div class="content">
+      <div class="header">Document</div>
+      <div class="description" style="margin-top:10px;">
+        <div><strong>Nom :</strong> {{ session.sourceFilename ?: '—' }}</div>
+        <div><strong>Référence :</strong> {{ session.documentCode ?: '—' }}</div>
+        <div><strong>Type :</strong>
+          {% if session.sourceType == 'purchase_order' %}
+            Bon de commande
+          {% elseif session.sourceType == 'delivery_note' %}
+            Bon de livraison
+          {% elseif session.sourceType == 'hib_inventory_input' %}
+            Arrivage Hiboutik
+          {% else %}
+            {{ session.sourceType ?: '—' }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 
-		<form method="post" action="{{ path('admin_hib_mobile_import_prepare_arrival', {id: session.id}) }}" class="ui form" data-turbo="false">
-			<input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_prepare_' ~ session.id) }}">
+  <div class="card">
+    <div class="content">
+      <div class="header">Fournisseur</div>
+      <div class="description" style="margin-top:10px;">
+        <div><strong>ID fournisseur :</strong> {{ session.supplierId ?: '—' }}</div>
+        <div><strong>Arrivage lié :</strong>
+          {% if session.hibInventoryInputId %}
+            #{{ session.hibInventoryInputId }}
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 
-			<div class="field">
-				<label>Code document</label>
-				<input type="text" name="document_code" value="{{ session.documentCode }}" required>
-			</div>
+  <div class="card">
+    <div class="content">
+      <div class="header">Actions arrivage</div>
+      <div class="description" style="margin-top:10px;">
+        {% if session.hibInventoryInputId %}
+          <div class="ui small green message" style="margin-bottom:10px;">
+            Cette session est déjà liée à l’arrivage #{{ session.hibInventoryInputId }}.
+          </div>
+        {% else %}
+          <div class="ui small orange message" style="margin-bottom:10px;">
+            Aucun arrivage n’est encore lié à cette session.
+          </div>
+        {% endif %}
 
-			<div class="field">
-				<label>Fournisseur Hiboutik</label>
-				<select name="supplier_id" class="ui dropdown" required>
-					<option value="">Choisir...</option>
-					{% for s in suppliers %}
-						<option value="{{ s.supplier_id }}" {% if session.supplierId and session.supplierId == s.supplier_id %} selected {% endif %}>
-							{{ s.supplier_name }}
-						</option>
-					{% endfor %}
-				</select>
-			</div>
+        <form method="post" action="{{ path('admin_hib_mobile_import_prepare_arrival', {id: session.id}) }}" class="ui form" data-turbo="false">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('hib_mobile_prepare_' ~ session.id) }}">
 
-			<button type="submit" class="ui primary button">
-				{% if session.hibInventoryInputId %}Recréer l’arrivage{% else %}Créer l’arrivage
-				{% endif %}
-			</button>
-		</form>
-	</div>
+          <div class="field">
+            <label>Référence document</label>
+            <input type="text" name="document_code" value="{{ session.documentCode }}">
+          </div>
+
+          <div class="field">
+            <label>Fournisseur Hiboutik</label>
+            <select name="supplier_id" class="ui dropdown" required>
+              <option value="">Choisir...</option>
+              {% for s in suppliers %}
+                <option value="{{ s.supplier_id }}" {% if session.supplierId and session.supplierId == s.supplier_id %}selected{% endif %}>
+                  {{ s.supplier_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="ui primary button">
+            {% if session.hibInventoryInputId %}
+              Vérifier / rattacher l’arrivage
+            {% else %}
+              Créer ou rattacher l’arrivage
+            {% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 	<div class="ui segment">
 		<button type="submit" class="ui primary button" form="grid-form">
@@ -201,7 +257,37 @@
   }
 </style>
 
+<div class="ui segment" style="margin-bottom:1rem;">
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <div style="flex:1; min-width:280px;">
+      <div class="ui left icon input fluid">
+        <i class="search icon"></i>
+        <input
+          type="text"
+          id="live-row-filter"
+          placeholder="Filtrer les lignes en live : nom, IMEI, EAN, SKU, catégorie, marque, raison…"
+          autocomplete="off"
+        >
+      </div>
+    </div>
 
+    <div class="ui small basic label">
+      <span id="live-row-filter-count">0 / 0</span>
+    </div>
+
+    <button type="button" class="ui small button" id="live-row-filter-reset">
+      <i class="undo icon"></i> Tout voir
+    </button>
+
+    <button type="button" class="ui small teal button" id="select-visible-rows">
+      <i class="check square outline icon"></i> Sélectionner visibles
+    </button>
+
+    <button type="button" class="ui small button" id="unselect-visible-rows">
+      <i class="square outline icon"></i> Désélectionner visibles
+    </button>
+  </div>
+</div>
 
 <div class="ui segment">
 	{% if rowsView is empty %}
@@ -210,7 +296,7 @@
 		<div style="overflow-x:auto;">
 			<table class="ui celled table sessions-table">
 				<thead>
-					<tr>
+					<tr >
 						<th></th>
 						<th>Ligne</th>
 						<th>Libellé brut</th>
@@ -239,7 +325,32 @@
 				<tbody>
 					{% for item in rowsView %}
 						{% set row = item.row %}
-						<tr {% if row.isBlocked %} class="error" {% elseif row.createdProductId %} class="positive" {% endif %}>
+						<tr class="import-row {% if row.isBlocked %}error{% elseif row.createdProductId %}positive{% endif %}"
+						data-filter-text="
+        {{ row.lineNumber }}
+        {{ row.rawLabel }}
+        {{ row.sku ?: '' }}
+        {{ row.imei ?: '' }}
+        {{ row.ean ?: '' }}
+        {{ row.quantity }}
+        {{ row.resolvedName ?: row.rawLabel }}
+        {{ row.resolvedBarcode ?: row.imei ?: row.ean ?: '' }}
+        {{ row.resolvedProductsRefExt ?: row.sku ?: '' }}
+        {{ row.resolvedBuyPrice ?: row.buyPrice ?: '' }}
+        {{ row.resolvedSellPrice ?: row.buyPrice ?: '' }}
+        {{ row.resolvedVat is not null ? row.resolvedVat : '' }}
+        {{ row.resolvedAccountingAccount ?: '' }}
+        {{ row.resolvedCategoryLabel ?: '' }}
+        {{ row.resolvedBrandLabel ?: '' }}
+        {{ row.blockReason ?: '' }}
+        {{ row.createdProductId ?: '' }}
+        {{ row.isBlocked ? 'bloque' : '' }}
+        {{ row.isReady ? 'pret' : '' }}
+        {{ row.isIgnored ? 'ignore' : '' }}
+        {{ row.createdProductId ? 'deja traite' : '' }}
+    "
+						
+						>
 							<td>
 							<input type="checkbox"
        class="row-check"
@@ -497,5 +608,101 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+</script>
+<script>
+(function () {
+  const input = document.getElementById('live-row-filter');
+  const resetBtn = document.getElementById('live-row-filter-reset');
+  const selectVisibleBtn = document.getElementById('select-visible-rows');
+  const unselectVisibleBtn = document.getElementById('unselect-visible-rows');
+  const counter = document.getElementById('live-row-filter-count');
+
+  if (!input || !counter) return;
+
+  const rows = Array.from(document.querySelectorAll('tbody tr.import-row'));
+
+  function normalize(str) {
+    return (str || '')
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function rowText(row) {
+    const staticText = row.getAttribute('data-filter-text') || '';
+    const dynamicValues = [];
+
+    row.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type === 'checkbox' || el.type === 'radio') return;
+
+      if (el.tagName === 'SELECT') {
+        const selectedOption = el.options[el.selectedIndex];
+        dynamicValues.push(el.value || '');
+        dynamicValues.push(selectedOption ? selectedOption.text || '' : '');
+      } else {
+        dynamicValues.push(el.value || '');
+      }
+    });
+
+    return normalize(staticText + ' ' + dynamicValues.join(' '));
+  }
+
+  function applyFilter() {
+    const q = normalize(input.value);
+    let visible = 0;
+
+    rows.forEach(row => {
+      const hay = rowText(row);
+      const match = q === '' || hay.includes(q);
+
+      row.style.display = match ? '' : 'none';
+
+      if (match) visible++;
+    });
+
+    counter.textContent = visible + ' / ' + rows.length;
+  }
+
+  function visibleRows() {
+    return rows.filter(row => row.style.display !== 'none');
+  }
+
+  function findRowCheckbox(row) {
+    return row.querySelector('input.row-check');
+  }
+
+  input.addEventListener('input', applyFilter);
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      input.value = '';
+      applyFilter();
+      input.focus();
+    });
+  }
+
+  if (selectVisibleBtn) {
+    selectVisibleBtn.addEventListener('click', function () {
+      visibleRows().forEach(row => {
+        const cb = findRowCheckbox(row);
+        if (cb) cb.checked = true;
+      });
+    });
+  }
+
+  if (unselectVisibleBtn) {
+    unselectVisibleBtn.addEventListener('click', function () {
+      visibleRows().forEach(row => {
+        const cb = findRowCheckbox(row);
+        if (cb) cb.checked = false;
+      });
+    });
+  }
+
+  applyFilter();
+})();
 </script>
 {% endblock %}
