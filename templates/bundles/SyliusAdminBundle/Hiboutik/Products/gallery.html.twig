@@ -1,0 +1,378 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+{% block title %}Galerie produits Hiboutik{% endblock %}
+
+{% block content %}
+<style>
+  .hib-gallery-top {
+    position: sticky;
+    top: 56px;
+    z-index: 100;
+    background: #fff;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 18px;
+  }
+
+  .hib-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .hib-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hib-card-image {
+    height: 220px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .hib-card-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .hib-card-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .hib-card-title {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.3;
+    min-height: 40px;
+  }
+
+  .hib-card-id {
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .hib-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hib-price {
+    font-weight: 800;
+    font-size: 20px;
+    color: #0f172a;
+  }
+
+  .hib-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .hib-stock-ok {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .hib-stock-ko {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .hib-todo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .hib-meta {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+    color: #334155;
+  }
+
+  .hib-tags,
+  .hib-todos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 28px;
+  }
+
+  .hib-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-size: 12px;
+    border: 1px solid #93c5fd;
+  }
+
+  .hib-todo-flag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fff1f2;
+    color: #be123c;
+    font-size: 12px;
+    border: 1px solid #fecdd3;
+  }
+
+  .hib-card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .hib-empty {
+    padding: 24px;
+    text-align: center;
+    color: #64748b;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+  }
+
+  .hib-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+</style>
+
+{% set todoLabels = {
+  'no_photo': 'Pas de photo',
+  'no_stock': 'Pas de stock',
+  'no_purchase_history': 'Pas d’arrivage',
+  'no_barcode': 'Pas de code-barres',
+  'no_brand': 'Pas de marque',
+  'no_supplier': 'Pas de fournisseur'
+} %}
+
+<div class="hib-gallery-top">
+  <h1 class="ui header">Galerie produits Hiboutik</h1>
+
+  <form method="get" class="ui form">
+    <input type="hidden" name="page" value="1">
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div class="field">
+        <input type="text" name="q" placeholder="Recherche" value="{{ filters.q ?? '' }}">
+      </div>
+
+      <div class="field">
+        <select name="brand" class="ui dropdown">
+          <option value="">Marque</option>
+          {% for name,id in brandChoices %}
+            <option value="{{ id }}" {{ (filters.brand ?? '') == (id ~ '') ? 'selected' : '' }}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="cat" class="ui dropdown">
+          <option value="">Catégorie</option>
+          {% for name,id in catChoices %}
+            <option value="{{ id }}" {{ (filters.cat ?? '') == (id ~ '') ? 'selected' : '' }}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="sup" class="ui dropdown">
+          <option value="">Fournisseur</option>
+          {% for name,id in supplierChoices %}
+            <option value="{{ id }}" {{ (filters.sup ?? '') == (id ~ '') ? 'selected' : '' }}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="tag" class="ui dropdown">
+          <option value="">Tag</option>
+          {% for label,id in tagChoices %}
+            <option value="{{ id }}" {{ (filters.tag ?? '') == (id ~ '') ? 'selected' : '' }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="stock" class="ui dropdown">
+          <option value="">Stock</option>
+          <option value="1" {{ (filters.stock ?? '') == '1' ? 'selected' : '' }}>En stock</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <select name="todo_only" class="ui dropdown">
+          <option value="">Tous</option>
+          <option value="1" {{ (filters.todo_only ?? '') == '1' ? 'selected' : '' }}>À traiter uniquement</option>
+        </select>
+      </div>
+
+      <div class="field">
+  <select name="per_page" class="ui dropdown" onchange="this.form.submit()">
+    <option value="100" {{ (filters.per_page ?? '100') == '100' ? 'selected' : '' }}>100 / page</option>
+    <option value="200" {{ (filters.per_page ?? '100') == '200' ? 'selected' : '' }}>200 / page</option>
+    <option value="500" {{ (filters.per_page ?? '100') == '500' ? 'selected' : '' }}>500 / page</option>
+    <option value="all" {{ (filters.per_page ?? '100') == 'all' ? 'selected' : '' }}>Tous</option>
+  </select>
+</div>
+
+      <button class="ui primary button" type="submit">Filtrer</button>
+      <a class="ui button" href="{{ path('admin_hiboutik_product_gallery') }}">Reset</a>
+      <a class="ui button" href="{{ path('admin_hiboutik_product_index') }}">Vue tableau</a>
+    </div>
+  </form>
+
+  <div style="margin-top:8px;color:#64748b;">
+    {{ total }} produit(s)
+  </div>
+</div>
+
+{% if products|length %}
+  <div class="hib-gallery-grid">
+    {% for p in products %}
+      {% set pid = p.product_id ?? 0 %}
+      {% set mini = '' %}
+
+      {% if p.images is iterable and p.images|length %}
+        {% for img in p.images %}
+          {% if img.image_name is defined and img.image_name starts with 'mini_' %}
+            {% set mini = img.url|default('') %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+      {% if mini == '' %}
+        {% set mini = 'https://multimediaservices22.hiboutik.com/api/products_images/mini_' ~ pid ~ '.jpg' %}
+      {% endif %}
+
+      <div class="hib-card">
+        <div class="hib-card-image">
+          <img src="{{ mini }}"
+               alt="Produit {{ pid }}"
+               loading="lazy"
+               referrerpolicy="no-referrer"
+               onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=&quot;color:#94a3b8&quot;>NO IMG</div>';">
+        </div>
+
+        <div class="hib-card-body">
+          <div class="hib-card-id">#{{ pid }}</div>
+          <div class="hib-card-title">{{ p.product_model ?? '—' }}</div>
+
+          <div class="hib-price-row">
+            <div class="hib-price">{{ p.product_price ?? '—' }} €</div>
+            <div class="hib-stock {{ p.stock_ok ? 'hib-stock-ok' : 'hib-stock-ko' }}">
+              {{ p.stock_label ?? 'stock = 0' }}
+            </div>
+          </div>
+
+          {% if p.is_todo %}
+            <div>
+              <span class="hib-todo-badge">À traiter ({{ p.todo_count }})</span>
+            </div>
+          {% endif %}
+
+          <div class="hib-meta">
+            <div><strong>Code-barres :</strong> {{ p.product_barcode ?? '—' }}</div>
+            <div><strong>Marque :</strong> {{ p.brand_name ?? '—' }}</div>
+            <div><strong>Catégorie :</strong> {{ p.category_name ?? '—' }}</div>
+            <div><strong>Fournisseur :</strong> {{ p.supplier_name ?? '—' }}</div>
+            <div><strong>Arrivage :</strong> {{ p.last_purchase_label ?? '—' }}</div>
+          </div>
+
+          {% if p.todo_flags is iterable and p.todo_flags|length %}
+            <div class="hib-todos">
+              {% for f in p.todo_flags %}
+                <span class="hib-todo-flag">{{ todoLabels[f]|default(f) }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="hib-tags">
+            {% if p.tag_labels is iterable and p.tag_labels|length %}
+              {% for t in p.tag_labels|slice(0,4) %}
+                <span class="hib-tag">{{ t|replace({'-':' '})|title }}</span>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <div class="hib-card-actions">
+            <a class="ui tiny primary button" href="{{ path('admin_hiboutik_product_edit', {id: pid}) }}">
+              Éditer
+            </a>
+            <a class="ui tiny button" href="{{ path('admin_hiboutik_product_images', {id: pid}) }}">
+              Images
+            </a>
+            <form method="post" action="{{ path('admin_hiboutik_product_duplicate', { id: pid }) }}" style="display:inline-block;">
+              <input type="hidden" name="_token" value="{{ csrf_token('hiboutik_duplicate_' ~ pid) }}">
+              <button class="ui tiny orange button" type="submit">Dupliquer</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+ {% if totalPages > 1 and (filters.per_page ?? '100') != 'all' %}
+  <div class="hib-pagination">
+    {% if page > 1 %}
+      <a class="ui button"
+         href="{{ path('admin_hiboutik_product_gallery', filters|merge({page: page - 1})) }}">
+        ← Précédent
+      </a>
+    {% else %}
+      <span class="ui button disabled">← Précédent</span>
+    {% endif %}
+
+    <div class="ui label">
+      Page {{ page }} / {{ totalPages }}
+    </div>
+
+    {% if page < totalPages %}
+      <a class="ui primary button"
+         href="{{ path('admin_hiboutik_product_gallery', filters|merge({page: page + 1})) }}">
+        Suivant →
+      </a>
+    {% else %}
+      <span class="ui button disabled">Suivant →</span>
+    {% endif %}
+  </div>
+{% endif %}
+{% else %}
+  <div class="hib-empty">Aucun produit.</div>
+{% endif %}
+{% endblock %}

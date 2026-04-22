@@ -655,60 +655,135 @@ public function setCategoryAttribute(int $categoryId, string $attribute, int|str
      * - received = qty (donc "reçu" direct)
      * - unit_price optionnel
      */
-    public function addProductToInventoryInput(int $inventoryInputId, int $productId, int $qty, ?float $unitPrice = null): array
-    {
-        $payload = [
-            'product_id' => $productId,
-            'quantity'   => $qty,
-            'received'   => $qty,
-        ];
-        if ($unitPrice !== null) {
-            $payload['unit_price'] = number_format($unitPrice, 2, '.', '');
-        }
+ public function addProductToInventoryInput(
+    int $inventoryInputId,
+    int $productId,
+    int $qty = 1,
+    ?float $productPrice = null,
+    int $productSize = 0,
+    string $serialNumber = ''
+): array {
+    $payload = [
+        'product_id' => (string)$productId,
+        'quantity' => (string)max(1, $qty),
+        'product_size' => (string)$productSize,
+        'product_serial_number' => $serialNumber,
+    ];
 
-        $opts = $this->auth();
-        $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
-        $opts['body'] = http_build_query($payload);
-
-        $url = $this->baseUrl('inventory_input_details/' . $inventoryInputId);
-        $r   = $this->httpClient->request('POST', $url, $opts);
-
-        $status = $r->getStatusCode();
-        $raw    = $r->getContent(false);
-        $data   = json_decode($raw, true);
-
-        $this->lastDebug = [
-            'method'  => 'POST',
-            'url'     => $url,
-            'status'  => $status,
-            'headers' => $opts['headers'],
-            'body'    => $opts['body'],
-            'raw'     => $raw,
-            'data'    => $data,
-        ];
-        if ($this->debug && $this->logger) {
-            $this->logger->info('[HIB ADD INVENTORY DETAIL]', $this->lastDebug);
-        }
-
-        return ['ok' => $status >= 200 && $status < 300, 'status' => $status, 'data' => $data, 'raw' => $raw];
+    if ($productPrice !== null) {
+        $payload['product_price'] = number_format($productPrice, 2, '.', '');
     }
+
+    $opts = $this->auth();
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['headers']['Accept'] = '*/*';
+    $opts['body'] = http_build_query($payload);
+
+    $url = $this->baseUrl('inventory_input_details/' . $inventoryInputId);
+    $r   = $this->httpClient->request('POST', $url, $opts);
+
+    $status = $r->getStatusCode();
+    $raw    = $r->getContent(false);
+    $data   = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method'  => 'POST',
+        'url'     => $url,
+        'status'  => $status,
+        'headers' => $opts['headers'],
+        'body'    => $opts['body'],
+        'raw'     => $raw,
+        'data'    => $data,
+    ];
+
+    if ($this->debug && $this->logger) {
+        $this->logger->info('[HIB ADD INVENTORY DETAIL]', $this->lastDebug);
+    }
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'data' => $data,
+        'raw' => $raw,
+    ];
+}
+
+public function updateInventoryInputDetailAttribute(int $detailId, string $attribute, string|int|float $value): array
+{
+    return $this->req('PUT', 'inventory_input_details/' . $detailId, [
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/json',
+        ],
+        'json' => [
+            'inventory_input_detail_id_attribute' => $attribute,
+            'new_value' => (string) $value,
+        ],
+    ]);
+}
 
     /** Marquer une ligne comme reçue (= received_quantity) */
-    public function receiveInventoryInputDetail(int $detailId, int $receivedQty): array
-    {
-        $opts = $this->auth();
-        $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
-        $opts['body'] = http_build_query(['received_quantity' => $receivedQty]);
+ public function receiveInventoryInputDetail(int $detailId, int $received = 1): array
+{
+    return $this->updateInventoryInputDetailAttribute($detailId, 'received', $received);
+}
 
-        $url = $this->baseUrl('inventory_input_details/' . $detailId);
-        $r   = $this->httpClient->request('PUT', $url, $opts);
 
-        return [
-            'ok'     => $r->getStatusCode() >= 200 && $r->getStatusCode() < 300,
-            'status' => $r->getStatusCode(),
-            'raw'    => $r->getContent(false),
-        ];
-    }
+public function updateInventoryInputAttribute(int $inventoryInputId, string $attribute, string|int $value): array
+{
+    $opts = $this->auth();
+    $opts['headers']['Accept'] = '*/*';
+    $opts['headers']['Content-Type'] = 'application/x-www-form-urlencoded';
+    $opts['body'] = http_build_query([
+        'inventory_input_id_attribute' => $attribute,
+        'new_value' => (string) $value,
+    ]);
+
+    $r = $this->httpClient->request(
+        'PUT',
+        $this->baseUrl('inventory_inputs/' . $inventoryInputId),
+        $opts
+    );
+
+    $status = $r->getStatusCode();
+    $raw = $r->getContent(false);
+    $data = json_decode($raw, true);
+
+    $this->lastDebug = [
+        'method' => 'PUT',
+        'url' => $this->baseUrl('inventory_inputs/' . $inventoryInputId),
+        'status' => $status,
+        'raw' => $raw,
+        'data' => $data,
+        'sent' => [
+            'inventory_input_id_attribute' => $attribute,
+            'new_value' => (string) $value,
+        ],
+    ];
+
+    return [
+        'ok' => $status >= 200 && $status < 300,
+        'status' => $status,
+        'raw' => $raw,
+        'data' => $data,
+    ];
+}
+
+public function deleteInventoryInput(int $inventoryInputId): array
+{
+    return $this->req('DELETE', 'inventory_inputs/' . $inventoryInputId);
+}
+
+public function deleteInventoryInputDetail(int $detailId): array
+{
+    return $this->req('DELETE', 'inventory_input_details/' . $detailId);
+}
+
+
+public function getInventoryInput(int $inventoryInputId): array
+{
+    return $this->req('GET', 'inventory_inputs/' . $inventoryInputId);
+}
 
     /* ===================== IMAGES PRODUITS ===================== */
 public function uploadProductImage(

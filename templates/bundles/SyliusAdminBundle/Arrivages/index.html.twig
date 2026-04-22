@@ -1,77 +1,160 @@
 {% extends '@!SyliusAdmin/layout.html.twig' %}
 
-{% block title %}Arrivages Rachat Mensuel{% endblock %}
+{% block title %}Arrivages{% endblock %}
 
 {% block content %}
-<h1 class="ui header">📦 Arrivages Rachat Mensuel</h1>
+<div class="ui segment">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <h1 class="ui header" style="margin:0;">
+      <i class="boxes icon"></i>
+      <div class="content">
+        Arrivages
+        <div class="sub header">
+          Gestion des arrivages Hiboutik
+        </div>
+      </div>
+    </h1>
 
-<form method="post" action="{{ path('admin_arrivages_create') }}" style="margin-bottom: 1em;">
-  <button type="submit" class="ui green button">
-    <i class="plus icon"></i> Créer l’arrivage du mois
-  </button>
-</form>
+    <div class="ui segment">
+  <h3 class="ui dividing header">
+    <i class="plus icon"></i>
+    <div class="content">Créer un arrivage</div>
+  </h3>
 
-<table class="ui celled table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Libellé</th>
-      <th>Fournisseur</th>
-      <th>Date</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for a in arrivages %}
-    {% set id = a.inventory_input_id|default(0) %}
+  <form method="post" action="{{ path('admin_arrivages_create') }}" class="ui form">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_create') }}">
 
-    <tr>
-      <td>{{ a.inventory_input_id ?? '—' }}</td>
-      <td>{{ a.inventory_input_label ?? '—' }}</td>
-      <td>{{ a.inventory_input_supplier_id ?? '—' }}</td>
-      <td>{{ a.inventory_input_date ?? '—' }}</td>
-      <td>
+    <div class="fields">
+      <div class="five wide field">
+        <label>Libellé</label>
+        <input type="text" name="label" placeholder="Ex. BC FA1673784" required>
+      </div>
+
+      <div class="four wide field">
+        <label>Fournisseur</label>
+        <select name="supplier_id" class="ui dropdown" required>
+          <option value="">-- choisir --</option>
+          {% for s in suppliers %}
+            <option value="{{ s.supplier_id }}">{{ s.supplier_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="four wide field">
+        <label>N° facture fournisseur</label>
+        <input type="text" name="supplier_invoice_number" placeholder="Ex. FA1673784">
+      </div>
+
+      <div class="three wide field" style="display:flex;align-items:flex-end;">
+        <button type="submit" class="ui green button">
+          <i class="plus icon"></i>
+          Créer
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+  </div>
+</div>
+
+<div class="ui segment">
+  <table class="ui celled compact table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Date</th>
+        <th>Libellé</th>
+        <th>Fournisseur</th>
+        <th>N° facture</th>
+        <th>État</th>
+        <th>Lignes</th>
+        <th>Montant</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+ <tbody>
+{% for a in arrivages %}
+  <tr>
+    <td>{{ a.id }}</td>
+    <td>{{ a.date ?: '—' }}</td>
+    <td>{{ a.label ?: '—' }}</td>
+    <td>
+      <a href="{{ path('admin_hiboutik_product_index', { supplier: a.supplier_id }) }}">
+        {{ a.supplier_name ?: '—' }}
+      </a>
+    </td>
+    <td>{{ a.invoice_number ?: '—' }}</td>
+    <td>
+      {% if a.state == 'réceptionné' %}
+        <span class="ui green tiny label">{{ a.state }}</span>
+      {% elseif a.state == 'partiellement réceptionné' %}
+        <span class="ui orange tiny label">{{ a.state }}</span>
+      {% else %}
+        <span class="ui grey tiny label">{{ a.state }}</span>
+      {% endif %}
+    </td>
+    <td>{{ a.received_count|default(0) }}/{{ a.line_count|default(0) }}</td>
+    <td>{{ a.amount ?: '0.00' }}</td>
+    <td>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <a href="{{ path('admin_arrivages_details', { id: a.id }) }}" class="ui grey mini button">
+          <i class="eye icon"></i>
+          Détails
+        </a>
+
         <form method="post"
-              action="{{ id > 0 ? path('admin_arrivages_validate', { id: id }) : '#' }}"
-              style="display:inline;">
-          <button class="ui blue mini button" {% if id <= 0 %}disabled{% endif %}>
-            <i class="check icon"></i> Valider
+              action="{{ path('admin_arrivages_session', { id: a.id }) }}"
+              style="margin:0;">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_' ~ a.id) }}">
+          <button type="submit" class="ui teal mini button">
+            <i class="tasks icon"></i>
+            Session
           </button>
         </form>
 
         <form method="post"
-              action="{{ id > 0 ? path('admin_arrivages_session', { id: id }) : '#' }}"
-              style="display:inline-block; margin-left:6px;">
-          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_' ~ id) }}">
-          <button type="submit" class="ui teal mini button" {% if id <= 0 %}disabled{% endif %}>
-            <i class="tasks icon"></i> Session
+              action="{{ path('admin_arrivages_session_rebuild', { id: a.id }) }}"
+              style="margin:0;"
+              onsubmit="return confirm('Recharger la session depuis l’arrivage ?');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_rebuild_' ~ a.id) }}">
+          <button type="submit" class="ui orange mini button">
+            <i class="redo icon"></i>
+            Recharger session
           </button>
         </form>
 
         <form method="post"
-      action="{{ id > 0 ? path('admin_arrivages_session_rebuild', { id: id }) : '#' }}"
-      style="display:inline-block; margin-left:6px;"
-      onsubmit="return confirm('Recharger la session depuis l’arrivage ? Cela remplacera la session existante liée à cet arrivage.');">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_rebuild_' ~ id) }}">
-  <button type="submit" class="ui orange mini button" {% if id <= 0 %}disabled{% endif %}>
-    <i class="refresh icon"></i> Recharger session
-  </button>
-</form>
+              action="{{ path('admin_arrivages_validate', { id: a.id }) }}"
+              style="margin:0;"
+              onsubmit="return confirm('Valider tout l’arrivage ?');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_validate_' ~ a.id) }}">
+          <button class="ui blue mini button" type="submit">
+            <i class="check icon"></i>
+            Valider
+          </button>
+        </form>
 
-        {% if id > 0 %}
-          <a href="{{ path('admin_arrivages_details', { id: id }) }}" class="ui grey mini button">
-            <i class="eye icon"></i> Détails
-          </a>
-        {% else %}
-          <span class="ui tiny grey label">ID manquant</span>
-        {% endif %}
-      </td>
-    </tr>
-  {% else %}
-    <tr>
-      <td colspan="5" class="center aligned">Aucun arrivage trouvé</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+        <form method="post"
+              action="{{ path('admin_arrivages_delete', { id: a.id }) }}"
+              style="margin:0;"
+              onsubmit="return confirm('Supprimer cet arrivage vide ?');">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_delete_' ~ a.id) }}">
+          <button class="ui red mini button"
+                  type="submit"
+                  {% if not a.can_delete|default(false) %}disabled title="Impossible : l’arrivage contient des lignes"{% endif %}>
+            <i class="trash icon"></i>
+            Supprimer
+          </button>
+        </form>
+      </div>
+    </td>
+  </tr>
+{% else %}
+  <tr>
+    <td colspan="9" class="center aligned">Aucun arrivage trouvé</td>
+  </tr>
+{% endfor %}
+</tbody>
+  </table>
+</div>
 {% endblock %}

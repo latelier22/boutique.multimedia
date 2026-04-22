@@ -1,37 +1,410 @@
 {% extends '@!SyliusAdmin/layout.html.twig' %}
-{% block title %}Détails arrivage #{{ id }}{% endblock %}
+
+{% block title %}Arrivage #{{ id }}
+{% endblock %}
 
 {% block content %}
-<h2 class="ui header">🧾 Détails de l’arrivage #{{ id }}</h2>
+	<div class="ui segment">
+		<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+			<div>
+				<h1 class="ui header" style="margin:0 0 6px 0;">
+					<i class="boxes icon"></i>
+					<div class="content">
+						Arrivage #{{ id }}
+						<div class="sub header">
+							{{ arrivage.inventory_input_label ?? 'Sans libellé' }}
+						</div>
+					</div>
+				</h1>
 
-<table class="ui celled table">
-  <thead>
-    <tr>
-      <th>ID Ligne</th>
-      <th>Produit</th>
-      <th>Taille</th>
-      <th>Quantité</th>
-      <th>Prix achat</th>
-      <th>Numéro série</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for d in details %}
-    <tr>
-      <td>{{ d.inventory_input_detail_id ?? '—' }}</td>
-      <td>{{ d.product_id ?? '—' }}</td>
-      <td>{{ d.product_size ?? '—' }}</td>
-      <td>{{ d.quantity ?? '—' }}</td>
-      <td>{{ d.product_price ?? '—' }}</td>
-      <td>{{ d.product_serial_number ?? '—' }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="6" class="center aligned">Aucune ligne trouvée</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
+				<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+					{% if arrivage.inventory_input_date is defined %}
+						<span class="ui small label">
+							<i class="calendar icon"></i>
+							{{ arrivage.inventory_input_date }}
+						</span>
+					{% endif %}
 
-<a href="{{ path('admin_arrivages_index') }}" class="ui button">
-  <i class="arrow left icon"></i> Retour
-</a>
+					{% if supplierName is defined %}
+						<span class="ui small label">
+							<i class="truck icon"></i>
+							{{ supplierName }}
+						</span>
+					{% elseif arrivage.inventory_input_supplier_id is defined %}
+						<span class="ui small label">
+							<i class="truck icon"></i>
+							Supplier #{{ arrivage.inventory_input_supplier_id }}
+						</span>
+					{% endif %}
+
+					{% if arrivage.inventory_input_quantity is defined %}
+						<span class="ui small label">
+							<i class="cubes icon"></i>
+							Qté :
+							{{ arrivage.inventory_input_quantity }}
+						</span>
+					{% endif %}
+
+					{% if arrivage.inventory_input_amount is defined %}
+						<span class="ui small label">
+							<i class="euro sign icon"></i>
+							Montant :
+							{{ arrivage.inventory_input_amount }}
+						</span>
+					{% endif %}
+				</div>
+			</div>
+
+			<div class="ui segment">
+				<h3 class="ui dividing header">
+					<i class="edit icon"></i>
+					<div class="content">Modifier l’arrivage</div>
+				</h3>
+
+				<form method="post" action="{{ path('admin_arrivages_update', {id: id}) }}" class="ui form">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_update_' ~ id) }}">
+
+					<div class="fields">
+						<div class="six wide field">
+							<label>Libellé</label>
+							<input type="text" name="label" value="{{ arrivage.inventory_input_label ?? '' }}">
+						</div>
+
+						<div class="four wide field">
+							<label>Fournisseur</label>
+							<input type="text" value="{{ supplierName }}" readonly>
+						</div>
+
+						<div class="four wide field">
+							<label>N° facture fournisseur</label>
+							<input type="text" name="supplier_invoice_number" value="{{ arrivage.supplier_invoice_number ?? '' }}">
+						</div>
+
+						<div class="two wide field" style="display:flex;align-items:flex-end;">
+							<button class="ui blue button" type="submit">
+								<i class="save icon"></i>
+								Enregistrer
+							</button>
+						</div>
+					</div>
+				</form>
+			</div>
+
+			<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+				<a class="ui button" href="{{ path('admin_arrivages_index') }}">
+					<i class="arrow left icon"></i>
+					Retour
+				</a>
+
+				<form method="post" action="{{ path('admin_arrivages_session', {id: id}) }}" style="margin:0;">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_' ~ id) }}">
+					<button class="ui button" type="submit">
+						<i class="folder open icon"></i>
+						Ouvrir session
+					</button>
+				</form>
+
+				<form method="post" action="{{ path('admin_arrivages_session_rebuild', {id: id}) }}" style="margin:0;">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_session_rebuild_' ~ id) }}">
+					<button class="ui button" type="submit">
+						<i class="redo icon"></i>
+						Reconstruire session
+					</button>
+				</form>
+
+				<form method="post" action="{{ path('admin_arrivages_validate', {id: id}) }}" style="margin:0;" onsubmit="return confirm('Valider tout l’arrivage ?');">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_validate_' ~ id) }}">
+					<button class="ui green button" type="submit">
+						<i class="check icon"></i>
+						Valider tout
+					</button>
+				</form>
+				<form method="post" action="{{ path('admin_arrivages_delete', { id: id }) }}" style="margin:0;" onsubmit="return confirm('Supprimer cet arrivage vide ?');">
+					<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_delete_' ~ id) }}">
+					<button class="ui red button" type="submit" {% if not canDelete|default(false) %} disabled title="Impossible : l’arrivage contient des lignes" {% endif %}>
+						<i class="trash icon"></i>
+						Supprimer l’arrivage
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+
+	<div class="ui segment">
+		<h3 class="ui dividing header">
+			<i class="plus icon"></i>
+			<div class="content">Ajouter un produit à l’arrivage</div>
+		</h3>
+
+		<form method="post" action="{{ path('admin_arrivages_add_product', {id: id}) }}" class="ui form" id="arrivage-add-product-form" autocomplete="off">
+			<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_add_product_' ~ id) }}">
+			<input type="hidden" name="product_id" id="add-product-id" required>
+
+			<div class="fields">
+				<div class="eight wide field" style="position:relative;">
+					<label>Recherche produit</label>
+					<input type="text" id="add-product-search" placeholder="Nom, code-barres, ref, IMEI...">
+					<div id="add-product-results" class="ui fluid vertical menu" style="display:none; position:absolute; z-index:50; width:100%; max-height:320px; overflow:auto; margin-top:4px;"></div>
+				</div>
+
+				<div class="two wide field">
+					<label>ID</label>
+					<input type="text" id="add-product-id-preview" readonly placeholder="—">
+				</div>
+
+				<div class="two wide field">
+					<label>Quantité</label>
+					<input type="number" name="quantity" min="1" value="1">
+				</div>
+
+				<div class="two wide field">
+					<label>Prix achat</label>
+					<input type="text" name="buy_price" id="add-product-buy-price" placeholder="1.00">
+				</div>
+
+				<div class="two wide field" style="display:flex; align-items:flex-end;">
+					<button class="ui primary button" type="submit">
+						<i class="plus icon"></i>
+						Ajouter
+					</button>
+				</div>
+			</div>
+		</form>
+	</div>
+
+	<div class="ui segment">
+		<h3 class="ui dividing header">
+			<i class="list icon"></i>
+			<div class="content">Lignes de l’arrivage</div>
+		</h3>
+
+		{% if details is empty %}
+			<div class="ui info message">
+				Aucune ligne trouvée dans cet arrivage.
+			</div>
+		{% else %}
+			<table class="ui celled compact table">
+				<thead>
+					<tr>
+						<th>ID ligne</th>
+						<th>Image</th>
+						<th>Produit</th>
+						<th>Nom</th>
+						<th>Modification</th>
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in details %}
+						<tr>
+							<td>{{ row.inventory_input_detail_id ?? '' }}</td>
+
+							<td>
+								{% if row._product_thumb %}
+									<img src="{{ row._product_thumb }}" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:50px;height:50px;object-fit:contain;background:#fff;border:1px solid #ddd;padding:2px;border-radius:4px;" onerror="this.style.display='none'; this.parentNode.innerHTML='—';">
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td>
+								{% if row.product_id %}
+									<a href="{{ path('admin_hiboutik_product_edit', { id: row.product_id }) }}">
+										{{ row.product_id }}
+									</a>
+								{% else %}
+									—
+								{% endif %}
+							</td>
+
+							<td>{{ row.product_model ?? '' }}</td>
+
+							<td>
+								<form method="post" action="{{ path('admin_arrivages_update_detail', {detailId: row.inventory_input_detail_id}) }}" class="ui form" style="margin:0;">
+									<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_update_detail_' ~ row.inventory_input_detail_id) }}">
+									<input type="hidden" name="inventory_input_id" value="{{ id }}">
+
+									<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+										<div>
+											<label style="display:block;font-size:12px;">Qté</label>
+											<input type="number" name="quantity" min="1" value="{{ row.quantity ?? 1 }}" style="width:80px;">
+										</div>
+
+										<div>
+											<label style="display:block;font-size:12px;">Prix HT</label>
+											<input type="text" name="product_price" value="{{ row.product_price ?? '' }}" style="width:100px;">
+										</div>
+
+										<div>
+											<label style="display:block;font-size:12px;">Serial</label>
+											<input type="text" name="product_serial_number" value="{{ row.product_serial_number ?? '' }}" style="width:150px;">
+										</div>
+
+										<div>
+											<label style="display:block;font-size:12px;">Reçu</label>
+											{% if (row.received ?? 0) == 1 %}
+												<span class="ui green tiny label">Oui</span>
+											{% else %}
+												<span class="ui grey tiny label">Non</span>
+											{% endif %}
+										</div>
+
+										<div>
+											<button class="ui tiny blue button" type="submit">
+												<i class="save icon"></i>
+												Enregistrer
+											</button>
+										</div>
+									</div>
+								</form>
+							</td>
+
+							<td>
+								<div style="display:flex;gap:6px;flex-wrap:wrap;">
+									{% if (row.received ?? 0) == 1 %}
+										<form method="post" action="{{ path('admin_arrivages_unreceive_detail', {detailId: row.inventory_input_detail_id}) }}" style="margin:0;">
+											<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_unreceive_detail_' ~ row.inventory_input_detail_id) }}">
+											<input type="hidden" name="inventory_input_id" value="{{ id }}">
+											<button class="ui tiny orange button" type="submit">
+												<i class="undo icon"></i>
+												Dé-réceptionner
+											</button>
+										</form>
+									{% else %}
+										<form method="post" action="{{ path('admin_arrivages_receive_detail', {detailId: row.inventory_input_detail_id}) }}" style="margin:0;">
+											<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_receive_detail_' ~ row.inventory_input_detail_id) }}">
+											<input type="hidden" name="inventory_input_id" value="{{ id }}">
+											<button class="ui tiny green button" type="submit">
+												<i class="check icon"></i>
+												Réceptionner
+											</button>
+										</form>
+									{% endif %}
+
+									<form method="post" action="{{ path('admin_arrivages_delete_detail', {detailId: row.inventory_input_detail_id}) }}" style="margin:0;" onsubmit="return confirm('Supprimer cette ligne ?');">
+										<input type="hidden" name="_csrf_token" value="{{ csrf_token('arrivage_delete_detail_' ~ row.inventory_input_detail_id) }}">
+										<input type="hidden" name="inventory_input_id" value="{{ id }}">
+										<button class="ui tiny red button" type="submit">
+											<i class="trash icon"></i>
+											Supprimer ligne
+										</button>
+									</form>
+								</div>
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% endif %}
+	</div>
+
+
+	<script>
+		(function () {
+const input = document.getElementById('add-product-search');
+const hiddenId = document.getElementById('add-product-id');
+const previewId = document.getElementById('add-product-id-preview');
+const buyPrice = document.getElementById('add-product-buy-price');
+const results = document.getElementById('add-product-results');
+
+if (! input || ! hiddenId || ! results) {
+return;
+}
+
+let timer = null;
+let currentQuery = '';
+
+function clearResults() {
+results.innerHTML = '';
+results.style.display = 'none';
+}
+
+function renderItems(items) {
+if (! items.length) {
+results.innerHTML = '<div class="item">Aucun produit trouvé</div>';
+results.style.display = 'block';
+return;
+}
+
+results.innerHTML = '';
+
+items.forEach((item) => {
+const el = document.createElement('a');
+el.href = '#';
+el.className = 'item';
+el.innerHTML = `
+                <div style="font-weight:600;">${
+escapeHtml(item.name || item.label || ('#' + item.id))
+}</div>
+                <div style="font-size:12px;opacity:.8;">${
+escapeHtml(item.label || '')
+}</div>
+            `;
+
+el.addEventListener('click', function (e) {
+e.preventDefault();
+hiddenId.value = item.id || '';
+previewId.value = item.id || '';
+input.value = item.name || item.label || ('#' + item.id);
+if (buyPrice && item.buy_price) {
+buyPrice.value = item.buy_price;
+}
+clearResults();
+});
+
+results.appendChild(el);
+});
+
+results.style.display = 'block';
+}
+
+function escapeHtml(str) {
+return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+async function searchProducts(q) {
+const url = `{{ path('admin_arrivages_product_search') }}?q=${
+encodeURIComponent(q)
+}`;
+const res = await fetch(url, {
+headers: {
+'X-Requested-With': 'XMLHttpRequest'
+}
+});
+
+const data = await res.json();
+if (q !== currentQuery) {
+return;
+}
+
+renderItems(Array.isArray(data.items) ? data.items : []);
+}
+
+input.addEventListener('input', function () {
+const q = input.value.trim();
+hiddenId.value = '';
+previewId.value = '';
+
+if (timer) {
+clearTimeout(timer);
+}
+
+if (q.length < 2) {
+clearResults();
+return;
+}
+
+currentQuery = q;
+timer = setTimeout(() => {
+searchProducts(q).catch(() => clearResults());
+}, 180);
+});
+
+document.addEventListener('click', function (e) {
+if (! results.contains(e.target) && e.target !== input) {
+clearResults();
+}
+});
+})();
+	</script>
 {% endblock %}

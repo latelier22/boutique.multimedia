@@ -11,6 +11,8 @@ use App\Entity\Rachat\Rachat;
 use App\Entity\Hiboutik\MobileImportRow;
 use App\Entity\Hiboutik\MobileImportSession;
 use App\Service\HiboutikClient;
+use App\Service\CacheApiClient;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 #[Route('/admin/arrivages', name: 'admin_arrivages_')]
 final class ArrivageController extends AbstractController
@@ -18,18 +20,145 @@ final class ArrivageController extends AbstractController
     public function __construct(
         private HiboutikClient $hib,
         private EntityManagerInterface $em,
+        private CacheApiClient $cacheApi,
     ) {
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
-    {
-        $arrivages = $this->hib->listAllInventoryInputs();
+public function index(): Response
+{
+    $arrivages = $this->hib->listAllInventoryInputs();
+    $supplierMap = $this->buildSupplierMap();
 
-        return $this->render('@SyliusAdmin/Arrivages/index.html.twig', [
-            'arrivages' => $arrivages,
-        ]);
+    $rows = [];
+
+    foreach ($arrivages as $a) {
+        if (!is_array($a)) {
+            continue;
+        }
+
+        $id = (int) ($a['inventory_input_id'] ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+
+        $detailsRes = $this->hib->listInventoryInputDetails($id);
+        $details = is_array($detailsRes['data'] ?? null) ? $detailsRes['data'] : [];
+
+        $lineCount = count($details);
+        $receivedCount = 0;
+        $partial = false;
+        $productNames = [];
+
+        foreach ($details as $d) {
+            if (!is_array($d)) {
+                continue;
+            }
+
+            $qty = (int) ($d['quantity'] ?? 0);
+            $received = (int) ($d['received'] ?? 0);
+
+            if ($received >= 1) {
+                $receivedCount++;
+            }
+
+            if ($received > 0 && $received < $qty) {
+                $partial = true;
+            }
+
+            $name = trim((string) ($d['product_model'] ?? ''));
+            if ($name !== '') {
+                $productNames[] = $name;
+            }
+        }
+
+        $supplierId = (int) ($a['inventory_input_supplier_id'] ?? 0);
+
+        $state = 'vide';
+        if ($lineCount > 0 && $receivedCount === 0) {
+            $state = 'non réceptionné';
+        } elseif ($lineCount > 0 && $receivedCount < $lineCount) {
+            $state = 'partiellement réceptionné';
+        } elseif ($lineCount > 0 && $receivedCount === $lineCount) {
+            $state = 'réceptionné';
+        }
+
+        if ($partial) {
+            $state = 'partiellement réceptionné';
+        }
+
+        $rows[] = [
+            'id' => $id,
+            'label' => (string) ($a['inventory_input_label'] ?? ''),
+            'date' => (string) ($a['inventory_input_date'] ?? ''),
+            'supplier_id' => $supplierId,
+            'supplier_name' => $supplierMap[$supplierId] ?? ('Supplier #' . $supplierId),
+            'quantity' => (int) ($a['inventory_input_quantity'] ?? 0),
+            'amount' => (string) ($a['inventory_input_amount'] ?? ''),
+            'line_count' => $lineCount,
+            'received_count' => $receivedCount,
+            'state' => $state,
+            'product_names' => array_slice(array_values(array_unique($productNames)), 0, 4),
+            'raw' => $a,
+            'can_delete' => $lineCount === 0,
+            'invoice_number' => (string) ($a['supplier_invoice_number'] ?? ''),
+        ];
     }
+
+    return $this->render('@SyliusAdmin/Arrivages/index.html.twig', [
+        'arrivages' => $rows,
+        'suppliers' => $this->hib->listSuppliers()['data'] ?? [],
+
+    ]);
+}
+
+#[Route('/details/{detailId}/update', name: 'update_detail', methods: ['POST'])]
+public function updateDetail(int $detailId, Request $request): Response
+{
+    $inventoryInputId = (int) $request->request->get('inventory_input_id', 0);
+
+    if (!$this->isCsrfTokenValid('arrivage_update_detail_' . $detailId, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $quantity = max(1, (int) $request->request->get('quantity', 1));
+    $productPrice = trim((string) $request->request->get('product_price', ''));
+    $serialNumber = trim((string) $request->request->get('product_serial_number', ''));
+
+    $errors = [];
+
+    $r1 = $this->hib->updateInventoryInputDetailAttribute($detailId, 'quantity', $quantity);
+    if (!($r1['ok'] ?? false)) {
+        $errors[] = 'quantité';
+    }
+
+    if ($productPrice !== '') {
+        $normalizedPrice = number_format((float) str_replace(',', '.', $productPrice), 2, '.', '');
+        $r2 = $this->hib->updateInventoryInputDetailAttribute($detailId, 'product_price', $normalizedPrice);
+        if (!($r2['ok'] ?? false)) {
+            $errors[] = 'prix achat';
+        }
+    }
+
+    $r3 = $this->hib->updateInventoryInputDetailAttribute($detailId, 'product_serial_number', $serialNumber);
+    if (!($r3['ok'] ?? false)) {
+        $errors[] = 'serial';
+    }
+
+    if ($errors) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash(
+            'error',
+            'Erreur mise à jour ligne (' . implode(', ', $errors) . ') : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300)
+        );
+    } else {
+        $this->addFlash('success', "Ligne #$detailId mise à jour.");
+    }
+
+    return $this->redirectToRoute('admin_arrivages_details', ['id' => $inventoryInputId]);
+}
+
+
 
     #[Route('/rachats', name: 'rachats', methods: ['GET'])]
     public function rachats(): Response
@@ -41,60 +170,357 @@ final class ArrivageController extends AbstractController
         ]);
     }
 
-    #[Route('/create', name: 'create', methods: ['POST'])]
-    public function create(): Response
-    {
-        $label = 'RACHAT MENSUEL-' . (new \DateTime())->format('m-Y');
+    public function updateInventoryInputAttribute(int $inventoryInputId, string $attribute, string|int $value): array
+{
+    return $this->req('PUT', 'inventory_inputs/' . $inventoryInputId, [
+        'headers' => [
+            'Accept' => '*/*',
+            'Content-Type' => 'application/json',
+        ],
+        'json' => [
+            'inventory_input_attribute' => $attribute,
+            'new_value' => (string) $value,
+        ],
+    ]);
+}
 
-        $existants = $this->hib->listMonthlyRachatInputs();
-        foreach ($existants as $a) {
-            if (($a['inventory_input_label'] ?? '') === $label) {
-                $this->addFlash('info', "L’arrivage $label existe déjà.");
-                return $this->redirectToRoute('admin_arrivages_index');
-            }
+
+#[Route('/{id}/update', name: 'update', methods: ['POST'])]
+public function update(int $id, Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('arrivage_update_' . $id, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $label = trim((string) $request->request->get('label', ''));
+    $supplierInvoiceNumber = trim((string) $request->request->get('supplier_invoice_number', ''));
+
+    $errors = [];
+
+    if ($label !== '') {
+        $r1 = $this->hib->updateInventoryInputAttribute($id, 'inventory_input_label', $label);
+        if (!($r1['ok'] ?? false)) {
+            $errors[] = 'libellé';
         }
+    }
 
-        $res = $this->hib->createInventoryInput(1, 3, $label);
+    $r2 = $this->hib->updateInventoryInputAttribute($id, 'supplier_invoice_number', $supplierInvoiceNumber);
+    if (!($r2['ok'] ?? false)) {
+        $errors[] = 'n° facture fournisseur';
+    }
 
-        if (!($res['ok'] ?? false)) {
-            $this->addFlash('error', 'Erreur Hiboutik (' . ($res['status'] ?? '??') . ')');
-        } else {
-            $this->addFlash('success', "Nouvel arrivage créé : $label");
-        }
+    if ($errors) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash(
+            'error',
+            'Erreur mise à jour arrivage (' . implode(', ', $errors) . ') : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300)
+        );
+    } else {
+        $this->addFlash('success', "Arrivage #$id mis à jour.");
+    }
 
+    return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
+}
+
+    #[Route('/{id}/delete', name: 'delete', methods: ['POST'])]
+public function delete(int $id, Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('arrivage_delete_' . $id, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $detailsRes = $this->hib->listInventoryInputDetails($id);
+    $details = is_array($detailsRes['data'] ?? null) ? $detailsRes['data'] : [];
+
+    if (count($details) > 0) {
+        $this->addFlash('error', 'Suppression refusée : l’arrivage n’est pas vide.');
+        return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
+    }
+
+    $res = $this->hib->deleteInventoryInput($id);
+
+    if (!($res['ok'] ?? false)) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash('error', 'Erreur suppression arrivage : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300));
+    } else {
+        $this->addFlash('success', "Arrivage #$id supprimé.");
+    }
+
+    return $this->redirectToRoute('admin_arrivages_index');
+}
+
+  #[Route('/create', name: 'create', methods: ['POST'])]
+public function create(Request $request): Response
+{
+    if (!$this->isCsrfTokenValid('arrivage_create', (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $label = trim((string) $request->request->get('label', ''));
+    $supplierId = (int) $request->request->get('supplier_id', 0);
+    $supplierInvoiceNumber = trim((string) $request->request->get('supplier_invoice_number', ''));
+
+    if ($label === '') {
+        $this->addFlash('error', 'Libellé obligatoire.');
         return $this->redirectToRoute('admin_arrivages_index');
     }
 
-    #[Route('/validate/{id}', name: 'validate', methods: ['POST'])]
-    public function validate(int $id): Response
+    if ($supplierId <= 0) {
+        $this->addFlash('error', 'Fournisseur obligatoire.');
+        return $this->redirectToRoute('admin_arrivages_index');
+    }
+
+    $storeMeta = $this->hib->getDefaultStoreMeta();
+    $stockId = (int) ($storeMeta['stock_id'] ?? 1);
+
+    $res = $this->hib->createInventoryInput($stockId, $supplierId, $label);
+
+    if (!($res['ok'] ?? false)) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash(
+            'error',
+            'Erreur création arrivage Hiboutik (' . ($res['status'] ?? '??') . ') : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300)
+        );
+        return $this->redirectToRoute('admin_arrivages_index');
+    }
+
+    $inventoryInputId = (int) ($res['id'] ?? 0);
+
+    if ($inventoryInputId > 0 && $supplierInvoiceNumber !== '') {
+        $upd = $this->hib->updateInventoryInputAttribute(
+            $inventoryInputId,
+            'supplier_invoice_number',
+            $supplierInvoiceNumber
+        );
+
+        if (!($upd['ok'] ?? false)) {
+            $dbg = $this->hib->getLastDebug();
+            $this->addFlash(
+                'warning',
+                'Arrivage créé, mais impossible de renseigner le n° de facture : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300)
+            );
+        }
+    }
+
+    $this->addFlash('success', 'Arrivage créé.');
+
+    return $this->redirectToRoute('admin_arrivages_details', [
+        'id' => $inventoryInputId,
+    ]);
+}
+
+   #[Route('/details/{id}', name: 'details', methods: ['GET'])]
+    public function details(int $id): Response
     {
+        $arrivage = $this->findInventoryInputRowById($id);
+        if (!$arrivage) {
+            $this->addFlash('error', 'Arrivage introuvable.');
+            return $this->redirectToRoute('admin_arrivages_index');
+        }
+
+        $res = $this->hib->listInventoryInputDetails($id);
+        $details = is_array($res['data'] ?? null) ? $res['data'] : [];
+
+        $supplierMap = $this->buildSupplierMap();
+        $supplierId = (int) ($arrivage['inventory_input_supplier_id'] ?? 0);
+        $supplierName = $supplierMap[$supplierId] ?? ('Supplier #' . $supplierId);
+
+        $productCache = [];
+
+foreach ($details as &$row) {
+    $pid = (int) ($row['product_id'] ?? 0);
+    $row['_product_thumb'] = null;
+    $row['_product_admin_url'] = null;
+
+    if ($pid <= 0) {
+        continue;
+    }
+
+    if (!array_key_exists($pid, $productCache)) {
+        $found = null;
+
+        $search = $this->cacheApi->searchAdminProducts([
+            'q' => (string) $pid,
+            'limit' => 20,
+            'offset' => 0,
+            'include_archived' => '1',
+            'include_hidden' => '1',
+        ]);
+
+        $products = is_array($search['data'] ?? null) ? $search['data'] : [];
+
+        foreach ($products as $p) {
+            if ((int) ($p['product_id'] ?? 0) === $pid) {
+                $found = $p;
+                break;
+            }
+        }
+
+        $productCache[$pid] = is_array($found) ? $found : [];
+    }
+
+    $p = $productCache[$pid];
+    $mini = '';
+
+    if (is_array($p['images'] ?? null)) {
+        foreach ($p['images'] as $img) {
+            if (
+                is_array($img)
+                && isset($img['image_name'], $img['url'])
+                && str_starts_with((string) $img['image_name'], 'mini_')
+            ) {
+                $mini = (string) $img['url'];
+                break;
+            }
+        }
+    }
+
+    if ($mini === '') {
+        $mini = (string) ($p['thumb'] ?? '');
+    }
+    if ($mini === '') {
+        $mini = (string) ($p['image'] ?? '');
+    }
+
+    $row['_product_thumb'] = $mini !== '' ? $mini : null;
+}
+unset($row);
+
+        return $this->render('@SyliusAdmin/Arrivages/details.html.twig', [
+            'id' => $id,
+            'arrivage' => $arrivage,
+            'details' => $details,
+            'supplierName' => $supplierName,
+            'canDelete' => count($details) === 0,
+            'suppliers' => $this->hib->listSuppliers()['data'] ?? [],
+        ]);
+    }
+
+    #[Route('/{id}/add-product', name: 'add_product', methods: ['POST'])]
+    public function addProduct(int $id, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('arrivage_add_product_' . $id, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        $productId = (int) $request->request->get('product_id', 0);
+        $quantity = max(1, (int) $request->request->get('quantity', 1));
+        $buyPriceRaw = (string) $request->request->get('buy_price', '');
+        $buyPrice = $buyPriceRaw !== '' ? (float) str_replace(',', '.', $buyPriceRaw) : null;
+
+        if ($productId <= 0) {
+            $this->addFlash('error', 'Produit invalide.');
+            return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
+        }
+
+        $res = $this->hib->addProductToInventoryInput($id, $productId, $quantity, $buyPrice);
+
+        if (!($res['ok'] ?? false)) {
+            $dbg = $this->hib->getLastDebug();
+            $this->addFlash(
+                'error',
+                'Erreur ajout produit (' . ($res['status'] ?? '??') . ') : ' . substr((string)($dbg['raw'] ?? ''), 0, 300)
+            );
+        } else {
+            $this->addFlash('success', "Produit #$productId ajouté à l’arrivage #$id.");
+        }
+
+        return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
+    }
+
+    #[Route('/details/{detailId}/receive', name: 'receive_detail', methods: ['POST'])]
+    public function receiveDetail(int $detailId, Request $request): Response
+    {
+        $inventoryInputId = (int) $request->request->get('inventory_input_id', 0);
+
+        if (!$this->isCsrfTokenValid('arrivage_receive_detail_' . $detailId, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
+        if ($inventoryInputId <= 0) {
+            $this->addFlash('error', 'Arrivage invalide.');
+            return $this->redirectToRoute('admin_arrivages_index');
+        }
+
+        $res = $this->hib->receiveInventoryInputDetail($detailId, 1);
+
+        if (!($res['ok'] ?? false)) {
+            $dbg = $this->hib->getLastDebug();
+            $this->addFlash(
+                'error',
+                'Erreur réception ligne (' . ($res['status'] ?? '??') . ') : ' . substr((string)($dbg['raw'] ?? ''), 0, 300)
+            );
+        } else {
+            $this->addFlash('success', "Ligne #$detailId réceptionnée.");
+        }
+
+        return $this->redirectToRoute('admin_arrivages_details', ['id' => $inventoryInputId]);
+    }
+
+    #[Route('/details/{detailId}/unreceive', name: 'unreceive_detail', methods: ['POST'])]
+public function unreceiveDetail(int $detailId, Request $request): Response
+{
+    $inventoryInputId = (int) $request->request->get('inventory_input_id', 0);
+
+    if (!$this->isCsrfTokenValid('arrivage_unreceive_detail_' . $detailId, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $res = $this->hib->receiveInventoryInputDetail($detailId, 0);
+
+    if (!($res['ok'] ?? false)) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash('error', 'Erreur dé-réception ligne : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300));
+    } else {
+        $this->addFlash('success', "Ligne #$detailId dé-réceptionnée.");
+    }
+
+    return $this->redirectToRoute('admin_arrivages_details', ['id' => $inventoryInputId]);
+}
+
+#[Route('/details/{detailId}/delete', name: 'delete_detail', methods: ['POST'])]
+public function deleteDetail(int $detailId, Request $request): Response
+{
+    $inventoryInputId = (int) $request->request->get('inventory_input_id', 0);
+
+    if (!$this->isCsrfTokenValid('arrivage_delete_detail_' . $detailId, (string) $request->request->get('_csrf_token'))) {
+        throw $this->createAccessDeniedException('CSRF invalid');
+    }
+
+    $res = $this->hib->deleteInventoryInputDetail($detailId);
+
+    if (!($res['ok'] ?? false)) {
+        $dbg = $this->hib->getLastDebug();
+        $this->addFlash('error', 'Erreur suppression ligne : ' . substr((string) ($dbg['raw'] ?? ''), 0, 300));
+    } else {
+        $this->addFlash('success', "Ligne #$detailId supprimée.");
+    }
+
+    return $this->redirectToRoute('admin_arrivages_details', ['id' => $inventoryInputId]);
+}
+
+    #[Route('/validate/{id}', name: 'validate', methods: ['POST'])]
+    public function validate(int $id, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('arrivage_validate_' . $id, (string) $request->request->get('_csrf_token'))) {
+            throw $this->createAccessDeniedException('CSRF invalid');
+        }
+
         $res = $this->hib->validateInventoryInput($id);
 
         if (!($res['ok'] ?? false)) {
             $dbg = $this->hib->getLastDebug();
             $this->addFlash(
                 'error',
-                'Erreur Hiboutik (' . ($res['status'] ?? '??') . ') : ' . substr((string)($dbg['raw'] ?? ''), 0, 200)
+                'Erreur Hiboutik (' . ($res['status'] ?? '??') . ') : ' . substr((string)($dbg['raw'] ?? ''), 0, 300)
             );
 
-            return $this->redirectToRoute('admin_arrivages_index');
+            return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
         }
 
         $this->addFlash('success', "Arrivage #$id validé !");
 
-        return $this->redirectToRoute('admin_arrivages_index');
-    }
-
-    #[Route('/details/{id}', name: 'details', methods: ['GET'])]
-    public function details(int $id): Response
-    {
-        $res = $this->hib->listInventoryInputDetails($id);
-        $data = $res['data'] ?? [];
-
-        return $this->render('@SyliusAdmin/Arrivages/details.html.twig', [
-            'id' => $id,
-            'details' => $data,
-        ]);
+        return $this->redirectToRoute('admin_arrivages_details', ['id' => $id]);
     }
 
     #[Route('/{id}/session', name: 'session', methods: ['POST'])]
@@ -282,8 +708,8 @@ final class ArrivageController extends AbstractController
             $row->setResolvedProductsRefExt($resolvedRefExt ?: null);
             $row->setResolvedBuyPrice($resolvedBuyPrice > 0 ? $resolvedBuyPrice : null);
             $row->setResolvedSellPrice($resolvedSellPrice > 0 ? $resolvedSellPrice : null);
-$row->setResolvedVat($resolvedVat !== null && $resolvedVat !== '' ? $resolvedVat : null);
-$row->setResolvedAccountingAccount($resolvedAccountingAccount !== null && $resolvedAccountingAccount !== '' ? $resolvedAccountingAccount : null);
+            $row->setResolvedVat($resolvedVat !== null && $resolvedVat !== '' ? $resolvedVat : null);
+            $row->setResolvedAccountingAccount($resolvedAccountingAccount !== null && $resolvedAccountingAccount !== '' ? $resolvedAccountingAccount : null);
             $row->setResolvedSupplierId($resolvedSupplierId ?: $supplierId);
             $row->setResolvedCategoryId($resolvedCategoryId);
             $row->setResolvedCategoryLabel($resolvedCategoryLabel);
@@ -411,7 +837,7 @@ $row->setResolvedAccountingAccount($resolvedAccountingAccount !== null && $resol
 
     private function extractBuyPriceFromInventoryDetail(array $detail): float
     {
-        foreach (['unit_price', 'buy_price', 'product_supply_price', 'supply_price', 'price'] as $key) {
+        foreach (['product_price', 'unit_price', 'buy_price', 'product_supply_price', 'supply_price', 'price'] as $key) {
             if (isset($detail[$key]) && $detail[$key] !== '') {
                 return (float) str_replace(',', '.', (string) $detail[$key]);
             }
@@ -735,4 +1161,81 @@ $row->setResolvedAccountingAccount($resolvedAccountingAccount !== null && $resol
 
         return $this->redirectToRoute('admin_arrivages_index');
     }
+
+    #[Route('/product-search', name: 'product_search', methods: ['GET'])]
+public function productSearch(Request $request): JsonResponse
+{
+    $q = trim((string) $request->query->get('q', ''));
+
+    if (mb_strlen($q) < 2) {
+        return $this->json([
+            'ok' => true,
+            'items' => [],
+        ]);
+    }
+
+    $search = $this->cacheApi->searchAdminProducts([
+        'q' => $q,
+        'include_archived' => '0',
+        'include_hidden' => '1',
+        'limit' => 12,
+        'offset' => 0,
+    ]);
+
+    $products = is_array($search['data'] ?? null) ? $search['data'] : [];
+    $items = [];
+
+    foreach ($products as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
+
+        $productId = (int) ($p['product_id'] ?? 0);
+        if ($productId <= 0) {
+            continue;
+        }
+
+        $name = trim((string) (
+            $p['product_model']
+            ?? $p['product_name']
+            ?? $p['name']
+            ?? ''
+        ));
+
+        $barcode = trim((string) ($p['product_barcode'] ?? ''));
+        $sku = trim((string) ($p['products_ref_ext'] ?? ''));
+        $price = isset($p['product_supply_price']) ? (string) $p['product_supply_price'] : '';
+        $stock = 0;
+
+        if (is_array($p['stock_available'] ?? null)) {
+            foreach ($p['stock_available'] as $stockRow) {
+                $stock += (int) ($stockRow['stock_available'] ?? 0);
+            }
+        } else {
+            $stock = (int) ($p['stock_available'] ?? 0);
+        }
+
+        $items[] = [
+            'id' => $productId,
+            'label' => sprintf(
+                '#%d — %s%s%s%s',
+                $productId,
+                $name !== '' ? $name : 'Sans nom',
+                $barcode !== '' ? ' — code: ' . $barcode : '',
+                $sku !== '' ? ' — ref: ' . $sku : '',
+                $price !== '' ? ' — PA: ' . $price : ''
+            ),
+            'name' => $name,
+            'barcode' => $barcode,
+            'sku' => $sku,
+            'buy_price' => $price,
+            'stock' => $stock,
+        ];
+    }
+
+    return $this->json([
+        'ok' => true,
+        'items' => $items,
+    ]);
+}
 }

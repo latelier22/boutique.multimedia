@@ -1,0 +1,492 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Pointage facture #{{ session.id }}{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="search icon"></i>
+            <div class="content">
+                Session de pointage #{{ session.id }}
+                <div class="sub header">
+                    {{ session.sourceFilename ?: 'Fichier sans nom' }}
+                </div>
+            </div>
+        </h1>
+
+        <a class="ui button" href="{{ path('admin_invoice_pointing_index') }}">
+            <i class="arrow left icon"></i>
+            Retour
+        </a>
+    </div>
+
+    <div class="ui divider"></div>
+
+    <form method="get" class="ui form" data-turbo="false" style="margin-bottom:16px;">
+        <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+            <div class="field">
+                <label>Filtre IMEI</label>
+                <select name="imei_filter" class="ui dropdown">
+                    <option value="all" {% if imeiFilter == 'all' %}selected{% endif %}>Toutes les lignes</option>
+                    <option value="with" {% if imeiFilter == 'with' %}selected{% endif %}>Avec IMEI</option>
+                    <option value="without" {% if imeiFilter == 'without' %}selected{% endif %}>Sans IMEI</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <button type="submit" class="ui primary button">
+                    <i class="filter icon"></i>
+                    Filtrer
+                </button>
+            </div>
+
+            <div class="field">
+                <a class="ui button" href="{{ path('admin_invoice_pointing_show', {id: session.id, imei_filter: 'with'}) }}">
+                    Réinitialiser
+                </a>
+            </div>
+        </div>
+    </form>
+
+    <div class="ui small statistics">
+        <div class="statistic">
+            <div class="value">{{ rows|length }}</div>
+            <div class="label">Lignes affichées</div>
+        </div>
+        <div class="statistic">
+            <div class="value">{{ session.rows|length }}</div>
+            <div class="label">Total session</div>
+        </div>
+    </div>
+
+    <form method="post"
+      action="{{ path('admin_invoice_pointing_auto_point_imei', {id: session.id}) }}"
+      data-turbo="false"
+      style="margin-bottom:16px;">
+    <input type="hidden" name="_token" value="{{ csrf_token('auto_point_imei_' ~ session.id) }}">
+    <input type="hidden" name="imei_filter" value="{{ imeiFilter }}">
+    <button class="ui orange button" type="submit" onclick="return confirm('Lancer la recherche et l’association automatique des lignes IMEI ?');">
+        <i class="magic icon"></i>
+        Recherche auto + association auto IMEI
+    </button>
+</form>
+<form method="post"
+      action="{{ path('admin_invoice_pointing_unpoint_all', {id: session.id}) }}"
+      data-turbo="false"
+      style="display:inline-block;margin-bottom:16px;">
+    <input type="hidden" name="_token" value="{{ csrf_token('unpoint_all_invoice_pointing_' ~ session.id) }}">
+    <input type="hidden" name="imei_filter" value="{{ imeiFilter }}">
+    <button class="ui red button" type="submit" onclick="return confirm('Supprimer toutes les associations de cette session ?');">
+        <i class="unlink icon"></i>
+        Tout désassocier
+    </button>
+</form>
+
+    <div class="ui divider"></div>
+
+    <table class="ui celled compact small table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Facture</th>
+                <th>Date</th>
+                <th>SKU</th>
+                <th>EAN</th>
+                <th>IMEI</th>
+                <th>Qté</th>
+                <th>PA</th>
+                <th>Libellé</th>
+                <th>Recherche</th>
+                <th>Association</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+            <tr id="row-{{ row.id }}">
+                <td>{{ row.lineNumber }}</td>
+                <td>{{ row.invoiceNumber ?: '—' }}</td>
+                <td>{% if row.invoiceDate %}{{ row.invoiceDate|date('d/m/Y') }}{% else %}—{% endif %}</td>
+                <td>{{ row.sku ?: '—' }}</td>
+                <td>{{ row.ean ?: '—' }}</td>
+                <td style="min-width:240px;">
+                    {% if row.imeis is iterable and row.imeis|length > 0 %}
+                        {% for oneImei in row.imeis %}
+                            <div>{{ oneImei }}</div>
+                        {% endfor %}
+                    {% elseif row.imei %}
+                        {{ row.imei }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ row.quantity }}</td>
+                <td>{{ row.buyPrice }}</td>
+                <td style="min-width:280px;">{{ row.rawLabel }}</td>
+
+                <td style="min-width:540px;">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+
+                        {% if row.imeis is iterable and row.imeis|length > 0 %}
+                            <div>
+                                <strong>IMEI :</strong>
+                                <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
+                                    {% for oneImei in row.imeis %}
+                                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                            <input type="text" value="{{ oneImei }}" style="min-width:220px;" readonly>
+                                            <button type="button"
+                                                    class="ui mini primary button js-search-row"
+                                                    data-row-id="{{ row.id }}"
+                                                    data-search-term="{{ oneImei }}">
+                                                <i class="search icon"></i>
+                                                Chercher cet IMEI
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elseif row.imei %}
+                            <div>
+                                <strong>IMEI :</strong>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                                    <input type="text" value="{{ row.imei }}" style="min-width:220px;" readonly>
+                                    <button type="button"
+                                            class="ui mini primary button js-search-row"
+                                            data-row-id="{{ row.id }}"
+                                            data-search-term="{{ row.imei }}">
+                                        <i class="search icon"></i>
+                                        Chercher cet IMEI
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if row.ean %}
+                            <div>
+                                <strong>EAN :</strong>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                                    <input type="text" value="{{ row.ean }}" style="min-width:220px;" readonly>
+                                    <button type="button"
+                                            class="ui mini button js-search-row"
+                                            data-row-id="{{ row.id }}"
+                                            data-search-term="{{ row.ean }}">
+                                        <i class="search icon"></i>
+                                        Chercher cet EAN
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if row.sku %}
+                            <div>
+                                <strong>SKU :</strong>
+                                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                                    <input type="text" value="{{ row.sku }}" style="min-width:220px;" readonly>
+                                    <button type="button"
+                                            class="ui mini button js-search-row"
+                                            data-row-id="{{ row.id }}"
+                                            data-search-term="{{ row.sku }}">
+                                        <i class="search icon"></i>
+                                        Chercher ce SKU
+                                    </button>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if (row.imeis is not iterable or row.imeis|length == 0) and not row.imei and not row.ean and not row.sku %}
+                            <div class="ui small grey message" style="margin:0;">
+                                Aucune donnée de recherche disponible
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="search-results" id="search-results-{{ row.id }}" style="margin-top:10px;"></div>
+                </td>
+
+                <td style="min-width:280px;">
+                    {% if row.matchedProductId %}
+    {% set p = matchedProducts[row.matchedProductId] ?? null %}
+    {% set lp = p.last_purchase_history ?? null %}
+
+    <div class="ui small green message" style="margin:0 0 8px 0;">
+        <strong>Associé :</strong> #{{ row.matchedProductId }}<br>
+
+        {% if p %}
+            <strong>Produit :</strong> {{ p.product_model ?? p.name ?? '—' }}<br>
+            <strong>Barcode :</strong> {{ p.product_barcode ?? p.barcode ?? '—' }}<br>
+            <strong>PV :</strong> {{ p.product_price ?? p.price ?? '—' }}<br>
+            <strong>Stock :</strong> {{ p.stock_available ?? '—' }}<br>
+            <strong>Archivé :</strong> {% if p.product_arch ?? false %}oui{% else %}non{% endif %}<br>
+
+            {% if lp %}
+                <hr style="margin:8px 0;">
+                <strong>Dernier arrivage :</strong><br>
+                <strong>Date :</strong> {{ lp.inventory_input_date ?? '—' }}<br>
+                <strong>Fournisseur ID :</strong> {{ lp.inventory_input_supplier_id ?? p.product_supplier ?? '—' }}<br>
+                <strong>PA :</strong> {{ lp.product_price ?? '—' }}<br>
+                <strong>Arrivage :</strong> {{ lp.inventory_input_label ?? '—' }}
+                {% if lp.inventory_input_id is defined and lp.inventory_input_id %}
+                    (#{{ lp.inventory_input_id }})
+                {% endif %}<br>
+                <strong>Détail :</strong>
+                {% if lp.inventory_input_detail_id is defined and lp.inventory_input_detail_id %}
+                    #{{ lp.inventory_input_detail_id }}
+                {% else %}
+                    —
+                {% endif %}
+            {% else %}
+                <hr style="margin:8px 0;">
+                <strong>Dernier arrivage :</strong> aucun historique d’achat
+            {% endif %}
+        {% else %}
+            <strong>Produit :</strong> introuvable dans le cache
+        {% endif %}
+
+        <hr style="margin:8px 0;">
+        <strong>Type :</strong> {{ row.matchType ?: 'manual' }}<br>
+        <strong>Pointé :</strong>
+        {% if row.pointedAt %}
+            {{ row.pointedAt|date('d/m/Y H:i') }}
+        {% else %}
+            oui
+        {% endif %}
+    </div>
+
+    <form method="post"
+          action="{{ path('admin_invoice_pointing_unpoint_row', {id: row.id}) }}"
+          data-turbo="false">
+        <input type="hidden" name="_token" value="{{ csrf_token('unpoint_invoice_row_' ~ row.id) }}">
+        <input type="hidden" name="imei_filter" value="{{ imeiFilter }}">
+        <button class="ui mini red button" type="submit">
+            <i class="unlink icon"></i>
+            Désassocier
+        </button>
+    </form>
+    <form method="post"
+      action="{{ path('admin_invoice_pointing_archive_product', {id: row.id}) }}"
+      data-turbo="false"
+      style="margin-top:8px;">
+    <input type="hidden" name="_token" value="{{ csrf_token('archive_invoice_row_' ~ row.id) }}">
+    <input type="hidden" name="imei_filter" value="{{ imeiFilter }}">
+    <button class="ui mini orange button" type="submit" onclick="return confirm('Archiver ce produit dans Hiboutik ?');">
+        <i class="archive icon"></i>
+        Archiver
+    </button>
+</form>
+{% else %}
+    <div class="ui small grey message" style="margin:0;">
+        Aucun produit associé
+    </div>
+{% endif %}
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="11">Aucune ligne.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.search-results .result-card {
+    border: 1px solid #e0e1e2;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #fff;
+}
+.search-results .result-card.archived {
+    background: #fff8f8;
+    border-color: #f1b0b7;
+}
+.search-results .result-meta {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+.search-results .result-actions {
+    margin-top: 8px;
+}
+.search-results .empty-box,
+.search-results .loading-box,
+.search-results .error-box {
+    padding: 10px;
+    border-radius: 6px;
+}
+.search-results .loading-box {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+.search-results .empty-box {
+    background: #fffaf3;
+    border: 1px solid #f2d28b;
+}
+.search-results .error-box {
+    background: #fff6f6;
+    border: 1px solid #e0b4b4;
+}
+.search-results .result-header {
+    margin-bottom: 8px;
+}
+</style>
+
+<script>
+window.invoicePointingTokens = {
+{% for row in rows %}
+    "{{ row.id }}": "{{ csrf_token('point_invoice_row_' ~ row.id) }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+};
+
+window.invoicePointingCurrentFilter = "{{ imeiFilter }}";
+window.invoicePointingPointUrlTemplate = "{{ path('admin_invoice_pointing_point_row', {id: 0})|e('js') }}";
+window.invoicePointingSearchUrl = "{{ path('admin_invoice_pointing_search_product')|e('js') }}";
+
+document.addEventListener('DOMContentLoaded', function () {
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function buildAssociateForm(rowId, product, matchType) {
+        const actionUrl = window.invoicePointingPointUrlTemplate.replace('/0/point', '/' + String(rowId) + '/point');
+
+        return `
+            <form method="post" action="${actionUrl}" data-turbo="false">
+                <input type="hidden" name="_token" value="${escapeHtml(window.invoicePointingTokens[rowId] || '')}">
+                <input type="hidden" name="matched_product_id" value="${escapeHtml(product.product_id)}">
+                <input type="hidden" name="match_type" value="${escapeHtml(matchType || product.match_type || 'manual')}">
+                <input type="hidden" name="imei_filter" value="${escapeHtml(window.invoicePointingCurrentFilter || 'with')}">
+                <button class="ui mini green button" type="submit">
+                    <i class="linkify icon"></i>
+                    Associer ce produit
+                </button>
+            </form>
+        `;
+    }
+
+    function renderResults(container, rowId, payload, searchedTerm) {
+        const header = `
+            <div class="result-header">
+                <span class="ui mini label">Recherche</span>
+                <strong>${escapeHtml(searchedTerm || '')}</strong>
+            </div>
+        `;
+
+        if (!payload || !payload.ok) {
+            container.innerHTML = header + `<div class="error-box">Erreur de recherche.</div>`;
+            return;
+        }
+
+        const items = Array.isArray(payload.items) ? payload.items : [];
+
+        if (!items.length) {
+            container.innerHTML = header + `<div class="empty-box">Aucun produit trouvé.</div>`;
+            return;
+        }
+
+        container.innerHTML = header + items.map((item) => {
+    const archived = !!item.product_arch;
+    const badge = archived
+        ? `<span class="ui mini red label">Archivé</span>`
+        : `<span class="ui mini green label">Actif</span>`;
+
+    const lp = item.last_purchase_history || null;
+    const sale = item.sale_info || {};
+
+    const lastPurchaseHtml = lp
+        ? `
+            <div class="ui mini message" style="margin-top:8px;">
+                <strong>Dernier arrivage</strong><br>
+                <strong>Date :</strong> ${escapeHtml(lp.inventory_input_date || '—')}<br>
+                <strong>Fournisseur ID :</strong> ${escapeHtml(lp.inventory_input_supplier_id || item.product_supplier || '—')}<br>
+                <strong>PA :</strong> ${escapeHtml(lp.product_price || '—')}<br>
+                <strong>Arrivage :</strong> ${escapeHtml(lp.inventory_input_label || '—')}
+                ${lp.inventory_input_id ? ` (#${escapeHtml(lp.inventory_input_id)})` : ''}<br>
+                <strong>Détail :</strong> ${lp.inventory_input_detail_id ? '#' + escapeHtml(lp.inventory_input_detail_id) : '—'}
+            </div>
+        `
+        : `
+            <div class="ui mini message" style="margin-top:8px;">
+                <strong>Dernier arrivage</strong><br>
+                Aucun historique d’achat
+            </div>
+        `;
+
+    return `
+        <div class="result-card ${archived ? 'archived' : ''}">
+            <div>
+                <div>
+                    <strong>#${escapeHtml(item.product_id)}</strong>
+                    ${badge}
+                </div>
+
+                <div style="margin-top:4px;">
+                    ${escapeHtml(item.name || '')}
+                </div>
+
+                <div class="result-meta" style="margin-top:8px;">
+                    <strong>Barcode :</strong> ${escapeHtml(item.barcode || '—')}<br>
+                    <strong>SKU :</strong> ${escapeHtml(item.sku || '—')}<br>
+                    <strong>Stock :</strong> ${escapeHtml(item.stock_available ?? 0)}<br>
+                    <strong>PV :</strong> ${escapeHtml(item.sell_price || '—')}
+                    ${item.discount_price && item.discount_price !== '0.00' ? `<br><strong>Promo :</strong> ${escapeHtml(item.discount_price)}` : ''}
+                </div>
+
+                ${lastPurchaseHtml}
+
+                <div class="ui mini message" style="margin-top:8px;">
+                    <strong>Vente</strong><br>
+                    ${escapeHtml(sale.label || 'inconnu')}
+                </div>
+            </div>
+
+            <div class="result-actions">
+                ${buildAssociateForm(rowId, item, 'manual')}
+            </div>
+        </div>
+    `;
+}).join('');
+    }
+
+    async function searchRow(rowId, term) {
+        const resultsBox = document.getElementById('search-results-' + rowId);
+        if (!resultsBox) return;
+
+        if (!term || !term.trim()) {
+            resultsBox.innerHTML = `<div class="empty-box">Aucune valeur à rechercher.</div>`;
+            return;
+        }
+
+        resultsBox.innerHTML = `<div class="loading-box">Recherche en cours : <strong>${escapeHtml(term)}</strong></div>`;
+
+        try {
+            const url = window.invoicePointingSearchUrl + '?q=' + encodeURIComponent(term.trim());
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+
+            const payload = await response.json();
+            renderResults(resultsBox, rowId, payload, term);
+        } catch (e) {
+            resultsBox.innerHTML = `<div class="error-box">Erreur JS / réseau.</div>`;
+        }
+    }
+
+    document.querySelectorAll('.js-search-row').forEach((button) => {
+        button.addEventListener('click', function () {
+            const rowId = this.dataset.rowId;
+            const term = this.dataset.searchTerm || '';
+            searchRow(rowId, term);
+        });
+    });
+});
+</script>
+{% endblock %}

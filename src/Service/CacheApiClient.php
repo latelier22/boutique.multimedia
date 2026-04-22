@@ -45,6 +45,28 @@ class CacheApiClient
         return $data['data'] ?? [];
     }
 
+
+    public function getProductById(int $productId): ?array
+{
+    if ($productId <= 0) {
+        return null;
+    }
+
+    $url = rtrim($this->baseUrl, '/') . '/api/products/' . $productId;
+
+    $r = $this->http->request('GET', $url, [
+        'timeout' => 15,
+    ]);
+
+    $data = $r->toArray(false);
+
+    if (!($data['ok'] ?? false)) {
+        return null;
+    }
+
+    return is_array($data['data'] ?? null) ? $data['data'] : null;
+}
+
     public function refreshProduct(int $productId): void
     {
         try {
@@ -101,4 +123,31 @@ class CacheApiClient
 
         error_log('[CacheApiClient] refreshDisplayMessages END');
     }
+
+
+public function searchAdminProducts(array $filters = []): array
+{
+    $url = rtrim($this->baseUrl, '/') . '/api/products/search-admin';
+
+    $query = array_filter($filters, static function ($v) {
+        return $v !== null && $v !== '';
+    });
+
+    $response = $this->http->request('GET', $url, [
+        'query' => $query,
+        'timeout' => 15,
+    ]);
+
+    $data = $response->toArray(false);
+
+    return [
+        'ok' => (bool) ($data['ok'] ?? false),
+        'data' => is_array($data['data'] ?? null) ? $data['data'] : [],
+        'total' => (int) ($data['total'] ?? 0),
+        'count' => (int) ($data['count'] ?? 0),
+        'meta' => is_array($data['meta'] ?? null) ? $data['meta'] : [],
+    ];
+}
+
+
 }

@@ -425,28 +425,17 @@
         container.dataset.imagesLoaded = '1';
 
         fetch(imagesUrl, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-            .then(r => r.text())
-            .then(html => {
-                const temp = document.createElement('div');
-                temp.innerHTML = html;
-
-                const grid = temp.querySelector('.ui.grid');
-                container.innerHTML = '';
-
-                if (grid) {
-                    container.appendChild(grid);
-                } else {
-                    container.innerHTML = html;
-                }
-
-                bindImagesActions();
-            })
-            .catch(err => {
-                console.error(err);
-                container.innerHTML = "Erreur chargement";
-            });
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+})
+.then(r => r.text())
+.then(html => {
+    container.innerHTML = html;
+    bindImagesActions();
+})
+.catch(err => {
+    console.error(err);
+    container.innerHTML = "Erreur chargement";
+});
     }
 
     /**

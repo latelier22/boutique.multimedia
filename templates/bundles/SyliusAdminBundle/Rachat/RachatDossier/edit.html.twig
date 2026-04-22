@@ -65,7 +65,18 @@
 							<i class="lock icon"></i>
 							Dossier verrouillé
 						</button>
+						<form method="post"
+          action="{{ path('admin_rachats_v2_unlock', { id: dossier.id }) }}"
+          style="display:inline-block;"
+          onsubmit="return confirm('Déverrouiller ce dossier ?');">
+        <input type="hidden" name="_token" value="{{ csrf_token('unlock_dossier_' ~ dossier.id) }}">
+        <button type="submit" class="ui orange button">
+            <i class="unlock icon"></i>
+            Déverrouiller le dossier
+        </button>
+    </form>
 					{% endif %}
+
 
 					{% if dossier.id %}
 						<button class="ui teal button js-btn-pdf-preview" type="submit" form="generate-pdf-form" {{ dossier.hibCustomerId ? '' : 'disabled' }}>

@@ -1,0 +1,98 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Pointage factures{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <h1 class="ui header" style="margin:0;">
+            <i class="search icon"></i>
+            <div class="content">
+                Pointage factures
+                <div class="sub header">
+                    Sessions de pointage importées
+                </div>
+            </div>
+        </h1>
+
+        <a class="ui primary button" href="{{ path('admin_invoice_pointing_import') }}">
+            <i class="upload icon"></i>
+            Importer un PDF
+        </a>
+    </div>
+
+    <div class="ui divider"></div>
+
+    <table class="ui celled compact table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fichier source</th>
+                <th>Statut</th>
+                <th>Lignes</th>
+                <th>Pointées</th>
+                <th>Créée le</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for session in sessions %}
+            {% set totalRows = session.rows|length %}
+            {% set pointedRows = 0 %}
+            {% for row in session.rows %}
+                {% if row.isPointed %}
+                    {% set pointedRows = pointedRows + 1 %}
+                {% endif %}
+            {% endfor %}
+
+            <tr>
+                <td>#{{ session.id }}</td>
+                <td>{{ session.sourceFilename ?: '—' }}</td>
+                <td>{{ session.status ?: 'draft' }}</td>
+                <td>{{ totalRows }}</td>
+                <td>{{ pointedRows }}</td>
+                <td>
+                    {% if session.createdAt %}
+                        {{ session.createdAt|date('d/m/Y H:i') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <a class="ui mini primary button"
+                           href="{{ path('admin_invoice_pointing_show', {id: session.id}) }}">
+                            <i class="eye icon"></i>
+                            Ouvrir
+                        </a>
+
+                        <form method="post"
+                              action="{{ path('admin_invoice_pointing_delete', {id: session.id}) }}"
+                              data-turbo="false"
+                              onsubmit="return confirm('Supprimer cette session de pointage ?');"
+                              style="margin:0;">
+                            <input type="hidden"
+                                   name="_token"
+                                   value="{{ csrf_token('delete_invoice_pointing_session_' ~ session.id) }}">
+                            <button class="ui mini red button" type="submit">
+                                <i class="trash icon"></i>
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7">
+                    <div class="ui message" style="margin:0;">
+                        Aucune session de pointage.
+                        <a href="{{ path('admin_invoice_pointing_import') }}">Importer un PDF</a>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

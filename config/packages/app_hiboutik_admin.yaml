@@ -123,7 +123,7 @@ parameters:
           route: "admin_arrivages_index"
           active_prefixes: ["admin_arrivages_"]
           actions:
-              - label: "Ouvrir"
+              - label: "Liste des arrivages"
                 route: "admin_arrivages_index"
                 method: "GET"
                 class: "primary-link"
@@ -135,10 +135,31 @@ parameters:
                 route: "admin_hib_mobile_import_index"
                 method: "GET"
                 class: "primary-link" 
-              - label: "Importer un document d'arrivage"
+              - label: "Créer arrivage à partir d’une Facture d’achat"
                 route: "admin_arrivages_documents_import_pdf"
                 method: "GET"
                 class: "primary-link" 
+        - key: "inventaire"
+          position: 40
+          title: "Inventaire"
+          menu_label: "Inventaire"
+          top_label: "📦 Inventaire"
+          text: "Gestion de l'inventaire et des mouvements."
+          icon: "box icon"
+          icon_text: null
+          sidebar_icon: "boxes"
+          color: "dashboard-card--yellow"
+          route: "admin_invoice_pointing_index"
+          active_prefixes: ["admin_invoice_pointing_"]
+          actions:
+              - label: "Liste des pointage"
+                route: "admin_invoice_pointing_index"
+                method: "GET"
+                class: "primary-link"
+              - label: "importer une facture d’achat pour pointer l’inventaire"
+                route: "admin_invoice_pointing_import"
+                method: "GET"
+                class: "primary-link"
                 
 
         # - key: "vendeurs"
@@ -170,8 +191,13 @@ parameters:
           route: "admin_hiboutik_product_index"
           active_prefixes: ["admin_hiboutik_product_"]
           actions:
-              - label: "Ouvrir"
+              - label: "Liste"
                 route: "admin_hiboutik_product_index"
+                method: "GET"
+                class: "primary-link"
+                actions:
+              - label: "Grille"
+                route: "admin_hiboutik_product_gallery"
                 method: "GET"
                 class: "primary-link"
 

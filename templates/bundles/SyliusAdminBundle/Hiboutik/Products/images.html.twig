@@ -8,83 +8,10 @@
 
 <script>
 const uploadUrl = "{{ path('admin_hiboutik_product_images', {id: product.product_id}) }}";
-</script>
-
-<div class="ui grid">
-
-{% for i in 1..4 %}
-
-  {% set current = null %}
-  {% set expectedNameJpg = 'big_' ~ product.product_id ~ '-' ~ i ~ '.jpg' %}
-  {% set expectedNameJpeg = 'big_' ~ product.product_id ~ '-' ~ i ~ '.jpeg' %}
-
-  {% for img in images %}
-    {% set imageName = img.image_name|default('') %}
-    {% if imageName == expectedNameJpg or imageName == expectedNameJpeg %}
-      {% set current = img %}
-    {% endif %}
-  {% endfor %}
-
-  {% set previewUrl = path('admin_hiboutik_product_image_preview', {
-    id: product.product_id,
-    slot: i,
-    t: 'now'|date('U')
-  }) %}
-
-  <div class="four wide column">
-    <div class="ui segment center aligned" data-slot="{{ i }}">
-
-      <img id="preview-{{ i }}"
-           src="{{ previewUrl }}"
-           style="max-width:100%; min-height:150px; background:#f5f5f5; object-fit:contain"
-           onerror="this.src=''; this.style.background='#fff7ed';">
-
-      <div style="margin-top:8px;">Image {{ i }}</div>
-
-      <input type="file"
-             id="input-{{ i }}"
-             accept="image/*"
-             style="display:none"
-             onchange="previewImage(event, {{ i }})">
-
-      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">
-        <button type="button"
-                class="ui button"
-                onclick="document.getElementById('input-{{ i }}').click()">
-          {{ current ? 'Modifier' : 'Ajouter' }}
-        </button>
-
-        <button type="button"
-                class="ui button"
-                onclick="pasteImage({{ i }})">
-          📋 Paste
-        </button>
-
-        <button type="button"
-                class="ui primary button"
-                onclick="uploadImage({{ i }})">
-          Envoyer
-        </button>
-
-        {% if current %}
-          <button type="button"
-                  class="ui red button"
-                  onclick="deleteImage('{{ current.image_name|e('js') }}')">
-            🗑
-          </button>
-        {% endif %}
-      </div>
-
-    </div>
-  </div>
-
-{% endfor %}
-
-</div>
-
-<script>
 let selectedFiles = {};
 </script>
+
+{% include '@SyliusAdmin/Hiboutik/Products/_images_grid.html.twig' %}
 
 <script>
 function previewImage(event, id) {
@@ -95,13 +22,12 @@ function previewImage(event, id) {
 
     const reader = new FileReader();
     reader.onload = function (e) {
-        document.getElementById('preview-' + id).src = e.target.result;
+        const img = document.getElementById('preview-' + id);
+        if (img) img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
-</script>
 
-<script>
 function uploadImage(id) {
     if (!selectedFiles[id]) {
         alert("Choisir une image");
@@ -130,9 +56,7 @@ function uploadImage(id) {
         alert("Erreur réseau upload");
     });
 }
-</script>
 
-<script>
 function deleteImage(imageName) {
     if (!confirm("Supprimer ?")) return;
 
@@ -157,9 +81,7 @@ function deleteImage(imageName) {
         alert("Erreur suppression");
     });
 }
-</script>
 
-<script>
 async function pasteImage(id) {
     try {
         const items = await navigator.clipboard.read();
@@ -174,7 +96,8 @@ async function pasteImage(id) {
 
                     const reader = new FileReader();
                     reader.onload = function (e) {
-                        document.getElementById('preview-' + id).src = e.target.result;
+                        const img = document.getElementById('preview-' + id);
+                        if (img) img.src = e.target.result;
                     };
                     reader.readAsDataURL(file);
 

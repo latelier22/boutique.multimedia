@@ -1,0 +1,86 @@
+{% extends '@!SyliusAdmin/layout.html.twig' %}
+
+{% block title %}Import pointage factures{% endblock %}
+
+{% block content %}
+<div class="ui segment">
+    <h1 class="ui header">
+        <i class="file pdf icon"></i>
+        <div class="content">
+            Import pointage factures
+            <div class="sub header">Upload d’un PDF multi-factures Utopya</div>
+        </div>
+    </h1>
+
+    {% if error %}
+        <div class="ui negative message">{{ error }}</div>
+    {% endif %}
+
+    <form class="ui form" method="post" enctype="multipart/form-data" data-turbo="false">
+        <div class="field">
+            <label>Fichier PDF</label>
+            <input type="file" name="pdf_file" accept=".pdf,application/pdf" required>
+        </div>
+
+        <button class="ui primary button" type="submit">
+            <i class="search icon"></i>
+            Prévisualiser
+        </button>
+    </form>
+
+    {% if file %}
+        <div class="ui divider"></div>
+
+        <h3 class="ui header">Fichier : {{ file }}</h3>
+
+       <form class="ui form" method="post" action="{{ path('admin_invoice_pointing_create_session') }}" enctype="multipart/form-data" data-turbo="false">
+            <div class="field">
+                <label>Réuploader le PDF pour créer la session</label>
+                <input type="file" name="pdf_file" accept=".pdf,application/pdf" required>
+            </div>
+
+            <button class="ui green button" type="submit">
+                <i class="check icon"></i>
+                Créer la session
+            </button>
+        </form>
+
+        <div class="ui divider"></div>
+
+        <table class="ui celled compact table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Facture</th>
+                    <th>Date</th>
+                    <th>SKU</th>
+                    <th>EAN</th>
+                    <th>IMEI</th>
+                    <th>Qté</th>
+                    <th>Prix achat</th>
+                    <th>Libellé</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <td>{{ row.line_number }}</td>
+                    <td>{{ row.invoice_number ?: '—' }}</td>
+                    <td>{{ row.invoice_date ?: '—' }}</td>
+                    <td>{{ row.sku ?: '—' }}</td>
+                    <td>{{ row.ean ?: '—' }}</td>
+                    <td>{{ row.imei ?: '—' }}</td>
+                    <td>{{ row.qty ?: 1 }}</td>
+                    <td>{{ row.unit_price is defined ? row.unit_price : '—' }}</td>
+                    <td>{{ row.label ?: '—' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="9">Aucune ligne reconnue.</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

@@ -34,18 +34,17 @@ final class HiboutikProductController extends AbstractController
         private RequestStack $requestStack, // pour le flash
     ) {}
 
-   #[Route('', name: 'index', methods: ['GET'])]
+  #[Route('', name: 'index', methods: ['GET'])]
 public function index(Request $request): Response
 {
-    // -------------------------
-    // FILTRES GET
-    // -------------------------
     $q     = trim((string) $request->query->get('q', ''));
     $www   = (string) $request->query->get('www', '');
     $cat   = (string) $request->query->get('cat', '');
     $sup   = (string) $request->query->get('sup', '');
     $tag   = (string) $request->query->get('tag', '');
     $brand = (string) $request->query->get('brand', '');
+    $stock = (string) $request->query->get('stock', '');
+    $page  = max(1, (int) $request->query->get('page', 1));
 
     if (!in_array($www, ['', '0', '1'], true)) {
         $www = '';
@@ -62,21 +61,22 @@ public function index(Request $request): Response
     if ($brand !== '' && !ctype_digit($brand)) {
         $brand = '';
     }
+    if (!in_array($stock, ['', '0', '1'], true)) {
+        $stock = '';
+    }
 
     $wantCat   = $cat !== '' ? (int) $cat : 0;
     $wantSup   = $sup !== '' ? (int) $sup : 0;
     $wantTag   = $tag !== '' ? (int) $tag : 0;
     $wantBrand = $brand !== '' ? (int) $brand : 0;
+    $wantStock = $stock === '1';
 
     // -------------------------
-    // TAGS (pour SELECT seulement)
+    // CHOICES
     // -------------------------
     $tagCatalog = $this->hib->buildProductTagChoices();
     $tagChoices = $tagCatalog['choices'] ?? [];
 
-    // -------------------------
-    // CHOICES Hiboutik
-    // -------------------------
     $brandsRes = $this->hib->listBrands();
     $catsRes   = $this->hib->listCategories();
     $supsRes   = $this->hib->listSuppliers();
@@ -97,7 +97,6 @@ public function index(Request $request): Response
 
     $catChoices = [];
     $catMapName = [];
-
     foreach ($categoryOptions as $opt) {
         $id = (int) ($opt['id'] ?? 0);
         $label = trim((string) ($opt['label'] ?? ''));
@@ -126,30 +125,31 @@ public function index(Request $request): Response
     }
 
     // -------------------------
-    // PRODUITS → API CACHE
+    // API CACHE FILTERED SEARCH
     // -------------------------
-    $params = [
-        'from' => 0,
-        'to' => 2000,
+    $perPage = 100;
+    $offset = ($page - 1) * $perPage;
+
+    $apiFilters = [
+        'q' => $q,
+        'brand' => $wantBrand > 0 ? $wantBrand : null,
+        'supplier' => $wantSup > 0 ? $wantSup : null,
+        'category' => $wantCat > 0 ? $wantCat : null,
+        'tag_id' => $wantTag > 0 ? $wantTag : null,
+        'www' => $www !== '' ? $www : null,
+        'stock_only' => $wantStock ? '1' : null,
+        'include_archived' => '0',
+        'include_hidden' => '1',
+        'limit' => $perPage,
+        'offset' => $offset,
     ];
 
-    if ($q !== '') {
-        $params['q'] = $q;
-    }
-    if ($wantCat > 0) {
-        $params['product_category'] = $wantCat;
-    }
-
-    if ($wantTag > 0) {
-        $products = $this->cacheApi->getProductsByTag($wantTag);
-    } else {
-        $products = $this->cacheApi->getProducts($params);
-    }
-
-    $qLower = mb_strtolower($q);
+    $search = $this->cacheApi->searchAdminProducts($apiFilters);
+    $products = $search['data'] ?? [];
+    $total = (int) ($search['total'] ?? 0);
 
     // -------------------------
-    // FILTRAGE FINAL
+    // ENRICHISSEMENT AFFICHAGE
     // -------------------------
     $final = [];
 
@@ -163,34 +163,27 @@ public function index(Request $request): Response
             continue;
         }
 
-        $pWww = !empty($p['product_display_www']) ? '1' : '0';
         $pCat = (int) ($p['product_category'] ?? 0);
-
         $pSup = (int) (
             $p['product_supplier']
             ?? $p['supplier_id']
             ?? $p['product_supplier_id']
             ?? 0
         );
-
         $pBrand = (int) ($p['product_brand'] ?? 0);
 
-        // noms lisibles
         $p['category_name'] = $catMapName[$pCat] ?? '—';
 
         $rawSupplierName = trim((string)($p['supplier_name'] ?? ''));
-$p['supplier_name'] = $rawSupplierName !== ''
-    ? $rawSupplierName
-    : ($supMapName[$pSup] ?? '—');
+        $p['supplier_name'] = $rawSupplierName !== ''
+            ? $rawSupplierName
+            : ($supMapName[$pSup] ?? '—');
 
-$rawBrandName = trim((string)($p['product_brand_name'] ?? $p['brand_name'] ?? ''));
-$p['brand_name'] = $rawBrandName !== ''
-    ? $rawBrandName
-    : ($brandMapName[$pBrand] ?? '—');
+        $rawBrandName = trim((string)($p['product_brand_name'] ?? $p['brand_name'] ?? ''));
+        $p['brand_name'] = $rawBrandName !== ''
+            ? $rawBrandName
+            : ($brandMapName[$pBrand] ?? '—');
 
-        // -------------------------
-        // ARRIVAGE / HISTORIQUE ACHAT
-        // -------------------------
         $lastPurchase = is_array($p['last_purchase_history'] ?? null)
             ? $p['last_purchase_history']
             : null;
@@ -202,51 +195,19 @@ $p['brand_name'] = $rawBrandName !== ''
         $p['last_purchase_inventory_input_id'] = (int) ($lastPurchase['inventory_input_id'] ?? 0);
         $p['last_purchase_supplier_name'] = $supMapName[$lastPurchaseSupplierId] ?? '—';
 
-        // filtres
-        if ($www !== '' && $pWww !== $www) {
-            continue;
-        }
-        if ($wantSup > 0 && $pSup !== $wantSup) {
-            continue;
-        }
-        if ($wantBrand > 0 && $pBrand !== $wantBrand) {
-            continue;
-        }
-
-        // recherche
-        if ($qLower !== '') {
-            $hay = mb_strtolower(
-                ($p['product_model'] ?? '') . ' ' .
-                ($p['product_barcode'] ?? '') . ' ' .
-                ($p['category_name'] ?? '') . ' ' .
-                ($p['supplier_name'] ?? '') . ' ' .
-                ($p['brand_name'] ?? '') . ' ' .
-                ($p['last_purchase_label'] ?? '') . ' ' .
-                ($p['last_purchase_date'] ?? '') . ' ' .
-                ($p['last_purchase_supplier_name'] ?? '')
-            );
-
-            if (mb_strpos($hay, $qLower) === false) {
-                continue;
-            }
-        }
-
         $p['tags'] = $p['tags'] ?? [];
 
         $final[] = $p;
     }
 
     // -------------------------
-    // Etiquettes : format et nombre de slots configurés
+    // LABEL BUILDER
     // -------------------------
     $builderFormat = $this->getLabelBuilderFormat($this->requestStack);
     $builderSlots = $this->getLabelBuilderSlots($this->requestStack);
     $builderCount = count(array_filter($builderSlots, fn ($v) => $v !== null));
     $builderSlotMax = $this->getLabelBuilderSlotCount($builderFormat);
 
-    // -------------------------
-    // RENDER
-    // -------------------------
     return $this->render('@SyliusAdmin/Hiboutik/Products/index.html.twig', [
         'products' => $final,
         'brandChoices' => $brandChoices,
@@ -260,7 +221,12 @@ $p['brand_name'] = $rawBrandName !== ''
             'cat' => $cat,
             'sup' => $sup,
             'tag' => $tag,
+            'stock' => $stock,
+            'page' => $page,
         ],
+        'total' => $total,
+        'page' => $page,
+        'perPage' => $perPage,
         'builderFormat' => $builderFormat,
         'builderCount' => $builderCount,
         'builderSlotMax' => $builderSlotMax,
@@ -913,45 +879,36 @@ public function batch(Request $request): Response
     return $this->redirectToRoute('admin_hiboutik_product_index');
 }
 
-    #[Route('/{id}/images', name: 'images', methods: ['GET','POST'])]
+  #[Route('/{id}/images', name: 'images', methods: ['GET','POST'])]
 public function images(int $id, Request $request): Response
 {
     $product = $this->hib->getProduct($id);
+    
 
     if (!$product) {
         throw $this->createNotFoundException();
     }
 
     // =========================
-    // 🔥 POST GLOBAL
+    // POST
     // =========================
     if ($request->isMethod('POST')) {
 
+        // DELETE IMAGE
+        if ($request->request->get('delete_image')) {
+            $imageName = (string) $request->request->get('delete_image');
 
-        // =========================
-// 🔥 DELETE IMAGE
-// =========================
-if ($request->request->get('delete_image')) {
+            $res = $this->hib->deleteProductImageByName($imageName);
 
-    $imageName = $request->request->get('delete_image');
+            $this->refreshProduct($id);
 
-    $res = $this->hib->deleteProductImageByName($imageName);
+            return $this->json($res);
+        }
 
-    
-    $this->refreshProduct($id);
-
-
-    return $this->json($res);
-}
-
-
-        // =========================
-        // 🔥 CAS 1 : UNE IMAGE (AJAX)
-        // =========================
+        // UPLOAD 1 IMAGE
         if ($request->files->get('image')) {
-
             $file = $request->files->get('image');
-            $imageId = (int)$request->request->get('image_id');
+            $imageId = (int) $request->request->get('image_id');
 
             if (!$file || !$imageId) {
                 return $this->json(['error' => 'missing data'], 400);
@@ -964,21 +921,17 @@ if ($request->request->get('delete_image')) {
                 $file->getClientOriginalName()
             );
 
-           
             $this->refreshProduct($id);
-
 
             return $this->json($res);
         }
 
-        // =========================
-        // 🔥 CAS 2 : MULTIPLE
-        // =========================
+        // UPLOAD MULTIPLE
         $files = $request->files->get('images');
 
         if (!$files) {
             $this->addFlash('error', 'Aucun fichier reçu');
-            return $this->redirectToRoute('admin_hiboutik_product_images', ['id'=>$id]);
+            return $this->redirectToRoute('admin_hiboutik_product_images', ['id' => $id]);
         }
 
         if (!is_array($files)) {
@@ -990,11 +943,12 @@ if ($request->request->get('delete_image')) {
         $success = 0;
 
         foreach ($files as $file) {
-
-            if (!$file) continue;
+            if (!$file) {
+                continue;
+            }
 
             if (!$file->isValid()) {
-                $errors[] = $file->getClientOriginalName().' invalide';
+                $errors[] = $file->getClientOriginalName() . ' invalide';
                 continue;
             }
 
@@ -1005,18 +959,18 @@ if ($request->request->get('delete_image')) {
                 $file->getClientOriginalName()
             );
 
-           
-    $this->refreshProduct($id);
-
+            $this->refreshProduct($id);
 
             if (!($res['ok'] ?? false)) {
-                $errors[] = $file->getClientOriginalName().' ('.$res['status'].') '.$res['raw'];
+                $errors[] = $file->getClientOriginalName() . ' (' . ($res['status'] ?? '?') . ') ' . ($res['raw'] ?? '');
             } else {
                 $success++;
             }
 
             $i++;
-            if ($i > 4) break;
+            if ($i > 4) {
+                break;
+            }
         }
 
         if ($errors) {
@@ -1025,33 +979,32 @@ if ($request->request->get('delete_image')) {
             $this->addFlash('success', "$success image(s) uploadée(s)");
         }
 
-        return $this->redirectToRoute('admin_hiboutik_product_images', ['id'=>$id]);
+        return $this->redirectToRoute('admin_hiboutik_product_images', ['id' => $id]);
     }
 
     // =========================
-    // 🔥 GET
+    // GET
     // =========================
     $images = array_values(array_filter(
-    (array)($product['images'] ?? []),
-    static function ($img) use ($id) {
-        if (!is_array($img)) {
-            return false;
+        (array) ($product['images'] ?? []),
+        static function ($img) {
+            return is_array($img) && !empty($img['image_name']) && !empty($img['url']);
         }
+    ));
 
-        $imageName = (string)($img['image_name'] ?? '');
-
-        if ($imageName === '') {
-            return true;
-        }
-
-        return str_starts_with($imageName, 'big_' . $id . '-');
+    // AJAX depuis la page edit => fragment uniquement
+    if ($request->isXmlHttpRequest()) {
+        return $this->render('@SyliusAdmin/Hiboutik/Products/_images_grid.html.twig', [
+            'product' => $product,
+            'images' => $images,
+        ]);
     }
-));
 
-return $this->render('@SyliusAdmin/Hiboutik/Products/images.html.twig', [
-    'product' => $product,
-    'images' => $images,
-]);
+    // page complète
+    return $this->render('@SyliusAdmin/Hiboutik/Products/images.html.twig', [
+        'product' => $product,
+        'images' => $images,
+    ]);
 }
 
 private function refreshProduct(int $id): void
@@ -2593,6 +2546,223 @@ public function imagePreview(int $id, int $slot): Response
         'Pragma' => 'no-cache',
         'Expires' => '0',
     ]);
+}
+
+
+#[Route('/gallery', name: 'gallery', methods: ['GET'])]
+public function gallery(Request $request): Response
+{
+    $q       = trim((string) $request->query->get('q', ''));
+    $www     = (string) $request->query->get('www', '');
+    $cat     = (string) $request->query->get('cat', '');
+    $sup     = (string) $request->query->get('sup', '');
+    $tag     = (string) $request->query->get('tag', '');
+    $brand   = (string) $request->query->get('brand', '');
+    $stock   = (string) $request->query->get('stock', '');
+    $page    = max(1, (int) $request->query->get('page', 1));
+    $perPageRaw = (string) $request->query->get('per_page', '100');
+$page = max(1, (int) $request->query->get('page', 1));
+
+$allowedPerPage = ['100', '200', '500', 'all'];
+if (!in_array($perPageRaw, $allowedPerPage, true)) {
+    $perPageRaw = '100';
+}
+
+    if (!in_array($www, ['', '0', '1'], true)) {
+        $www = '';
+    }
+    if ($cat !== '' && !ctype_digit($cat)) {
+        $cat = '';
+    }
+    if ($sup !== '' && !ctype_digit($sup)) {
+        $sup = '';
+    }
+    if ($tag !== '' && !ctype_digit($tag)) {
+        $tag = '';
+    }
+    if ($brand !== '' && !ctype_digit($brand)) {
+        $brand = '';
+    }
+    if (!in_array($stock, ['', '0', '1'], true)) {
+        $stock = '';
+    }
+
+    if (!in_array($perPage, [24, 48, 60, 96, 120], true)) {
+        $perPage = 60;
+    }
+
+    $wantCat   = $cat !== '' ? (int) $cat : 0;
+    $wantSup   = $sup !== '' ? (int) $sup : 0;
+    $wantTag   = $tag !== '' ? (int) $tag : 0;
+    $wantBrand = $brand !== '' ? (int) $brand : 0;
+    $wantStock = $stock === '1';
+
+    $tagCatalog = $this->hib->buildProductTagChoices();
+    $tagChoices = $tagCatalog['choices'] ?? [];
+
+    $brandsRes = $this->hib->listBrands();
+    $catsRes   = $this->hib->listCategories();
+    $supsRes   = $this->hib->listSuppliers();
+
+    $brandChoices = [];
+    $brandMapName = [];
+    foreach (($brandsRes['data'] ?? []) as $b) {
+        $id = (int) ($b['brand_id'] ?? 0);
+        $name = trim((string) ($b['brand_name'] ?? ''));
+        if ($id > 0 && $name !== '') {
+            $brandChoices[$name] = $id;
+            $brandMapName[$id] = $name;
+        }
+    }
+
+    $categories = is_array($catsRes['data'] ?? null) ? $catsRes['data'] : [];
+    $categoryOptions = $this->buildCategorySelectOptions($categories);
+
+    $catChoices = [];
+    $catMapName = [];
+    foreach ($categoryOptions as $opt) {
+        $id = (int) ($opt['id'] ?? 0);
+        $label = trim((string) ($opt['label'] ?? ''));
+
+        if ($id <= 0 || $label === '') {
+            continue;
+        }
+
+        if (!empty($opt['selectable'])) {
+            $prettyLabel = str_replace(' › ', ' - ', $label);
+            $catChoices[$prettyLabel] = $id;
+        }
+
+        $catMapName[$id] = str_replace(' › ', ' - ', $label);
+    }
+
+    $supplierChoices = [];
+    $supMapName = [];
+    foreach (($supsRes['data'] ?? []) as $s) {
+        $id = (int) ($s['supplier_id'] ?? 0);
+        $name = trim((string) ($s['supplier_name'] ?? ''));
+        if ($id > 0 && $name !== '') {
+            $supplierChoices[$name] = $id;
+            $supMapName[$id] = $name;
+        }
+    }
+
+    
+    $offset = $perPageRaw === 'all' ? 0 : (($page - 1) * (int) $perPageRaw);
+
+    $apiFilters = [
+    'q' => $q,
+    'brand' => $wantBrand > 0 ? $wantBrand : null,
+    'supplier' => $wantSup > 0 ? $wantSup : null,
+    'category' => $wantCat > 0 ? $wantCat : null,
+    'tag_id' => $wantTag > 0 ? $wantTag : null,
+    'www' => $www !== '' ? $www : null,
+    'stock_only' => $wantStock ? '1' : null,
+    'todo_only' => $request->query->get('todo_only') === '1' ? '1' : null,
+    'include_archived' => '0',
+    'include_hidden' => '1',
+    'limit' => $perPageRaw,
+    'offset' => $offset,
+];
+
+    $search = $this->cacheApi->searchAdminProducts($apiFilters);
+    $products = $search['data'] ?? [];
+    $total = (int) ($search['total'] ?? 0);
+
+if ($perPageRaw === 'all') {
+    $perPage = $total > 0 ? $total : count($products);
+    $totalPages = 1;
+} else {
+    $perPage = (int) $perPageRaw;
+    $totalPages = max(1, (int) ceil($total / $perPage));
+}
+
+    $final = [];
+
+    foreach ($products as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
+
+        $pid = (int) ($p['product_id'] ?? 0);
+        if ($pid <= 0) {
+            continue;
+        }
+
+        $pCat = (int) ($p['product_category'] ?? 0);
+        $pSup = (int) (
+            $p['product_supplier']
+            ?? $p['supplier_id']
+            ?? $p['product_supplier_id']
+            ?? 0
+        );
+        $pBrand = (int) ($p['product_brand'] ?? 0);
+
+        $p['category_name'] = $catMapName[$pCat] ?? '—';
+
+        $rawSupplierName = trim((string) ($p['supplier_name'] ?? ''));
+        $p['supplier_name'] = $rawSupplierName !== ''
+            ? $rawSupplierName
+            : ($supMapName[$pSup] ?? '—');
+
+        $stockValue = 0;
+
+if (is_array($p['stock_available'] ?? null)) {
+    foreach ($p['stock_available'] as $stockRow) {
+        $stockValue += (int) ($stockRow['stock_available'] ?? 0);
+    }
+} else {
+    $stockValue = (int) ($p['stock_available'] ?? 0);
+}
+
+$p['stock_value'] = $stockValue;
+$p['stock_label'] = 'stock = ' . $stockValue;
+$p['stock_ok'] = $stockValue > 0;
+
+        $rawBrandName = trim((string) ($p['product_brand_name'] ?? $p['brand_name'] ?? ''));
+        $p['brand_name'] = $rawBrandName !== ''
+            ? $rawBrandName
+            : ($brandMapName[$pBrand] ?? '—');
+
+        $lastPurchase = is_array($p['last_purchase_history'] ?? null)
+            ? $p['last_purchase_history']
+            : null;
+
+        $lastPurchaseSupplierId = (int) ($lastPurchase['inventory_input_supplier_id'] ?? 0);
+        $p['last_purchase_label'] = $lastPurchase['inventory_input_label'] ?? '—';
+        $p['last_purchase_date'] = $lastPurchase['inventory_input_date'] ?? '—';
+        $p['last_purchase_supplier_name'] = $supMapName[$lastPurchaseSupplierId] ?? '—';
+
+        $p['tag_labels'] = is_array($p['tags_slug'] ?? null) ? $p['tags_slug'] : [];
+
+        $final[] = $p;
+    }
+
+    $totalPages = max(1, (int) ceil($total / $perPage));
+
+return $this->render('@SyliusAdmin/Hiboutik/Products/gallery.html.twig', [
+    'products' => $final,
+    'brandChoices' => $brandChoices,
+    'catChoices' => $catChoices,
+    'supplierChoices' => $supplierChoices,
+    'tagChoices' => $tagChoices,
+    'filters' => [
+        'q' => $q,
+        'www' => $www,
+        'brand' => $brand,
+        'cat' => $cat,
+        'sup' => $sup,
+        'tag' => $tag,
+        'stock' => $stock,
+        'page' => $page,
+        'per_page' => $perPage,
+        'todo_only' => (string) $request->query->get('todo_only', ''),
+    ],
+    'total' => $total,
+    'page' => $page,
+    'perPage' => $perPage,
+    'totalPages' => $totalPages,
+]);
 }
 
 }
