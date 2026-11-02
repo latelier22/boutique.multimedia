@@ -14591,16 +14591,16 @@
         },
         {
             "name": "dbrekelmans/bdi",
-            "version": "1.4.0",
+            "version": "1.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dbrekelmans/bdi.git",
-                "reference": "fa2ff9b5ed0508ddf5cd574f9dfa6fea954a9acd"
+                "reference": "c2b77127d7aa3fad25d57575c207b54b108ab300"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dbrekelmans/bdi/zipball/fa2ff9b5ed0508ddf5cd574f9dfa6fea954a9acd",
-                "reference": "fa2ff9b5ed0508ddf5cd574f9dfa6fea954a9acd",
+                "url": "https://api.github.com/repos/dbrekelmans/bdi/zipball/c2b77127d7aa3fad25d57575c207b54b108ab300",
+                "reference": "c2b77127d7aa3fad25d57575c207b54b108ab300",
                 "shasum": ""
             },
             "require": {
@@ -14634,9 +14634,9 @@
                 "browser-driver-installer"
             ],
             "support": {
-                "source": "https://github.com/dbrekelmans/bdi/tree/1.4.0"
+                "source": "https://github.com/dbrekelmans/bdi/tree/1.4.1"
             },
-            "time": "2024-12-12T18:36:47+00:00"
+            "time": "2025-11-03T11:32:28+00:00"
         },
         {
             "name": "dealerdirect/phpcodesniffer-composer-installer",
@@ -19744,12 +19744,12 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.1"
     },
-    "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
 }
